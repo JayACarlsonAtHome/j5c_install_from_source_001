@@ -6,85 +6,90 @@
 
 using sstr = std::string;
 
-void install_required_dependencies()
-{
-    sstr federa_release = "7";
-    sstr command = "";
-    std::vector<sstr> vec_yum;
-    vec_yum.push_back("yum -y install wget");
-    vec_yum.push_back("wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-" + federa_release + ".noarch.rpm");
-    vec_yum.push_back("yum -y install epel-release-latest-" + federa_release +".noarch.rpm");
-    vec_yum.push_back("rm -f epel-release-latest-7.noarch.rpm");
-    vec_yum.push_back("yum -y install autoconf");
-    vec_yum.push_back("yum -y install bison");
-    vec_yum.push_back("yum -y install boost-devel");
-    vec_yum.push_back("yum -y install bzip2-devel");
-    vec_yum.push_back("yum -y install cmake");
-    vec_yum.push_back("yum -y install cmake-gui");
-    vec_yum.push_back("yum -y install expat-devel");
-    vec_yum.push_back("yum -y install ftp");
-    vec_yum.push_back("yum -y install google-chrome-stable");
-    vec_yum.push_back("yum -y install gitk");
-    vec_yum.push_back("yum -y install gcc");
-    vec_yum.push_back("yum -y install gcc-c++");
-    vec_yum.push_back("yum -y install gcc-c++-x86_64-linux-gnu");
-    vec_yum.push_back("yum -y install jemalloc-devel");
-    vec_yum.push_back("yum -y install java-1.8.0-openjdk");
-    vec_yum.push_back("yum -y install Judy");
-    vec_yum.push_back("yum -y install libcurl-devel");
-    vec_yum.push_back("yum -y install libedit-devel");
-    vec_yum.push_back("yum -y install libicu-devel");
-    vec_yum.push_back("yum -y install libjpeg-turbo-utils");
-    vec_yum.push_back("yum -y install libjpeg-turbo-devel");
-    vec_yum.push_back("yum -y install libpng-devel");
-    vec_yum.push_back("yum -y install libstdc++");
-    vec_yum.push_back("yum -y install libstdc++-devel");
-    vec_yum.push_back("yum -y install libstdc++-docs");
-    vec_yum.push_back("yum -y install libstdc++-static");
-    vec_yum.push_back("yum -y install libwebp-devel");
-    vec_yum.push_back("yum -y install libxml2-devel");
-    vec_yum.push_back("yum -y install libxslt-devel");
-    vec_yum.push_back("yum -y install openssl-devel");
-    vec_yum.push_back("yum -y install re2c");
-    vec_yum.push_back("yum -y install ruby");
-    vec_yum.push_back("yum -y install tcltls-devel");
-    vec_yum.push_back("yum -y install xml2");
-    vec_yum.push_back("yum -y install vsqlite++-devel");
-
-    for (auto it = vec_yum.cbegin(); it != vec_yum.cend(); ++it )
-    {
-        command =  *it;
-        system(command.c_str());
-    }
-
-}
-
-void install_perl(sstr& path)
+int do_command(std::vector<sstr>& vec)
 {
     sstr command = "";
-    std::vector<sstr> vec_yum;
-    vec_yum.push_back("mkdir -p " + path);
-    vec_yum.push_back("cd " + path);
-    vec_yum.push_back("wget http://www.cpan.org/src/5.0/perl-5.26.1.tar.gz");
-    vec_yum.push_back("tar xvf perl-5.26.1.tar.gz");
-    vec_yum.push_back("cd /j5c/p001/perl/perl-5.26.1");
-    vec_yum.push_back("./Configure -Dprefix=/j5c/p001/usr/perl -d -e");
-    vec_yum.push_back("make");
-    vec_yum.push_back("make test");
-    vec_yum.push_back("make install");
-
-    bool result = false;
-    for (auto it = vec_yum.cbegin(); it != vec_yum.cend(); ++it )
+    int result = 0;
+    for (auto it = vec.cbegin(); it != vec.cend(); ++it )
     {
         command =  *it;
+        std::cout << "Command: " << command << std::endl;
         result = system(command.c_str());
-        if (!result)
+        //result = 0;
+        if ((result != 0) && (!(command.substr(0,3) == "yum")))
         {
             std::cout << "!!!Error -- Process terminated for safety...";
             break;
         }
     }
+    return result;
+}
 
+int install_required_dependencies()
+{
+    sstr federa_release = "7";
+    sstr command = "";
+    std::vector<sstr> vec;
+    vec.push_back("yum -y install wget");
+    vec.push_back("wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-" + federa_release + ".noarch.rpm");
+    vec.push_back("yum -y install epel-release-latest-" + federa_release +".noarch.rpm");
+    vec.push_back("rm -f epel-release-latest-7.noarch.rpm");
+    vec.push_back("yum -y install autoconf");
+    vec.push_back("yum -y install bison");
+    vec.push_back("yum -y install boost-devel");
+    vec.push_back("yum -y install bzip2-devel");
+    vec.push_back("yum -y install cmake");
+    vec.push_back("yum -y install cmake-gui");
+    vec.push_back("yum -y install expat-devel");
+    vec.push_back("yum -y install ftp");
+    vec.push_back("yum -y install google-chrome-stable");
+    vec.push_back("yum -y install gitk");
+    vec.push_back("yum -y install gcc");
+    vec.push_back("yum -y install gcc-c++");
+    vec.push_back("yum -y install gcc-c++-x86_64-linux-gnu");
+    vec.push_back("yum -y install jemalloc-devel");
+    vec.push_back("yum -y install java-1.8.0-openjdk");
+    vec.push_back("yum -y install Judy");
+    vec.push_back("yum -y install libcurl-devel");
+    vec.push_back("yum -y install libedit-devel");
+    vec.push_back("yum -y install libicu-devel");
+    vec.push_back("yum -y install libjpeg-turbo-utils");
+    vec.push_back("yum -y install libjpeg-turbo-devel");
+    vec.push_back("yum -y install libpng-devel");
+    vec.push_back("yum -y install libstdc++");
+    vec.push_back("yum -y install libstdc++-devel");
+    vec.push_back("yum -y install libstdc++-docs");
+    vec.push_back("yum -y install libstdc++-static");
+    vec.push_back("yum -y install libwebp-devel");
+    vec.push_back("yum -y install libxml2-devel");
+    vec.push_back("yum -y install libxslt-devel");
+    vec.push_back("yum -y install openssl-devel");
+    vec.push_back("yum -y install re2c");
+    vec.push_back("yum -y install ruby");
+    vec.push_back("yum -y install tcltls-devel");
+    vec.push_back("yum -y install xml2");
+    vec.push_back("yum -y install vsqlite++-devel");
+
+    int result = do_command(vec);
+
+    return result;
+}
+
+int install_perl(sstr& path)
+{
+    sstr command = "";
+    std::vector<sstr> vec;
+    vec.push_back("mkdir -p " + path);
+    vec.push_back("wget http://www.cpan.org/src/5.0/perl-5.26.1.tar.gz");
+    vec.push_back("cp ./perl-5.26.1.tar.gz " + path);
+    vec.push_back("rm -f ./perl-5.26.1.tar.gz ");
+    vec.push_back("eval \"cd " + path + "; tar xvf perl-5.26.1.tar.gz\"");
+    vec.push_back("eval \"cd " + path + "/perl-5.26.1; ./Configure -Dprefix=/j5c/p001/usr/perl -d -e\"");
+    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make\"");
+    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make test\"");
+    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make install\"");
+    int result = do_command(vec);
+    return result;
 }
 
 bool ensure_Directory_exists(sstr& basePath, sstr& path)
@@ -151,19 +156,20 @@ bool File_Contents(std::ofstream& file, sstr& fileName, std::vector<sstr>& vec_l
 
 int main()
 {
+    //ensure dependencies are met
+    //install_required_dependencies();
+
     //basic setup
     sstr company = "/j5c";
     sstr version = "001";
-    sstr buildPathOffset = "build_" + version;
-    sstr prod_PathOffset = "p_"     + version;
+    sstr buildPathOffset = "/build_" + version;
+    sstr prod_PathOffset = "/p"     + version;
 
     //perl setup
     sstr programName     = "perl";
-    sstr path = company + prod_PathOffset + programName;
-
-    install_required_dependencies();
-    install_perl(path);
-
+    sstr path = company + prod_PathOffset + "/" + programName;
+    int result = install_perl(path);
+    std::cout << "Install Perl result = " << result << ".";
 
 
     return 0;

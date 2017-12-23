@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project(j5c_DataGrid)
+project(j5c_install_from_source_001)
 
 set(CMAKE_CXX_STANDARD 17)
 
