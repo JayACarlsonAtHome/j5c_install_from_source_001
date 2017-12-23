@@ -4,6 +4,8 @@
 #include <vector>
 #include <stdio.h>
 
+enum class Os_type{Linux_Mint = 0, CentOS = 1, RedHat = 2, MaxOSX = 3};
+
 using sstr = std::string;
 
 int do_command(std::vector<sstr>& vec)
@@ -93,7 +95,7 @@ int install_perl(sstr& path, sstr& usrPath)
     return result;
 }
 
-int install_tcl(sstr& path, sstr& usrPath)
+int install_tcl(sstr& path, sstr& usrPath, Os_type thisOS)
 {
     sstr command = "";
     std::vector<sstr> vec;
@@ -103,7 +105,17 @@ int install_tcl(sstr& path, sstr& usrPath)
     vec.push_back("eval \"rm -f ./tcl8.6.7-src.tar.gz \"");
     vec.push_back("eval \"cd " + path + "; tar xvf tcl8.6.7-src.tar.gz\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
-    vec.push_back("eval \"cd " + path + "/tcl8.6.7; ./configure --prefix=/j5c/p001/usr/tcl --enable-threads --enable-shared --enable-symbols;  \"");
+    if ((thisOS == Os_type::Linux_Mint)
+        || (thisOS == Os_type::CentOS)
+        || (thisOS == Os_type::RedHat))
+    {
+        vec.push_back("eval \"cd " + path + "/tcl8.6.7; ./unix/configure --prefix=/j5c/p001/usr/tcl --enable-threads --enable-shared --enable-symbols;  \"");
+    }
+
+    if (thisOS == Os_type::MaxOSX)
+    {
+        vec.push_back("eval \"cd " + path + "/tcl8.6.7; ./macosx/configure --prefix=/j5c/p001/usr/tcl --enable-threads --enable-shared --enable-symbols;  \"");
+    }
     vec.push_back("eval \"cd " + path + "/tcl8.6.7; make \"");
     vec.push_back("eval \"cd " + path + "/tcl8.6.7; make test \"");
     vec.push_back("eval \"cd " + path + "/tcl8.6.7; make install \"");
@@ -186,8 +198,10 @@ sstr setUsrPath(sstr& company, sstr& prod_Usr_Offset, sstr& programName)
 };
 int main()
 {
+    Os_type thisOS = Os_type ::RedHat;
+
     //ensure dependencies are met
-    //install_required_dependencies();
+    install_required_dependencies();
 
     //basic setup
     sstr company = "/j5c";
@@ -196,23 +210,23 @@ int main()
     sstr prod_PathOffset = "/p"     + version;
     sstr prod_Usr_Offset = "/p"     + version + "/usr";
     sstr programName = "none";
-    sstr path = "none";"
+    sstr path = "none";
     sstr usrPath = "none";
+    int result = 0;
 
     //perl setup
     programName = "perl";
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    int result = install_perl(path, usrPath);
+    result = install_perl(path, usrPath);
     std::cout << "Install Perl result = " << result << ".";
 
     //tcl setup
     programName = "tcl";
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    int result = install_tcl(path, usrPath);
+    result = install_tcl(path, usrPath, thisOS);
     std::cout << "Install Tcl result = " << result << ".";
-
 
     return 0;
 }
