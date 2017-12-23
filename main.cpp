@@ -65,11 +65,16 @@ int install_required_dependencies()
     vec.push_back("yum -y install libwebp-devel");
     vec.push_back("yum -y install libxml2-devel");
     vec.push_back("yum -y install libxslt-devel");
+    vec.push_back("yum -y install libX11-devel");
     vec.push_back("yum -y install openssl-devel");
     vec.push_back("yum -y install re2c");
     vec.push_back("yum -y install ruby");
+    vec.push_back("yum -y install sqlite-devel");
+    vec.push_back("yum -y install sqlite-tcl");
     vec.push_back("yum -y install tcltls-devel");
     vec.push_back("yum -y install xml2");
+    vec.push_back("yum -y xorg-x11-fonts*");
+    vec.push_back("yum -y xorg-x11-server-Xnest");
     vec.push_back("yum -y install vsqlite++-devel");
 
     int result = do_command(vec);
@@ -109,12 +114,12 @@ int install_tcl(sstr& path, sstr& usrPath, Os_type thisOS)
         || (thisOS == Os_type::CentOS)
         || (thisOS == Os_type::RedHat))
     {
-        vec.push_back("eval \"cd " + path + "/tcl8.6.7; ./unix/configure --prefix=/j5c/p001/usr/tcl --enable-threads --enable-shared --enable-symbols;  \"");
+        vec.push_back("eval \"cd " + path + "/tcl8.6.7/unix; ./configure --prefix="  + usrPath + " --enable-threads --enable-shared --enable-symbols;  \"");
     }
 
     if (thisOS == Os_type::MaxOSX)
     {
-        vec.push_back("eval \"cd " + path + "/tcl8.6.7; ./macosx/configure --prefix=/j5c/p001/usr/tcl --enable-threads --enable-shared --enable-symbols;  \"");
+        vec.push_back("eval \"cd " + path + "/tcl8.6.7/macosx; ./configure --prefix=" + usrPath + " --enable-threads --enable-shared --enable-symbols;  \"");
     }
     vec.push_back("eval \"cd " + path + "/tcl8.6.7; make \"");
     vec.push_back("eval \"cd " + path + "/tcl8.6.7; make test \"");
@@ -124,7 +129,7 @@ int install_tcl(sstr& path, sstr& usrPath, Os_type thisOS)
 }
 
 
-int install_tk(sstr& path, sstr& usrPath, Os_type thisOS, sstr& oldUsrPath)
+int install_tk(sstr& path, sstr& usrPath, Os_type thisOS, sstr& oldPath)
 {
     sstr command = "";
     std::vector<sstr> vec;
@@ -138,16 +143,16 @@ int install_tk(sstr& path, sstr& usrPath, Os_type thisOS, sstr& oldUsrPath)
         || (thisOS == Os_type::CentOS)
         || (thisOS == Os_type::RedHat))
     {
-        vec.push_back("eval \"cd " + path + "/tk8.6.7; ./unix/configure --prefix=/j5c/p001/usr/tk --with-tcl="  + oldUsrPath + " --enable-threads --enable-shared --enable-symbols;  \"");
+        vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; ./configure --prefix="  + usrPath + " --with-tcl=" + oldPath + "/tcl8.6.7 --enable-threads --enable-shared --enable-symbols;  \"");
     }
 
     if (thisOS == Os_type::MaxOSX)
     {
-        vec.push_back("eval \"cd " + path + "/tk8.6.7; ./macosx/configure --prefix=/j5c/p001/usr/tk --with-tcl=" + oldUsrPath + " --enable-threads --enable-shared --enable-symbols;  \"");
+        vec.push_back("eval \"cd " + path + "/tk8.6.7/macosx; ./configure --prefix=" + usrPath + " --with-tcl=" + oldPath + "/tcl8.6.7 --enable-threads --enable-shared --enable-symbols;  \"");
     }
-    vec.push_back("eval \"cd " + path + "/tk8.6.7; make \"");
-    vec.push_back("eval \"cd " + path + "/tk8.6.7; make test \"");
-    vec.push_back("eval \"cd " + path + "/tk8.6.7; make install \"");
+    vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; make \"");
+    vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; make test \"");
+    vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; make install \"");
     int result = do_command(vec);
     return result;
 }
@@ -258,10 +263,10 @@ int main()
 
     //tk setup
     programName = "tk";
-    sstr oldUsrPath = path;
+    sstr oldPath = path;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_tk(path, usrPath, thisOS, oldUsrPath);
+    result = install_tk(path, usrPath, thisOS, oldPath);
     std::cout << "Install Tk result = " << result << ".";
 
 

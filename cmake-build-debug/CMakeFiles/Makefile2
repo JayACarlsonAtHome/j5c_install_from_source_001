@@ -45,19 +45,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = "/Users/jaycarlson/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/173.3727.114/CLion.app/Contents/bin/cmake/bin/cmake"
+CMAKE_COMMAND = /home/jay/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/173.3727.114/bin/cmake/bin/cmake
 
 # The command to remove a file.
-RM = "/Users/jaycarlson/Library/Application Support/JetBrains/Toolbox/apps/CLion/ch-0/173.3727.114/CLion.app/Contents/bin/cmake/bin/cmake" -E remove -f
+RM = /home/jay/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/173.3727.114/bin/cmake/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/jaycarlson/git/j5c_install_from_source_001
+CMAKE_SOURCE_DIR = /wd3/git/cpp/j5c_install_from_source_001
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/jaycarlson/git/j5c_install_from_source_001/cmake-build-debug
+CMAKE_BINARY_DIR = /wd3/git/cpp/j5c_install_from_source_001/cmake-build-debug
 
 #=============================================================================
 # Target rules for target CMakeFiles/Install.dir
@@ -66,7 +66,7 @@ CMAKE_BINARY_DIR = /Users/jaycarlson/git/j5c_install_from_source_001/cmake-build
 CMakeFiles/Install.dir/all:
 	$(MAKE) -f CMakeFiles/Install.dir/build.make CMakeFiles/Install.dir/depend
 	$(MAKE) -f CMakeFiles/Install.dir/build.make CMakeFiles/Install.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/jaycarlson/git/j5c_install_from_source_001/cmake-build-debug/CMakeFiles --progress-num=1,2 "Built target Install"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/wd3/git/cpp/j5c_install_from_source_001/cmake-build-debug/CMakeFiles --progress-num=1,2 "Built target Install"
 .PHONY : CMakeFiles/Install.dir/all
 
 # Include target in all.
@@ -76,9 +76,9 @@ all: CMakeFiles/Install.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/Install.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/jaycarlson/git/j5c_install_from_source_001/cmake-build-debug/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /wd3/git/cpp/j5c_install_from_source_001/cmake-build-debug/CMakeFiles 2
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/Install.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/jaycarlson/git/j5c_install_from_source_001/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /wd3/git/cpp/j5c_install_from_source_001/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/Install.dir/rule
 
 # Convenience name for target.
