@@ -124,6 +124,34 @@ int install_tcl(sstr& path, sstr& usrPath, Os_type thisOS)
 }
 
 
+int install_tk(sstr& path, sstr& usrPath, Os_type thisOS, sstr& oldUsrPath)
+{
+    sstr command = "";
+    std::vector<sstr> vec;
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget https://prdownloads.sourceforge.net/tcl/tk8.6.7-src.tar.gz\"");
+    vec.push_back("eval \"cp ./tk8.6.7-src.tar.gz " + path + "\"");
+    vec.push_back("eval \"rm -f ./tk8.6.7-src.tar.gz \"");
+    vec.push_back("eval \"cd " + path + "; tar xvf tk8.6.7-src.tar.gz\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+    if ((thisOS == Os_type::Linux_Mint)
+        || (thisOS == Os_type::CentOS)
+        || (thisOS == Os_type::RedHat))
+    {
+        vec.push_back("eval \"cd " + path + "/tk8.6.7; ./unix/configure --prefix=/j5c/p001/usr/tk --with-tcl="  + oldUsrPath + " --enable-threads --enable-shared --enable-symbols;  \"");
+    }
+
+    if (thisOS == Os_type::MaxOSX)
+    {
+        vec.push_back("eval \"cd " + path + "/tk8.6.7; ./macosx/configure --prefix=/j5c/p001/usr/tk --with-tcl=" + oldUsrPath + " --enable-threads --enable-shared --enable-symbols;  \"");
+    }
+    vec.push_back("eval \"cd " + path + "/tk8.6.7; make \"");
+    vec.push_back("eval \"cd " + path + "/tk8.6.7; make test \"");
+    vec.push_back("eval \"cd " + path + "/tk8.6.7; make install \"");
+    int result = do_command(vec);
+    return result;
+}
+
 
 bool ensure_Directory_exists(sstr& basePath, sstr& path)
 {
@@ -227,6 +255,15 @@ int main()
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     result = install_tcl(path, usrPath, thisOS);
     std::cout << "Install Tcl result = " << result << ".";
+
+    //tk setup
+    programName = "tk";
+    sstr oldUsrPath = path;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    result = install_tk(path, usrPath, thisOS, oldUsrPath);
+    std::cout << "Install Tk result = " << result << ".";
+
 
     return 0;
 }

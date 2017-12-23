@@ -4,9 +4,9 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/wd3/git/cpp/j5c_install_from_source_001/main.cpp" "/wd3/git/cpp/j5c_install_from_source_001/cmake-build-debug/CMakeFiles/Install.dir/main.cpp.o"
+  "/Users/jaycarlson/git/j5c_install_from_source_001/main.cpp" "/Users/jaycarlson/git/j5c_install_from_source_001/cmake-build-debug/CMakeFiles/Install.dir/main.cpp.o"
   )
-set(CMAKE_CXX_COMPILER_ID "GNU")
+set(CMAKE_CXX_COMPILER_ID "AppleClang")
 
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH
