@@ -75,22 +75,43 @@ int install_required_dependencies()
     return result;
 }
 
-int install_perl(sstr& path)
+int install_perl(sstr& path, sstr& usrPath)
 {
     sstr command = "";
     std::vector<sstr> vec;
-    vec.push_back("mkdir -p " + path);
-    vec.push_back("wget http://www.cpan.org/src/5.0/perl-5.26.1.tar.gz");
-    vec.push_back("cp ./perl-5.26.1.tar.gz " + path);
-    vec.push_back("rm -f ./perl-5.26.1.tar.gz ");
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget http://www.cpan.org/src/5.0/perl-5.26.1.tar.gz\"");
+    vec.push_back("eval \"cp ./perl-5.26.1.tar.gz " + path + "\"");
+    vec.push_back("eval \"rm -f ./perl-5.26.1.tar.gz \"");
     vec.push_back("eval \"cd " + path + "; tar xvf perl-5.26.1.tar.gz\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
     vec.push_back("eval \"cd " + path + "/perl-5.26.1; ./Configure -Dprefix=/j5c/p001/usr/perl -d -e\"");
-    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make\"");
-    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make test\"");
-    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make install\"");
+    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make \"");
+    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make test \"");
+    vec.push_back("eval \"cd " + path + "/perl-5.26.1; make install \"");
     int result = do_command(vec);
     return result;
 }
+
+int install_tcl(sstr& path, sstr& usrPath)
+{
+    sstr command = "";
+    std::vector<sstr> vec;
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget https://prdownloads.sourceforge.net/tcl/tcl8.6.7-src.tar.gz\"");
+    vec.push_back("eval \"cp ./tcl8.6.7-src.tar.gz " + path + "\"");
+    vec.push_back("eval \"rm -f ./tcl8.6.7-src.tar.gz \"");
+    vec.push_back("eval \"cd " + path + "; tar xvf tcl8.6.7-src.tar.gz\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+    vec.push_back("eval \"cd " + path + "/tcl8.6.7; ./configure --prefix=/j5c/p001/usr/tcl --enable-threads --enable-shared --enable-symbols;  \"");
+    vec.push_back("eval \"cd " + path + "/tcl8.6.7; make \"");
+    vec.push_back("eval \"cd " + path + "/tcl8.6.7; make test \"");
+    vec.push_back("eval \"cd " + path + "/tcl8.6.7; make install \"");
+    int result = do_command(vec);
+    return result;
+}
+
+
 
 bool ensure_Directory_exists(sstr& basePath, sstr& path)
 {
@@ -153,7 +174,16 @@ bool File_Contents(std::ofstream& file, sstr& fileName, std::vector<sstr>& vec_l
     return result;
 }
 
+sstr setPath(sstr& company, sstr& prod_PathOffset, sstr& programName)
+{
+    return company + prod_PathOffset + "/" + programName;
 
+};
+
+sstr setUsrPath(sstr& company, sstr& prod_Usr_Offset, sstr& programName)
+{
+    return company + prod_Usr_Offset + "/" + programName;
+};
 int main()
 {
     //ensure dependencies are met
@@ -164,12 +194,24 @@ int main()
     sstr version = "001";
     sstr buildPathOffset = "/build_" + version;
     sstr prod_PathOffset = "/p"     + version;
+    sstr prod_Usr_Offset = "/p"     + version + "/usr";
+    sstr programName = "none";
+    sstr path = "none";"
+    sstr usrPath = "none";
 
     //perl setup
-    sstr programName     = "perl";
-    sstr path = company + prod_PathOffset + "/" + programName;
-    int result = install_perl(path);
+    programName = "perl";
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    int result = install_perl(path, usrPath);
     std::cout << "Install Perl result = " << result << ".";
+
+    //tcl setup
+    programName = "tcl";
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    int result = install_tcl(path, usrPath);
+    std::cout << "Install Tcl result = " << result << ".";
 
 
     return 0;
