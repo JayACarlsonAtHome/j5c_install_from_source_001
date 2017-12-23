@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/jaycarlson/git/j5c_install_from_source_001/main.cpp
+fstream
+-
+iostream
+-
+string
+-
+vector
+-
+stdio.h
+-
+
