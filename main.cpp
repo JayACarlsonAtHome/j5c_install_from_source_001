@@ -143,12 +143,12 @@ int install_tk(sstr& path, sstr& usrPath, Os_type thisOS, sstr& oldPath)
         || (thisOS == Os_type::CentOS)
         || (thisOS == Os_type::RedHat))
     {
-        vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; ./configure --prefix="  + usrPath + " --with-tcl=" + oldPath + "/tcl8.6.7 --enable-threads --enable-shared --enable-symbols;  \"");
+        vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; ./configure --prefix="  + usrPath + " --with-tcl=" + oldPath + "/tcl8.6.7/unix --enable-threads --enable-shared --enable-symbols;  \"");
     }
 
     if (thisOS == Os_type::MaxOSX)
     {
-        vec.push_back("eval \"cd " + path + "/tk8.6.7/macosx; ./configure --prefix=" + usrPath + " --with-tcl=" + oldPath + "/tcl8.6.7 --enable-threads --enable-shared --enable-symbols;  \"");
+        vec.push_back("eval \"cd " + path + "/tk8.6.7/macosx; ./configure --prefix=" + usrPath + " --with-tcl=" + oldPath + "/tcl8.6.7/macosx --enable-threads --enable-shared --enable-symbols;  \"");
     }
     vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; make \"");
     vec.push_back("eval \"cd " + path + "/tk8.6.7/unix; make test \"");
