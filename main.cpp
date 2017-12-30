@@ -179,7 +179,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
         file_append_line(fileName, command);
         if (command.substr(0,1) != "#")
         {
-            result = system(command.c_str());
+            //result = system(command.c_str());
         }
         else
         {
@@ -512,10 +512,10 @@ int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
                   +  "--with-client-ldflags=-all-static  "   + "\\\n"
                   +  "--with-zlib-dir=bundled            "   + "\\\n"
                   +  "--enable-local-infile\"");
-
     vec.push_back("eval \"cd " + path + "/server; make\"");
-    vec.push_back("eval \"cd " + path + "/server; make test\"");
     vec.push_back("eval \"cd " + path + "/server; make install\"");
+    vec.push_back("eval \"cd " + usrPath + "/mysql-test; ./mysql-test-run.pl\"");
+
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
     return result;
@@ -577,9 +577,9 @@ int main()
 
     if (thisOS == OS_type::RedHat)
     {
-        //install_yum_required_dependencies(fileName);
-        //print_blank_lines(2);
-        //file_append_blank_lines(fileName, 2);
+        install_yum_required_dependencies(fileName);
+        print_blank_lines(2);
+        file_append_blank_lines(fileName, 2);
     }
 
     if (thisOS == OS_type::Linux_Mint)
@@ -592,7 +592,6 @@ int main()
         install_mac_required_dependencies(mpm);
     }
 
-    /*
     //perl setup
     programName = "perl";
     verDir = "5.0";
@@ -668,8 +667,6 @@ int main()
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     result = install_apache_step_06(fileName, path, usrPath, version);
     reportResults(fileName, programName, step, result);
-
-    */
 
     programName = "mariadb";
     version     = "10.3";
