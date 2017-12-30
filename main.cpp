@@ -179,7 +179,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
         file_append_line(fileName, command);
         if (command.substr(0,1) != "#")
         {
-            result = system(command.c_str());
+            //result = system(command.c_str());
         }
 
         if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum"))) )
@@ -335,28 +335,150 @@ int install_tk(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& 
     return result;
 }
 
+
 int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
     std::vector<sstr> vec;
 
-    if (thisOS == OS_type::RedHat)      installOS = "unix";
-    if (thisOS == OS_type::Linux_Mint)  installOS = "unix";
-    if (thisOS == OS_type::MaxOSX)      installOS = "macosx";
-
-    vec.push_back("# Install Apache Step 1: Get Apache source.");
+    vec.push_back("# Install Apache Step 01 : Get apr source.");
     vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"wget http://www.apache.org/dist/httpd/httpd-" + version +".tar.bz2\"");
-    vec.push_back("eval \"cp ./httpd-" + version + ".tar.bz2 " + path + "\"");
-    vec.push_back("eval \"rm -f ./httpd-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf httpd-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-" + version +".tar.bz2\"");
+    vec.push_back("eval \"cp ./apr-" + version + ".tar.bz2 " + path + "\"");
+    vec.push_back("eval \"rm -f ./apr-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf apr-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath +"\"");
+    vec.push_back("eval \"cd " + path + "; make\"");
+    vec.push_back("eval \"cd " + path + "; make test\"");
+    vec.push_back("eval \"cd " + path + "; make install\"");
+    vec.push_back("eval \"cd /j5c\"");
+    int result = do_command(fileName, vec);
+    return result;
+}
+
+int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+{
+    sstr command = "";
+    sstr installOS = "";
+    std::vector<sstr> vec;
+
+    vec.push_back("# Install Apache Step 02: Get apr-util source.");
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-util-" + version +".tar.bz2\"");
+    vec.push_back("eval \"cp ./apr-util-" + version + ".tar.bz2 " + path + "\"");
+    vec.push_back("eval \"rm -f ./apr-util-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf apr-util-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
+    vec.push_back("eval \"cd " + path + "; make\"");
+    vec.push_back("eval \"cd " + path + "; make test\"");
+    vec.push_back("eval \"cd " + path + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
     return result;
 }
 
+int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+{
+    sstr command = "";
+    sstr installOS = "";
+    std::vector<sstr> vec;
+
+    vec.push_back("# Install Apache Step 03: Get apr-iconv source.");
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-iconv-" + version +".tar.bz2\"");
+    vec.push_back("eval \"cp ./apr-iconv-" + version + ".tar.bz2 " + path + "\"");
+    vec.push_back("eval \"rm -f ./apr-iconv-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf apr-iconv-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
+    vec.push_back("eval \"cd " + path + "; make\"");
+    vec.push_back("eval \"cd " + path + "; make test\"");
+    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
+    vec.push_back("eval \"cd " + path + "; make install\"");
+
+    vec.push_back("eval \"cd /j5c\"");
+    int result = do_command(fileName, vec);
+    return result;
+}
+
+
+int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+{
+    sstr command = "";
+    sstr installOS = "";
+    std::vector<sstr> vec;
+
+    vec.push_back("# Install Apache Step 04: Get pcre source.");
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget https://ftp.pcre.org/pub/pcre/pcre-" + version +".tar.gz\"");
+    vec.push_back("eval \"cp ./pcre-" + version + ".tar.gz " + path + "\"");
+    vec.push_back("eval \"rm -f ./pcre-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf pcre-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd " + path + "; make\"");
+    vec.push_back("eval \"cd " + path + "; make test\"");
+    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
+    vec.push_back("eval \"cd " + path + "; make install\"");
+
+    vec.push_back("eval \"cd /j5c\"");
+    int result = do_command(fileName, vec);
+    return result;
+}
+
+int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+{
+    sstr command = "";
+    sstr installOS = "";
+    std::vector<sstr> vec;
+
+    vec.push_back("# Install Apache Step 05: Get pcre2 source.");
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget https://ftp.pcre.org/pub/pcre/pcre2-" + version +".tar.gz\"");
+    vec.push_back("eval \"cp ./pcre2-" + version + ".tar.gz " + path + "\"");
+    vec.push_back("eval \"rm -f ./pcre2-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf pcre2-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd " + path + "; make\"");
+    vec.push_back("eval \"cd " + path + "; make test\"");
+    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
+    vec.push_back("eval \"cd " + path + "; make install\"");
+
+    vec.push_back("eval \"cd /j5c\"");
+    int result = do_command(fileName, vec);
+    return result;
+}
+
+
+int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+{
+    sstr command = "";
+    sstr installOS = "";
+    std::vector<sstr> vec;
+
+    vec.push_back("# Install Apache Step 06: Get Apache source.");
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget http://www.apache.org/dist/httpd/httpd-" + version +".tar.bz2\"");
+    vec.push_back("eval \"cp ./httpd-" + version + ".tar.bz2 " + path + "\"");
+    vec.push_back("eval \"rm -f ./httpd-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf httpd-" + version + ".tar.bz2\"");
+    // /j5c/p001/usr/apache
+    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath + "  "
+                  + "--with-apr=" + usrPath.substr(0,13) + "/apr/bin  "
+                  + "--with-apr-util="  + usrPath.substr(0,13) + "/apr-util   "
+                  + "--with-apr-iconv=" + usrPath.substr(0,13) + "/apr-iconv  "
+                  + "--with-pcre=" + usrPath.substr(0,13) + "/pcre " + "\"");
+
+
+    vec.push_back("eval \"cd " + path + "; make\"");
+    vec.push_back("eval \"cd " + path + "; make test\"");
+    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
+    vec.push_back("eval \"cd " + path + "; make install\"");
+
+    vec.push_back("eval \"cd /j5c\"");
+    int result = do_command(fileName, vec);
+    return result;
+}
 
 
 sstr setPath(sstr& company, sstr& prod_PathOffset, sstr& programName)
@@ -388,7 +510,6 @@ int reportResults(sstr& fileName, sstr& programName, int step, int installResult
     return result;
 };
 
-
 int main()
 {
     OS_type thisOS = OS_type::RedHat;
@@ -397,10 +518,11 @@ int main()
     //basic setup
     sstr company = "/j5c";
     sstr verDir  = "";
-    sstr version = "002";
-    sstr buildPathOffset = "/build_" + version;
-    sstr prod_PathOffset = "/p"     + version;
-    sstr prod_Usr_Offset = "/p"     + version + "/usr";
+    sstr version = "";
+    sstr pVersion = "002";
+    sstr buildPathOffset = "/build_" + pVersion;
+    sstr prod_PathOffset = "/p"      + pVersion;
+    sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
     sstr programName = "none";
     sstr path = "none";
     sstr usrPath = "none";
@@ -429,7 +551,7 @@ int main()
         install_mac_required_dependencies(mpm);
     }
 
-    /*
+
     //perl setup
     programName = "perl";
     verDir = "5.0";
@@ -439,6 +561,11 @@ int main()
     result = install_perl(fileName, path, usrPath, verDir, version);
     reportResults(fileName, programName, step, result);
 
+    //programName = "perl";
+    //path = setPath(company, prod_PathOffset, programName);
+    //usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    //result = install_perl(path, usrPath);
+    //std::cout << "Install Perl result = " << result << ".";
 
     //tcl setup
     programName = "tcl";
@@ -456,16 +583,57 @@ int main()
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     result = install_tk(fileName, path, usrPath, thisOS, oldPath, version);
     reportResults(fileName, programName, step, result);
-    */
 
-    //apache setup
-    programName = "apache";
-    version     = "2.4.29";
+    //Get and Build Apache Dependencies
+
+    programName = "apr";
+    version     = "1.6.3";
     step = 1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     result = install_apache_step_01(fileName, path, usrPath, thisOS, version);
     reportResults(fileName, programName, step, result);
+
+    programName = "apr-util";
+    version     = "1.6.3";
+    step = 2;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    result = install_apache_step_02(fileName, path, usrPath, thisOS, version);
+    reportResults(fileName, programName, step, result);
+
+    programName = "apr-iconv";
+    version     = "1.2.2";
+    step = 3;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    result = install_apache_step_03(fileName, path, usrPath, thisOS, version);
+    reportResults(fileName, programName, step, result);
+
+    programName = "pcre";
+    version     = "8.41";
+    step = 4;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    result = install_apache_step_04(fileName, path, usrPath, thisOS, version);
+    reportResults(fileName, programName, step, result);
+
+    programName = "pcre2";
+    version     = "10.30";
+    step = 5;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    result = install_apache_step_05(fileName, path, usrPath, thisOS, version);
+    reportResults(fileName, programName, step, result);
+
+    programName = "apache";
+    version     = "2.4.29";
+    step = 6;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    result = install_apache_step_06(fileName, path, usrPath, thisOS, version);
+    reportResults(fileName, programName, step, result);
+
 
     return 0;
 }
