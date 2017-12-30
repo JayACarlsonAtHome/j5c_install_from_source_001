@@ -181,6 +181,11 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
         {
             result = system(command.c_str());
         }
+        else
+        {
+            std::cout << command << std::endl;
+            result = 0;
+        }
 
         if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum"))) )
         {
@@ -231,6 +236,8 @@ int install_yum_required_dependencies(sstr& fileName)
     vec.push_back("yum -y install gcc");
     vec.push_back("yum -y install gcc-c++");
     vec.push_back("yum -y install gcc-c++-x86_64-linux-gnu");
+    vec.push_back("yum -y install gnutls-c++");
+    vec.push_back("yum -y install gnutls-devel");
     vec.push_back("yum -y install jemalloc-devel");
     vec.push_back("yum -y install java-1.8.0-openjdk");
     vec.push_back("yum -y install Judy");
@@ -249,6 +256,7 @@ int install_yum_required_dependencies(sstr& fileName)
     vec.push_back("yum -y install libxslt-devel");
     vec.push_back("yum -y install libX11-devel");
     vec.push_back("yum -y install openssl-devel");
+    vec.push_back("yum -y install java-1.8.0-openjdk");
     vec.push_back("yum -y install re2c");
     vec.push_back("yum -y install ruby");
     vec.push_back("yum -y install sqlite-devel");
@@ -337,7 +345,7 @@ int install_tk(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& 
 }
 
 
-int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
@@ -358,7 +366,7 @@ int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     return result;
 }
 
-int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
@@ -380,7 +388,7 @@ int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     return result;
 }
 
-int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
@@ -403,7 +411,7 @@ int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
 }
 
 
-int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
@@ -425,7 +433,7 @@ int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     return result;
 }
 
-int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
@@ -448,7 +456,7 @@ int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
 }
 
 
-int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
@@ -469,6 +477,45 @@ int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     // no tests available
     vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make install\"");
 
+    vec.push_back("eval \"cd /j5c\"");
+    int result = do_command(fileName, vec);
+    return result;
+}
+
+
+int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+{
+    sstr command = "";
+    std::vector<sstr> vec;
+
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("#Note: You will need to enter your SSH key to download MariaDB from github.com.");
+    vec.push_back("eval \"cd " + path + "; git clone git@github.com:MariaDB/server.git\"");
+    vec.push_back("eval \"cd " + path + "/server; git checkout " + version + "\"");
+    vec.push_back("eval \"cd " + path + "/server; ./BUILD/autorun.sh\"");
+    vec.push_back("eval \"cd " + path + "/server; "
+                  + " ./configure --prefix=" + usrPath + " " + "\\\n"
+                  +  "--enable-assembler                 "   + "\\\n"
+                  +  "--with-extra-charsets=complex      "   + "\\\n"
+                  +  "--enable-thread-safe-client        "   + "\\\n"
+                  +  "--with-big-tables                  "   + "\\\n"
+                  +  "--with-plugin-maria                "   + "\\\n"
+                  +  "--with-aria-tmp-tables             "   + "\\\n"
+                  +  "--without-plugin-innodb_plugin     "   + "\\\n"
+                  +  "--with-mysqld-ldflags=-static      "   + "\\\n"
+                  +  "--with-client-ldflags=-static      "   + "\\\n"
+                  +  "--with-readline                    "   + "\\\n"
+                  +  "--with-ssl                         "   + "\\\n"
+                  +  "--with-embedded-server             "   + "\\\n"
+                  +  "--with-libevent                    "   + "\\\n"
+                  +  "--with-mysqld-ldflags=-all-static  "   + "\\\n"
+                  +  "--with-client-ldflags=-all-static  "   + "\\\n"
+                  +  "--with-zlib-dir=bundled            "   + "\\\n"
+                  +  "--enable-local-infile\"");
+
+    vec.push_back("eval \"cd " + path + "/server; make\"");
+    vec.push_back("eval \"cd " + path + "/server; make test\"");
+    vec.push_back("eval \"cd " + path + "/server; make install\"");
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
     return result;
@@ -530,9 +577,9 @@ int main()
 
     if (thisOS == OS_type::RedHat)
     {
-        install_yum_required_dependencies(fileName);
-        print_blank_lines(2);
-        file_append_blank_lines(fileName, 2);
+        //install_yum_required_dependencies(fileName);
+        //print_blank_lines(2);
+        //file_append_blank_lines(fileName, 2);
     }
 
     if (thisOS == OS_type::Linux_Mint)
@@ -545,6 +592,7 @@ int main()
         install_mac_required_dependencies(mpm);
     }
 
+    /*
     //perl setup
     programName = "perl";
     verDir = "5.0";
@@ -578,7 +626,7 @@ int main()
     step = 1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_01(fileName, path, usrPath, thisOS, version);
+    result = install_apache_step_01(fileName, path, usrPath, version);
     reportResults(fileName, programName, step, result);
 
     programName = "apr-util";
@@ -586,7 +634,7 @@ int main()
     step = 2;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_02(fileName, path, usrPath, thisOS, version);
+    result = install_apache_step_02(fileName, path, usrPath, version);
     reportResults(fileName, programName, step, result);
 
     programName = "apr-iconv";
@@ -594,7 +642,7 @@ int main()
     step = 3;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_03(fileName, path, usrPath, thisOS, version);
+    result = install_apache_step_03(fileName, path, usrPath, version);
     reportResults(fileName, programName, step, result);
 
     programName = "pcre";
@@ -602,7 +650,7 @@ int main()
     step = 4;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_04(fileName, path, usrPath, thisOS, version);
+    result = install_apache_step_04(fileName, path, usrPath, version);
     reportResults(fileName, programName, step, result);
 
     programName = "pcre2";
@@ -610,7 +658,7 @@ int main()
     step = 5;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_05(fileName, path, usrPath, thisOS, version);
+    result = install_apache_step_05(fileName, path, usrPath, version);
     reportResults(fileName, programName, step, result);
 
     programName = "apache";
@@ -618,8 +666,19 @@ int main()
     step = 6;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_06(fileName, path, usrPath, thisOS, version);
+    result = install_apache_step_06(fileName, path, usrPath, version);
     reportResults(fileName, programName, step, result);
+
+    */
+
+    programName = "mariadb";
+    version     = "10.3";
+    step = 0;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    result = install_mariadb(fileName, path, usrPath, version);
+    reportResults(fileName, programName, step, result);
+
 
     return 0;
 }
