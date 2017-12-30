@@ -179,7 +179,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
         file_append_line(fileName, command);
         if (command.substr(0,1) != "#")
         {
-            //result = system(command.c_str());
+            result = system(command.c_str());
         }
 
         if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum"))) )
@@ -335,7 +335,7 @@ int install_tk(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& 
     return result;
 }
 
-int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& oldPath, sstr& version)
+int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
 {
     sstr command = "";
     sstr installOS = "";
@@ -429,6 +429,7 @@ int main()
         install_mac_required_dependencies(mpm);
     }
 
+    /*
     //perl setup
     programName = "perl";
     verDir = "5.0";
@@ -455,6 +456,7 @@ int main()
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     result = install_tk(fileName, path, usrPath, thisOS, oldPath, version);
     reportResults(fileName, programName, step, result);
+    */
 
     //apache setup
     programName = "apache";
@@ -462,10 +464,8 @@ int main()
     step = 1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_01(fileName, path, usrPath, thisOS, oldPath, version);
+    result = install_apache_step_01(fileName, path, usrPath, thisOS, version);
     reportResults(fileName, programName, step, result);
-
-
 
     return 0;
 }
