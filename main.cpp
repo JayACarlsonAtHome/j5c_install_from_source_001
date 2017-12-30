@@ -179,7 +179,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
         file_append_line(fileName, command);
         if (command.substr(0,1) != "#")
         {
-            //result = system(command.c_str());
+            result = system(command.c_str());
         }
 
         if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum"))) )
@@ -225,6 +225,7 @@ int install_yum_required_dependencies(sstr& fileName)
     vec.push_back("yum -y install cmake-gui");
     vec.push_back("yum -y install expat-devel");
     vec.push_back("yum -y install ftp");
+    vec.push_back("yum -y install gawk");
     vec.push_back("yum -y install google-chrome-stable");
     vec.push_back("yum -y install gitk");
     vec.push_back("yum -y install gcc");
@@ -348,10 +349,10 @@ int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     vec.push_back("eval \"cp ./apr-" + version + ".tar.bz2 " + path + "\"");
     vec.push_back("eval \"rm -f ./apr-" + version + ".tar.bz2\"");
     vec.push_back("eval \"cd " + path + "; tar xvf apr-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath +"\"");
-    vec.push_back("eval \"cd " + path + "; make\"");
-    vec.push_back("eval \"cd " + path + "; make test\"");
-    vec.push_back("eval \"cd " + path + "; make install\"");
+    vec.push_back("eval \"cd " + path + "/apr-" + version + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd " + path + "/apr-" + version + "; make\"");
+    vec.push_back("eval \"cd " + path + "/apr-" + version + "; make test\"");
+    vec.push_back("eval \"cd " + path + "/apr-" + version + "; make install\"");
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
     return result;
@@ -365,14 +366,14 @@ int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
 
     vec.push_back("# Install Apache Step 02: Get apr-util source.");
     vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-util-" + version +".tar.bz2\"");
-    vec.push_back("eval \"cp ./apr-util-" + version + ".tar.bz2 " + path + "\"");
-    vec.push_back("eval \"rm -f ./apr-util-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf apr-util-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
-    vec.push_back("eval \"cd " + path + "; make\"");
-    vec.push_back("eval \"cd " + path + "; make test\"");
-    vec.push_back("eval \"cd " + path + "; make install\"");
+    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-util-" + version +".tar.gz\"");
+    vec.push_back("eval \"cp ./apr-util-" + version + ".tar.gz " + path + "\"");
+    vec.push_back("eval \"rm -f ./apr-util-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf apr-util-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
+    vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; make\"");
+    vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; make test\"");
+    vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
@@ -391,11 +392,10 @@ int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     vec.push_back("eval \"cp ./apr-iconv-" + version + ".tar.bz2 " + path + "\"");
     vec.push_back("eval \"rm -f ./apr-iconv-" + version + ".tar.bz2\"");
     vec.push_back("eval \"cd " + path + "; tar xvf apr-iconv-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
-    vec.push_back("eval \"cd " + path + "; make\"");
-    vec.push_back("eval \"cd " + path + "; make test\"");
-    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
-    vec.push_back("eval \"cd " + path + "; make install\"");
+    vec.push_back("eval \"cd " + path + "/apr-iconv-" + version + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
+    vec.push_back("eval \"cd " + path + "/apr-iconv-" + version + "; make\"");
+    // no tests -- will stop program if you try
+    vec.push_back("eval \"cd " + path + "/apr-iconv-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
@@ -415,11 +415,10 @@ int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     vec.push_back("eval \"cp ./pcre-" + version + ".tar.gz " + path + "\"");
     vec.push_back("eval \"rm -f ./pcre-" + version + ".tar.gz\"");
     vec.push_back("eval \"cd " + path + "; tar xvf pcre-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath + "\"");
-    vec.push_back("eval \"cd " + path + "; make\"");
-    vec.push_back("eval \"cd " + path + "; make test\"");
-    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
-    vec.push_back("eval \"cd " + path + "; make install\"");
+    vec.push_back("eval \"cd " + path + "/pcre-" + version + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd " + path + "/pcre-" + version + "; make\"");
+    vec.push_back("eval \"cd " + path + "/pcre-" + version + "; make test\"");
+    vec.push_back("eval \"cd " + path + "/pcre-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
@@ -438,11 +437,10 @@ int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     vec.push_back("eval \"cp ./pcre2-" + version + ".tar.gz " + path + "\"");
     vec.push_back("eval \"rm -f ./pcre2-" + version + ".tar.gz\"");
     vec.push_back("eval \"cd " + path + "; tar xvf pcre2-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath + "\"");
-    vec.push_back("eval \"cd " + path + "; make\"");
-    vec.push_back("eval \"cd " + path + "; make test\"");
-    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
-    vec.push_back("eval \"cd " + path + "; make install\"");
+    vec.push_back("eval \"cd " + path + "/pcre2-" + version + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd " + path + "/pcre2-" + version + "; make\"");
+    // no tests -- will stop program if you try
+    vec.push_back("eval \"cd " + path + "/pcre2-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
@@ -462,18 +460,14 @@ int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, OS_type th
     vec.push_back("eval \"cp ./httpd-" + version + ".tar.bz2 " + path + "\"");
     vec.push_back("eval \"rm -f ./httpd-" + version + ".tar.bz2\"");
     vec.push_back("eval \"cd " + path + "; tar xvf httpd-" + version + ".tar.bz2\"");
-    // /j5c/p001/usr/apache
-    vec.push_back("eval \"cd " + path + "; ./configure --prefix=" + usrPath + "  "
+    vec.push_back("eval \"cd " + path + "/httpd-" + version + "; ./configure --prefix=" + usrPath + "  "
                   + "--with-apr=" + usrPath.substr(0,13) + "/apr/bin  "
                   + "--with-apr-util="  + usrPath.substr(0,13) + "/apr-util   "
                   + "--with-apr-iconv=" + usrPath.substr(0,13) + "/apr-iconv  "
                   + "--with-pcre=" + usrPath.substr(0,13) + "/pcre " + "\"");
-
-
-    vec.push_back("eval \"cd " + path + "; make\"");
-    vec.push_back("eval \"cd " + path + "; make test\"");
-    // no tests -->vec.push_back("eval \"cd " + path + "; make test\"");
-    vec.push_back("eval \"cd " + path + "; make install\"");
+    vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make\"");
+    // no tests available
+    vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec);
@@ -519,7 +513,7 @@ int main()
     sstr company = "/j5c";
     sstr verDir  = "";
     sstr version = "";
-    sstr pVersion = "002";
+    sstr pVersion = "003";
     sstr buildPathOffset = "/build_" + pVersion;
     sstr prod_PathOffset = "/p"      + pVersion;
     sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
@@ -551,7 +545,6 @@ int main()
         install_mac_required_dependencies(mpm);
     }
 
-
     //perl setup
     programName = "perl";
     verDir = "5.0";
@@ -560,12 +553,6 @@ int main()
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     result = install_perl(fileName, path, usrPath, verDir, version);
     reportResults(fileName, programName, step, result);
-
-    //programName = "perl";
-    //path = setPath(company, prod_PathOffset, programName);
-    //usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    //result = install_perl(path, usrPath);
-    //std::cout << "Install Perl result = " << result << ".";
 
     //tcl setup
     programName = "tcl";
@@ -595,7 +582,7 @@ int main()
     reportResults(fileName, programName, step, result);
 
     programName = "apr-util";
-    version     = "1.6.3";
+    version     = "1.6.1";
     step = 2;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
@@ -633,7 +620,6 @@ int main()
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     result = install_apache_step_06(fileName, path, usrPath, thisOS, version);
     reportResults(fileName, programName, step, result);
-
 
     return 0;
 }
