@@ -604,8 +604,9 @@ int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bo
                   +  "--with-zlib-dir=bundled            "   + "\\\n"
                   +  "--enable-local-infile\"");
     vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make\"");
+    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make test\"");
     vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make install\"");
-    vec.push_back("eval \"cd " + usrPath + "/mysql-test; ./mysql-test-run.pl\"");
+    vec.push_back("eval \"cd " + usrPath + "/mysql-test; ./mysql-test-run.pl --force \"");
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec, createScriptOnly);
     return result;
