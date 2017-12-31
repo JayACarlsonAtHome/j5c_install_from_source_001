@@ -154,6 +154,29 @@ int file_append_blank_lines(sstr& fileName, int count)
     return result;
 }
 
+sstr file_read_file(sstr& fileName, int count)
+{
+
+    std::ifstream file;
+    sstr result = "";
+    file.open(fileName, std::ios::in );
+    sstr lineData = "";
+    if ( (file.is_open()) && (file.good()) )
+    {
+        while (getline(file, lineData))
+        {
+            result += lineData + "\n";
+        }
+    }
+    else
+    {
+        std::cout << "!!!Error -- unable to read file -- " << std::endl;
+    }
+    file.close();
+    return result;
+}
+
+
 enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
 
@@ -179,7 +202,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
         file_append_line(fileName, command);
         if (command.substr(0,1) != "#")
         {
-            //result = system(command.c_str());
+            result = system(command.c_str());
         }
         else
         {
@@ -206,9 +229,13 @@ int install_mac_required_dependencies(Mac_PM mpm)
 {
     if (mpm == Mac_PM ::Home_Brew) {
         //install_home_brew_required_dependencies();
+        std::cout << "Not Implemented Yet" << std::endl;
+        return 1;
     }
     if (mpm == Mac_PM ::MacPorts) {
         //install_macPort_required_dependencies();
+        std::cout << "Not Implemented Yet" << std::endl;
+        return 1;
     }
     return 1;
 }
@@ -223,6 +250,7 @@ int install_yum_required_dependencies(sstr& fileName)
     vec.push_back("yum -y install epel-release-latest-" + fedora_release +".noarch.rpm");
     vec.push_back("rm -f epel-release-latest-" + fedora_release +".noarch.rpm");
     vec.push_back("yum -y install autoconf");
+    vec.push_back("yum -y install automake");
     vec.push_back("yum -y install bison");
     vec.push_back("yum -y install boost-devel");
     vec.push_back("yum -y install bzip2-devel");
@@ -560,26 +588,28 @@ int main()
     sstr company = "/j5c";
     sstr verDir  = "";
     sstr version = "";
-    sstr pVersion = "003";
+    sstr pVersion = "002";
     sstr buildPathOffset = "/build_" + pVersion;
     sstr prod_PathOffset = "/p"      + pVersion;
     sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
-    sstr programName = "none";
+    sstr programName = "Dependencies";
     sstr path = "none";
     sstr usrPath = "none";
     int step = -1;
     int result = 0;
 
 
+
     ensure_Directory_exists1(company);
-    sstr fileName = "Installation_Scripted_Used.txt";
-    create_file(fileName);
+    sstr fileName_Build = "Installation_Script_Builds_p" + pVersion + ".txt";
+    sstr fileNameResult = "Installation_Script_Result_p" + pVersion + ".txt";
+    create_file(fileName_Build);
 
     if (thisOS == OS_type::RedHat)
     {
-        install_yum_required_dependencies(fileName);
+        install_yum_required_dependencies(fileName_Build);
         print_blank_lines(2);
-        file_append_blank_lines(fileName, 2);
+        file_append_blank_lines(fileName_Build, 2);
     }
 
     if (thisOS == OS_type::Linux_Mint)
@@ -591,23 +621,29 @@ int main()
     {
         install_mac_required_dependencies(mpm);
     }
+    reportResults(fileName_Build, programName, step, result);
 
+    /*
     //perl setup
     programName = "perl";
     verDir = "5.0";
     version = "5.26.1";
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_perl(fileName, path, usrPath, verDir, version);
-    reportResults(fileName, programName, step, result);
+    // load install results
+    // search install results
+    // if installed then skip
+    // else remove old directory if exists
+    result = install_perl(fileName_Build, path, usrPath, verDir, version);
+    reportResults(fileName_Build, programName, step, result);
 
     //tcl setup
     programName = "tcl";
     version     = "8.6.8";
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_tcl(fileName, path, usrPath, thisOS, version);
-    reportResults(fileName, programName, step, result);
+    result = install_tcl(fileName_Build, path, usrPath, thisOS, version);
+    reportResults(fileName_Build, programName, step, result);
 
     //tk setup
     programName = "tk";
@@ -615,8 +651,8 @@ int main()
     sstr oldPath = path;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_tk(fileName, path, usrPath, thisOS, oldPath, version);
-    reportResults(fileName, programName, step, result);
+    result = install_tk(fileName_Build, path, usrPath, thisOS, oldPath, version);
+    reportResults(fileName_Build, programName, step, result);
 
     //Get and Build Apache Dependencies
 
@@ -625,57 +661,57 @@ int main()
     step = 1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_01(fileName, path, usrPath, version);
-    reportResults(fileName, programName, step, result);
+    result = install_apache_step_01(fileName_Build, path, usrPath, version);
+    reportResults(fileName_Build, programName, step, result);
 
     programName = "apr-util";
     version     = "1.6.1";
     step = 2;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_02(fileName, path, usrPath, version);
-    reportResults(fileName, programName, step, result);
+    result = install_apache_step_02(fileName_Build, path, usrPath, version);
+    reportResults(fileName_Build, programName, step, result);
 
     programName = "apr-iconv";
     version     = "1.2.2";
     step = 3;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_03(fileName, path, usrPath, version);
-    reportResults(fileName, programName, step, result);
+    result = install_apache_step_03(fileName_Build, path, usrPath, version);
+    reportResults(fileName_Build, programName, step, result);
 
     programName = "pcre";
     version     = "8.41";
     step = 4;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_04(fileName, path, usrPath, version);
-    reportResults(fileName, programName, step, result);
+    result = install_apache_step_04(fileName_Build, path, usrPath, version);
+    reportResults(fileName_Build, programName, step, result);
 
     programName = "pcre2";
     version     = "10.30";
     step = 5;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_05(fileName, path, usrPath, version);
-    reportResults(fileName, programName, step, result);
+    result = install_apache_step_05(fileName_Build, path, usrPath, version);
+    reportResults(fileName_Build, programName, step, result);
 
     programName = "apache";
     version     = "2.4.29";
     step = 6;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_06(fileName, path, usrPath, version);
-    reportResults(fileName, programName, step, result);
+    result = install_apache_step_06(fileName_Build, path, usrPath, version);
+    reportResults(fileName_Build, programName, step, result);
 
     programName = "mariadb";
     version     = "10.3";
     step = 0;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_mariadb(fileName, path, usrPath, version);
-    reportResults(fileName, programName, step, result);
-
+    result = install_mariadb(fileName_Build, path, usrPath, version);
+    reportResults(fileName_Build, programName, step, result);
+    */
 
     return 0;
 }
