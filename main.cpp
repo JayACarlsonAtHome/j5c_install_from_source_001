@@ -666,7 +666,8 @@ int main()
 
     //basic setup
     bool sectionLoaded = false;
-    bool createScriptOnly = true;
+    bool createScriptOnly = false;
+
     sstr company = "/j5c";
     sstr verDir  = "";
     sstr version = "";
