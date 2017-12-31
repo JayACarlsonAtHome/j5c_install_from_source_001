@@ -604,11 +604,16 @@ int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bo
                   +  "--with-zlib-dir=bundled            "   + "\\\n"
                   +  "--enable-local-infile\"");
     vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make\"");
-    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make test\"");
     vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make install\"");
-    vec.push_back("eval \"cd " + usrPath + "/mysql-test; ./mysql-test-run.pl --force \"");
-    vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec, createScriptOnly);
+    if (result == 0 )
+    {
+        vec.clear();
+        vec.push_back("eval \"#Force run tests, on failure continue --force \"");
+        vec.push_back("eval \"cd " + usrPath + "/mysql-test; ./mysql-test-run.pl --force \"");
+        do_command(fileName, vec, createScriptOnly);
+    }
+    vec.push_back("eval \"cd /j5c\"");
     return result;
 }
 
