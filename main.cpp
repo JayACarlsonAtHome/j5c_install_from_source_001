@@ -579,10 +579,13 @@ int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bo
 
     vec.push_back("# Install Mariadb");
     vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"wget https://downloads.mariadb.org/interstitial/mariadb-" + version +"/source/mariadb-" + version +".tar.gz/from/http%3A//mirrors.syringanetworks.net/mariadb/\"");
-    vec.push_back("eval \"cd " + path + "/server; ./BUILD/autorun.sh\"");
-    vec.push_back("eval \"cd " + path + "/server; "
-                  + "./configure --prefix=" + usrPath + " " + "\\\n"
+    vec.push_back("eval \"wget https://downloads.mariadb.org/interstitial/mariadb-" + version +"/source/mariadb-" + version +".tar.gz\"");
+    vec.push_back("eval \"cp ./mariadb-" + version + ".tar.gz " + path + "\"");
+    vec.push_back("eval \"rm -f ./mariadb-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf mariadb-" + version + ".tar.gz\"");
+    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; ./BUILD/autorun.sh\"");
+    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; "
+                  + "./configure --prefix=" + usrPath + " "  + "\\\n"
                   +  "--enable-assembler                 "   + "\\\n"
                   +  "--with-extra-charsets=complex      "   + "\\\n"
                   +  "--enable-thread-safe-client        "   + "\\\n"
@@ -600,8 +603,8 @@ int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bo
                   +  "--with-client-ldflags=-all-static  "   + "\\\n"
                   +  "--with-zlib-dir=bundled            "   + "\\\n"
                   +  "--enable-local-infile\"");
-    vec.push_back("eval \"cd " + path + "/server; make\"");
-    vec.push_back("eval \"cd " + path + "/server; make install\"");
+    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make\"");
+    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make install\"");
     vec.push_back("eval \"cd " + usrPath + "/mysql-test; ./mysql-test-run.pl\"");
     vec.push_back("eval \"cd /j5c\"");
     int result = do_command(fileName, vec, createScriptOnly);
