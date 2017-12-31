@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <stdio.h>
+#include <limits>
 
 using sstr = std::string;
 
@@ -154,18 +155,18 @@ int file_append_blank_lines(sstr& fileName, int count)
     return result;
 }
 
-sstr file_read_file(sstr& fileName, int count)
+std::vector<sstr> file_read_file(sstr& fileName, int count)
 {
 
     std::ifstream file;
-    sstr result = "";
+    std::vector<sstr> result;
     file.open(fileName, std::ios::in );
     sstr lineData = "";
     if ( (file.is_open()) && (file.good()) )
     {
         while (getline(file, lineData))
         {
-            result += lineData + "\n";
+            result.push_back(lineData + "\n");
         }
     }
     else
@@ -177,8 +178,45 @@ sstr file_read_file(sstr& fileName, int count)
 }
 
 
+bool prior_Results(sstr& fileNameResult, sstr& programName, int step)
+{
+    int count = 10000;
+    bool result = false;
+    sstr it_data = "";
+    auto max = std::numeric_limits<unsigned long>::max();
+
+    std::vector<sstr> data = file_read_file(fileNameResult, count);
+    for (auto it = data.cbegin(); it != data.cend(); ++it )
+    {
+        it_data = *it;
+        auto found1 = it_data.find(programName);
+        auto found2 = found1;
+        auto found3 = found1;
+        if ( found1 != max )
+        {
+            found2 = it_data.find("Result = 0");
+            found3 = it_data.find("result = 0");
+
+            bool cond1 = (found2 == max);
+            bool cond2 = (found3 == max);
+
+            if ((!cond1) || (!cond2))
+            {
+                result = true;
+                break;
+            }
+        }
+    }
+    return result;
+}
+
 enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
+
+void section_already_loaded(sstr& programName, sstr& version)
+{
+    std::cout << "This section: " << programName + version <<  " already loaded." << std::endl;
+}
 
 void print_blank_lines(int count)
 {
@@ -188,7 +226,6 @@ void print_blank_lines(int count)
         std::cout << std::endl;
     }
 }
-
 
 int do_command(sstr& fileName, std::vector<sstr>& vec)
 {
@@ -217,6 +254,16 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
         }
     }
     return result;
+}
+
+int removeDirectory(sstr& fileName, sstr& path)
+{
+    std::vector<sstr> vec;
+    if (path.length() > 2)
+    {
+        vec.push_back("eval \"rm -rf " + path + "\"");
+    }
+    do_command(fileName, vec);
 }
 
 int install_apt_required_dependencies()
@@ -561,9 +608,9 @@ sstr setUsrPath(sstr& company, sstr& prod_Usr_Offset, sstr& programName)
 };
 
 
-int reportResults(sstr& fileName, sstr& programName, int step, int installResult)
+int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, int step, int installResult)
 {
-    int result = 1;
+    int result = 0;
     if (step < 0)
     {
         std::cout << "Install " << programName << " result = " << installResult << "." << std::endl;
@@ -573,9 +620,10 @@ int reportResults(sstr& fileName, sstr& programName, int step, int installResult
         std::cout << "Install " << programName << " step " << std::setw(2) << std::setfill('0') << step <<  " : Result = " << installResult << std::endl;
     }
 
-    result = file_append_results(fileName, programName, step, installResult);
+    result += file_append_results(fileNameBuilds, programName, step, installResult);
+    result += file_append_results(fileNameResult, programName, step, installResult);
     print_blank_lines(2);
-    result += file_append_blank_lines(fileName, 2);
+    result += file_append_blank_lines(fileNameBuilds, 2);
     return result;
 };
 
@@ -585,6 +633,7 @@ int main()
     Mac_PM  mpm    = Mac_PM ::Selection_Not_Available;
 
     //basic setup
+    bool sectionLoaded = false;
     sstr company = "/j5c";
     sstr verDir  = "";
     sstr version = "";
@@ -605,113 +654,215 @@ int main()
     sstr fileNameResult = "Installation_Script_Result_p" + pVersion + ".txt";
     create_file(fileName_Build);
 
-    if (thisOS == OS_type::RedHat)
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
     {
-        install_yum_required_dependencies(fileName_Build);
-        print_blank_lines(2);
-        file_append_blank_lines(fileName_Build, 2);
+        if (thisOS == OS_type::RedHat) {
+            install_yum_required_dependencies(fileName_Build);
+            print_blank_lines(2);
+            file_append_blank_lines(fileName_Build, 2);
+        }
+
+        if (thisOS == OS_type::Linux_Mint) {
+            install_apt_required_dependencies();
+        }
+
+        if (thisOS == OS_type::MaxOSX) {
+            install_mac_required_dependencies(mpm);
+        }
+        reportResults(fileName_Build, fileNameResult, programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
     }
 
-    if (thisOS == OS_type::Linux_Mint)
-    {
-        install_apt_required_dependencies();
-    }
-
-    if (thisOS == OS_type::MaxOSX)
-    {
-        install_mac_required_dependencies(mpm);
-    }
-    reportResults(fileName_Build, programName, step, result);
-
-    /*
     //perl setup
     programName = "perl";
     verDir = "5.0";
     version = "5.26.1";
+    step -1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    // load install results
-    // search install results
-    // if installed then skip
-    // else remove old directory if exists
-    result = install_perl(fileName_Build, path, usrPath, verDir, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_perl(fileName_Build, path, usrPath, verDir, version);
+        reportResults(fileName_Build, fileNameResult, programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     //tcl setup
     programName = "tcl";
     version     = "8.6.8";
+    step -1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_tcl(fileName_Build, path, usrPath, thisOS, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_tcl(fileName_Build, path, usrPath, thisOS, version);
+        reportResults(fileName_Build, fileNameResult, programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     //tk setup
     programName = "tk";
     version     = "8.6.8";
+    step = -1;
     sstr oldPath = path;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_tk(fileName_Build, path, usrPath, thisOS, oldPath, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_tk(fileName_Build, path, usrPath, thisOS, oldPath, version);
+        reportResults(fileName_Build, fileNameResult, programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     //Get and Build Apache Dependencies
-
     programName = "apr";
     version     = "1.6.3";
     step = 1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_01(fileName_Build, path, usrPath, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_apache_step_01(fileName_Build, path, usrPath, version);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     programName = "apr-util";
     version     = "1.6.1";
     step = 2;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_02(fileName_Build, path, usrPath, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_apache_step_02(fileName_Build, path, usrPath, version);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     programName = "apr-iconv";
     version     = "1.2.2";
     step = 3;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_03(fileName_Build, path, usrPath, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_apache_step_03(fileName_Build, path, usrPath, version);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     programName = "pcre";
     version     = "8.41";
     step = 4;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_04(fileName_Build, path, usrPath, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_apache_step_04(fileName_Build, path, usrPath, version);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
+
 
     programName = "pcre2";
     version     = "10.30";
     step = 5;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_05(fileName_Build, path, usrPath, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_apache_step_05(fileName_Build, path, usrPath, version);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     programName = "apache";
     version     = "2.4.29";
     step = 6;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_apache_step_06(fileName_Build, path, usrPath, version);
-    reportResults(fileName_Build, programName, step, result);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_apache_step_05(fileName_Build, path, usrPath, version);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     programName = "mariadb";
     version     = "10.3";
     step = 0;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
-    result = install_mariadb(fileName_Build, path, usrPath, version);
-    reportResults(fileName_Build, programName, step, result);
-    */
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path);
+        removeDirectory(fileName_Build, usrPath);
+        result = install_mariadb(fileName_Build, path, usrPath, version);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
 
     return 0;
 }
