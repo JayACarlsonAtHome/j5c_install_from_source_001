@@ -215,7 +215,13 @@ enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_B
 
 void section_already_loaded(sstr& programName, sstr& version)
 {
-    std::cout << "This section: " << programName + version <<  " already loaded." << std::endl;
+    if (version.length() > 0) {
+        std::cout << "This section: " << programName + "-" + version << " already loaded." << std::endl;
+    }
+    else
+    {
+        std::cout << "This section: " << programName << " already loaded." << std::endl;
+    }
 }
 
 void print_blank_lines(int count)
@@ -227,7 +233,7 @@ void print_blank_lines(int count)
     }
 }
 
-int do_command(sstr& fileName, std::vector<sstr>& vec)
+int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly)
 {
     sstr command = "";
     int result = 0;
@@ -235,16 +241,19 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
     {
         result = 0;
         command =  *it;
-        std::cout << "Command: " << command << std::endl;
+
         file_append_line(fileName, command);
         if (command.substr(0,1) != "#")
         {
-            result = system(command.c_str());
+            std::cout << "Command: " << command << std::endl;
+            if (!createScriptOnly)
+            {
+                result += system(command.c_str());
+            }
         }
         else
         {
             std::cout << command << std::endl;
-            result = 0;
         }
 
         if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum"))) )
@@ -256,14 +265,15 @@ int do_command(sstr& fileName, std::vector<sstr>& vec)
     return result;
 }
 
-int removeDirectory(sstr& fileName, sstr& path)
+int removeDirectory(sstr& fileName, sstr& path, bool createScriptOnly)
 {
     std::vector<sstr> vec;
     if (path.length() > 2)
     {
         vec.push_back("eval \"rm -rf " + path + "\"");
     }
-    do_command(fileName, vec);
+    do_command(fileName, vec, createScriptOnly);
+    return 0;
 }
 
 int install_apt_required_dependencies()
@@ -287,11 +297,12 @@ int install_mac_required_dependencies(Mac_PM mpm)
     return 1;
 }
 
-int install_yum_required_dependencies(sstr& fileName)
+int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool createScriptOnly)
 {
     sstr fedora_release = "7";
     sstr command = "";
     std::vector<sstr> vec;
+    vec.push_back("# Install " + programName + ".");
     vec.push_back("yum -y install wget");
     vec.push_back("wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-" + fedora_release + ".noarch.rpm");
     vec.push_back("yum -y install epel-release-latest-" + fedora_release +".noarch.rpm");
@@ -341,14 +352,15 @@ int install_yum_required_dependencies(sstr& fileName)
     vec.push_back("yum -y xorg-x11-fonts*");
     vec.push_back("yum -y xorg-x11-server-Xnest");
     vec.push_back("yum -y install vsqlite++-devel");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
-int install_perl(sstr& fileName, sstr& path, sstr& usrPath, sstr& verDir, sstr& version)
+int install_perl(sstr& fileName, sstr& path, sstr& usrPath, sstr& verDir, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     std::vector<sstr> vec;
+    vec.push_back("# Install Perl.");
     vec.push_back("eval \"mkdir -p " + path + "\"");
     vec.push_back("eval \"wget http://www.cpan.org/src/" + verDir +"/perl-" + version + ".tar.gz\"");
     vec.push_back("eval \"cp ./perl-" + version + ".tar.gz " + path + "\"");
@@ -360,11 +372,11 @@ int install_perl(sstr& fileName, sstr& path, sstr& usrPath, sstr& verDir, sstr& 
     vec.push_back("eval \"cd " + path + "/perl-" + version + "; make test \"");
     vec.push_back("eval \"cd " + path + "/perl-" + version + "; make install \"");
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
-int install_tcl(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version)
+int install_tcl(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
@@ -374,6 +386,7 @@ int install_tcl(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr&
     if (thisOS == OS_type::Linux_Mint)  installOS = "unix";
     if (thisOS == OS_type::MaxOSX)      installOS = "macosx";
 
+    vec.push_back("# Install Tcl.");
     vec.push_back("eval \"mkdir -p " + path + "\"");
     vec.push_back("eval \"wget https://prdownloads.sourceforge.net/tcl/tcl" + version + "-src.tar.gz\"");
     vec.push_back("eval \"cp ./tcl" + version + "-src.tar.gz " + path + "\"");
@@ -386,12 +399,12 @@ int install_tcl(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr&
     vec.push_back("eval \"cd " + path + "/tcl" +version + "/" + installOS + "; make test \"");
     vec.push_back("eval \"cd " + path + "/tcl" +version + "/" + installOS + "; make install \"");
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
 
-int install_tk(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& oldPath, sstr& version)
+int install_tk(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& oldPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
@@ -401,6 +414,7 @@ int install_tk(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& 
     if (thisOS == OS_type::Linux_Mint)  installOS = "unix";
     if (thisOS == OS_type::MaxOSX)      installOS = "macosx";
 
+    vec.push_back("# Install Tk.");
     vec.push_back("eval \"mkdir -p " + path + "\"");
     vec.push_back("eval \"wget https://prdownloads.sourceforge.net/tcl/tk" + version +"-src.tar.gz\"");
     vec.push_back("eval \"cp ./tk" + version + "-src.tar.gz " + path + "\"");
@@ -415,12 +429,12 @@ int install_tk(sstr& fileName, sstr& path, sstr& usrPath, OS_type thisOS, sstr& 
     vec.push_back("eval \"cd " + path + "/tk" + version + "/" + installOS + "; make install \"");
 
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
 
-int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
@@ -437,11 +451,11 @@ int install_apache_step_01(sstr& fileName, sstr& path, sstr& usrPath, sstr& vers
     vec.push_back("eval \"cd " + path + "/apr-" + version + "; make test\"");
     vec.push_back("eval \"cd " + path + "/apr-" + version + "; make install\"");
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
@@ -459,11 +473,11 @@ int install_apache_step_02(sstr& fileName, sstr& path, sstr& usrPath, sstr& vers
     vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
@@ -481,12 +495,12 @@ int install_apache_step_03(sstr& fileName, sstr& path, sstr& usrPath, sstr& vers
     vec.push_back("eval \"cd " + path + "/apr-iconv-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
 
-int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
@@ -504,11 +518,11 @@ int install_apache_step_04(sstr& fileName, sstr& path, sstr& usrPath, sstr& vers
     vec.push_back("eval \"cd " + path + "/pcre-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
@@ -526,18 +540,18 @@ int install_apache_step_05(sstr& fileName, sstr& path, sstr& usrPath, sstr& vers
     vec.push_back("eval \"cd " + path + "/pcre2-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
 
-int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     sstr installOS = "";
     std::vector<sstr> vec;
 
-    vec.push_back("# Install Apache Step 06: Get Apache source.");
+    vec.push_back("# Install Apache Step 06: Get Apache source and install with dependencies.");
     vec.push_back("eval \"mkdir -p " + path + "\"");
     vec.push_back("eval \"wget http://www.apache.org/dist/httpd/httpd-" + version +".tar.bz2\"");
     vec.push_back("eval \"cp ./httpd-" + version + ".tar.bz2 " + path + "\"");
@@ -547,29 +561,28 @@ int install_apache_step_06(sstr& fileName, sstr& path, sstr& usrPath, sstr& vers
                   + "--with-apr=" + usrPath.substr(0,13) + "/apr/bin  "
                   + "--with-apr-util="  + usrPath.substr(0,13) + "/apr-util   "
                   + "--with-apr-iconv=" + usrPath.substr(0,13) + "/apr-iconv  "
-                  + "--with-pcre=" + usrPath.substr(0,13) + "/pcre " + "\"");
+                  + "--with-pcre2=" + usrPath.substr(0,13) + "/pcre2 " + "\"");
     vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make\"");
     // no tests available
     vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
 
-int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
+int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
 {
     sstr command = "";
     std::vector<sstr> vec;
 
+    vec.push_back("# Install Mariadb");
     vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("#Note: You will need to enter your SSH key to download MariaDB from github.com.");
-    vec.push_back("eval \"cd " + path + "; git clone git@github.com:MariaDB/server.git\"");
-    vec.push_back("eval \"cd " + path + "/server; git checkout " + version + "\"");
+    vec.push_back("eval \"wget https://downloads.mariadb.org/interstitial/mariadb-" + version +"/source/mariadb-" + version +".tar.gz/from/http%3A//mirrors.syringanetworks.net/mariadb/\"");
     vec.push_back("eval \"cd " + path + "/server; ./BUILD/autorun.sh\"");
     vec.push_back("eval \"cd " + path + "/server; "
-                  + " ./configure --prefix=" + usrPath + " " + "\\\n"
+                  + "./configure --prefix=" + usrPath + " " + "\\\n"
                   +  "--enable-assembler                 "   + "\\\n"
                   +  "--with-extra-charsets=complex      "   + "\\\n"
                   +  "--enable-thread-safe-client        "   + "\\\n"
@@ -590,9 +603,28 @@ int install_mariadb(sstr& fileName, sstr& path, sstr& usrPath, sstr& version)
     vec.push_back("eval \"cd " + path + "/server; make\"");
     vec.push_back("eval \"cd " + path + "/server; make install\"");
     vec.push_back("eval \"cd " + usrPath + "/mysql-test; ./mysql-test-run.pl\"");
+    vec.push_back("eval \"cd /j5c\"");
+    int result = do_command(fileName, vec, createScriptOnly);
+    return result;
+}
+
+int install_php(sstr& fileName, sstr& path, sstr& usrPath, sstr& version, bool createScriptOnly)
+{
+    sstr command = "";
+    std::vector<sstr> vec;
+    vec.push_back("# Install PHP");
+    vec.push_back("eval \"mkdir -p " + path + "\"");
+    vec.push_back("eval \"wget http://php.net/get/php-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cp ./php-" + version + ".tar.bz2 " + path + "\"");
+    vec.push_back("eval \"rm -f ./php-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; tar xvf php-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "/php-" + version + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd " + path + "/php-" + version + "; make\"");
+    vec.push_back("eval \"cd " + path + "/php-" + version + "; make test\"");
+    vec.push_back("eval \"cd " + path + "/php-" + version + "; make install\"");
 
     vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec);
+    int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
 
@@ -634,6 +666,7 @@ int main()
 
     //basic setup
     bool sectionLoaded = false;
+    bool createScriptOnly = true;
     sstr company = "/j5c";
     sstr verDir  = "";
     sstr version = "";
@@ -658,7 +691,7 @@ int main()
     if (!sectionLoaded)
     {
         if (thisOS == OS_type::RedHat) {
-            install_yum_required_dependencies(fileName_Build);
+            install_yum_required_dependencies(fileName_Build, programName, createScriptOnly);
             print_blank_lines(2);
             file_append_blank_lines(fileName_Build, 2);
         }
@@ -681,15 +714,15 @@ int main()
     programName = "perl";
     verDir = "5.0";
     version = "5.26.1";
-    step -1;
+    step = -1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_perl(fileName_Build, path, usrPath, verDir, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_perl(fileName_Build, path, usrPath, verDir, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult, programName, step, result);
     }
     else
@@ -700,15 +733,15 @@ int main()
     //tcl setup
     programName = "tcl";
     version     = "8.6.8";
-    step -1;
+    step = -1;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_tcl(fileName_Build, path, usrPath, thisOS, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_tcl(fileName_Build, path, usrPath, thisOS, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult, programName, step, result);
     }
     else
@@ -726,9 +759,9 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_tk(fileName_Build, path, usrPath, thisOS, oldPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_tk(fileName_Build, path, usrPath, thisOS, oldPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult, programName, step, result);
     }
     else
@@ -745,9 +778,9 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_apache_step_01(fileName_Build, path, usrPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_apache_step_01(fileName_Build, path, usrPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -763,9 +796,9 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_apache_step_02(fileName_Build, path, usrPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_apache_step_02(fileName_Build, path, usrPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -781,9 +814,9 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_apache_step_03(fileName_Build, path, usrPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_apache_step_03(fileName_Build, path, usrPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -799,9 +832,9 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_apache_step_04(fileName_Build, path, usrPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_apache_step_04(fileName_Build, path, usrPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -818,9 +851,9 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_apache_step_05(fileName_Build, path, usrPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_apache_step_05(fileName_Build, path, usrPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -836,9 +869,9 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_apache_step_05(fileName_Build, path, usrPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_apache_step_06(fileName_Build, path, usrPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -847,16 +880,34 @@ int main()
     }
 
     programName = "mariadb";
-    version     = "10.3";
+    version     = "10.2.11";
     step = 0;
     path = setPath(company, prod_PathOffset, programName);
     usrPath = setUsrPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        removeDirectory(fileName_Build, path);
-        removeDirectory(fileName_Build, usrPath);
-        result = install_mariadb(fileName_Build, path, usrPath, version);
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_mariadb(fileName_Build, path, usrPath, version, createScriptOnly);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
+
+    programName = "php";
+    version     = "7.2.0";
+    step = -1;
+    path = setPath(company, prod_PathOffset, programName);
+    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        removeDirectory(fileName_Build, path, createScriptOnly);
+        removeDirectory(fileName_Build, usrPath, createScriptOnly);
+        result = install_php(fileName_Build, path, usrPath, version, createScriptOnly);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
