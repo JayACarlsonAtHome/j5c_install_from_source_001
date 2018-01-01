@@ -1,3 +1,11 @@
+// Copyright J5C Marketing LLC
+// Jay A Carlson
+// jay.a.carlson@gmail.com
+// 360-649-6218
+
+// This program can automatically install a LAMP system
+//   and a backup system
+
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -129,7 +137,6 @@ int appendNewLogSection(sstr &fileName)
     file.close();
 }
 
-
 int create_file(sstr &fileName)
 {
     j5c_Date thisDate{};
@@ -155,11 +162,13 @@ int create_file(sstr &fileName)
     return result;
 }
 
-int ensure_file(sstr &fileName) {
+int ensure_file(sstr &fileName)
+{
     std::ofstream file;
     int result = 1;  // assume failure
     file.open(fileName, std::ios::out | std::ios::app);
-    if (!(file.is_open())) {
+    if (!(file.is_open()))
+    {
         create_file(fileName);
     }
 }
@@ -171,7 +180,9 @@ int write_file_entry(std::ofstream& file, sstr entry, bool includeTime = false)
     {
         sstr time = get_Time_as_String();
         file << " " << time << " : " << entry << std::endl;
-    } else {
+    }
+    else
+    {
         file << entry << std::endl;
     }
     return result;
@@ -285,8 +296,10 @@ int file_append_blank_lines(sstr& fileName, int count)
     std::vector<sstr> vec;
     file.open(fileName, std::ios::out | std::ios::app );
 
-    if ( (file.is_open()) && (file.good()) ) {
-        while (count > 0) {
+    if ( (file.is_open()) && (file.good()) )
+    {
+        while (count > 0)
+        {
             count -= 1;
             file << std::endl;
         }
@@ -598,7 +611,6 @@ int install_tk(sstr& fileName,
     return result;
 }
 
-
 int install_apache_step_01(sstr& fileName,
                            sstr& path,
                            sstr& usrPath,
@@ -691,7 +703,6 @@ int install_apache_step_03(sstr& fileName,
     return result;
 }
 
-
 int install_apache_step_04(sstr& fileName,
                            sstr& path,
                            sstr& usrPath,
@@ -752,7 +763,6 @@ int install_apache_step_05(sstr& fileName,
     return result;
 }
 
-
 int install_apache(sstr& fileName,
                            sstr& path,
                            sstr& usrPath,
@@ -787,7 +797,6 @@ int install_apache(sstr& fileName,
     int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
-
 
 int install_mariadb(sstr& fileName,
                     sstr& path,
@@ -858,10 +867,11 @@ int install_php(sstr& fileName,
 
     vec.push_back("# Install PHP");
     vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"wget http://php.net/get/php-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cp ./php-" + version + ".tar.bz2 " + path + "\"");
-    vec.push_back("eval \"rm -f ./php-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf php-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"wget http://php.net/get/php-" + version + ".tar.bz2/from/this/mirror\"");
+    vec.push_back("eval \"cp ./mirror " + path + "\"");
+    vec.push_back("eval \"rm -f ./mirror\"");
+    vec.push_back("eval \"cd " + path + "; mv mirror php-" + version + ".tar.bz2\"");
+    vec.push_back("eval \"cd " + path + "; tar xvjf php-" + version + ".tar.bz2\"");
     vec.push_back("eval \"cd " + path + "/php-" + version + "; ./configure --prefix=" + usrPath + "\"");
     vec.push_back("eval \"cd " + path + "/php-" + version + "; make\"");
     if (doTests)
@@ -874,7 +884,6 @@ int install_php(sstr& fileName,
     return result;
 }
 
-
 sstr setPath(sstr& company, sstr& prod_PathOffset, sstr& programName)
 {
     return company + prod_PathOffset + "/" + programName;
@@ -884,7 +893,6 @@ sstr setUsrPath(sstr& company, sstr& prod_Usr_Offset, sstr& programName)
 {
     return company + prod_Usr_Offset + "/" + programName;
 };
-
 
 int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, int step, int installResult)
 {
@@ -897,7 +905,6 @@ int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName,
     {
         std::cout << "Install " << programName << " step " << std::setw(2) << std::setfill('0') << step <<  " : Result = " << installResult << std::endl;
     }
-
     result += file_append_results(fileNameBuilds, programName, step, installResult);
     result += file_append_results(fileNameResult, programName, step, installResult);
     print_blank_lines(2);
@@ -913,6 +920,7 @@ int main()
     bool sectionLoaded      = false;
     bool createScriptOnly   = false;
     bool doTests            = true;
+    bool alphaBuild         = true;
 
     sstr company = "/j5c";
     sstr verDir  = "";
@@ -924,10 +932,23 @@ int main()
     sstr programName = "Dependencies";
     sstr path = "none";
     sstr usrPath = "none";
+    sstr buildVersion = "";
+
+    /*
+     * This section is not used yet, and my not be used at all. I am still deciding...
+     * 
+     *
+        if (alphaBuild)
+        {
+            buildVersion = pVersion + "a";
+        }
+        else
+        {
+            buildVersion = pVersion + "b";
+        }
+    */
     int step = -1;
     int result = 0;
-
-
 
     ensure_Directory_exists1(company);
     sstr fileName_Build = "Installation_Script_Builds_p" + pVersion + ".txt";
@@ -957,7 +978,6 @@ int main()
     {
         section_already_loaded(programName, version);
     }
-
 
     //perl setup
     programName = "perl";
@@ -1174,6 +1194,9 @@ int main()
     {
         section_already_loaded(programName, version);
     }
+    sstr end = "End of Program";
+    file_append_line(fileName_Build, end);
+    file_append_line(fileName_Build, end);
 
     return 0;
 }
