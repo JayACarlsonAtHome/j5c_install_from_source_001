@@ -16,6 +16,10 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+
+#ifndef DATE_DATE_H
+#define DATE_DATE_H
+
 #include <limits>
 #include <iosfwd>
 #include <iomanip>
@@ -23,10 +27,6 @@
 #include <ctime>
 #include <chrono>
 #include <ratio>
-
-
-#ifndef DATE_DATE_H
-#define DATE_DATE_H
 
 namespace J5C_DSL_Code {
 
