@@ -514,60 +514,50 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.push_back("# Install " + programName + ".");
     vec.push_back("apt update");
     vec.push_back("apt upgrade");
-    vec.push_back("apt install wget -y");
+    vec.push_back("apt install openjdk-9-jdk -y");
+    vec.push_back("apt autoremove -y");
     vec.push_back("apt install autoconf -y");
     vec.push_back("apt install bison -y");
-    vec.push_back("apt install libboost-dev -y");
     vec.push_back("apt install bzip2 -y");
     vec.push_back("apt install cmake -y");
     vec.push_back("apt install cmake-gui -y");
-    vec.push_back("apt install libncurses-dev -y");
-    vec.push_back("apt install libexpat-dev -y");
     vec.push_back("apt install ftp -y");
     vec.push_back("apt install google-chrome-stable -y");
     vec.push_back("apt install gitk -y");
     vec.push_back("apt install gcc -y");
     vec.push_back("apt install gnutls-dev -y");
-    vec.push_back("apt install g++-5 -y");
+    vec.push_back("apt install g++ -y");
+    vec.push_back("apt install libboost-dev -y");
+    vec.push_back("apt install libcurl4-gnutls-dev -y");
+    vec.push_back("apt install libedit-dev -y");
+    vec.push_back("apt install libexpat-dev -y");
+    vec.push_back("apt install libicu-dev -y");
     vec.push_back("apt install libjemalloc-dev -y");
-    vec.push_back("apt install openjdk-9-jdk -y");
-    vec.push_back("apt install Judy -y");
-    vec.push_back("apt install libcurl-devel -y");
-    vec.push_back("apt install libedit-devel -y");
-    vec.push_back("apt install libicu-devel -y");
-    vec.push_back("apt install libjpeg-turbo-utils -y");
-    vec.push_back("apt install libjpeg-turbo-devel -y");
-    vec.push_back("apt install libpng-devel -y");
-    vec.push_back("apt install libstdc++ -y");
-    vec.push_back("apt install libstdc++-devel -y");
-    vec.push_back("apt install libstdc++-docs -y");
-    vec.push_back("apt install libstdc++-static -y");
-    vec.push_back("apt install libwebp-devel -y");
-    vec.push_back("apt install libxml2-devel -y");
-    vec.push_back("apt install libxslt-devel -y");
+    vec.push_back("apt install libjpeg-dev -y");
+    vec.push_back("apt install libjudy-dev -y");
+    vec.push_back("apt install libncurses5-dev -y");
+    vec.push_back("apt install libpng-dev -y");
+    vec.push_back("apt install libsqlite3-tcl -y");
+    vec.push_back("apt install libstdc++-5-dev -y");
+    vec.push_back("apt install libstdc++-5-doc -y");
+    vec.push_back("apt install libwebp-dev -y");
+    vec.push_back("apt install libxml2-dev -y");
+    vec.push_back("apt install libxslt-dev -y");
     vec.push_back("apt install libx11-dev -y");
+    vec.push_back("apt install openssl-dev -y");
     vec.push_back("apt install x11-common -y");
-    vec.push_back("apt install x11-server -y");
+    vec.push_back("apt install x11-xserver-utils  -y");
     vec.push_back("apt install x11-utils -y");
-    vec.push_back("apt install openssl-devel -y");
     vec.push_back("apt install re2c -y");
     vec.push_back("apt install ruby -y");
-    vec.push_back("apt install sqlite-devel -y");
-    vec.push_back("apt install sqlite-tcl -y");
-    vec.push_back("apt install tcltls-devel -y");
+    vec.push_back("apt install sqlite3 -y");
     vec.push_back("apt install xml2 -y");
-    vec.push_back("apt xorg-x11-fonts* -y");
-    vec.push_back("apt xorg-x11-server-Xnest -y");
-    vec.push_back("apt install vsqlite++-devel -y");
+    vec.push_back("apt install wget -y");
     vec.push_back("apt update");
     vec.push_back("apt upgrade");
-
     int result = do_command(fileName, vec, createScriptOnly);
-
     return result;
 }
-
-
 
 int install_perl(sstr& fileName,
                  sstr& path,
@@ -851,7 +841,7 @@ int install_apache(sstr& fileName,
                   + "--with-apr=" + usrPath.substr(0,13) + "/apr/bin  "
                   + "--with-apr-util="  + usrPath.substr(0,13) + "/apr-util   "
                   + "--with-apr-iconv=" + usrPath.substr(0,13) + "/apr-iconv  "
-                  + "--with-pcre2=" + usrPath.substr(0,13) + "/pcre2 " + "\"");
+                  + "--with-pcre=" + usrPath.substr(0,13) + "/pcre " + "\"");
     vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make\"");
     if (doTests)
     {
@@ -979,13 +969,13 @@ int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName,
 
 int main()
 {
-    OS_type thisOS = OS_type::RedHat;
+    OS_type thisOS = OS_type::Linux_Mint;
     Mac_PM  mpm    = Mac_PM ::Selection_Not_Available;
 
     //basic setup
     bool sectionLoaded      = false;
     bool createScriptOnly   = false;
-    bool doTests            = true;
+    bool doTests            = false;
     bool alphaBuild         = true;
 
     sstr company = "/j5c";
@@ -999,20 +989,7 @@ int main()
     sstr path = "none";
     sstr usrPath = "none";
     sstr buildVersion = "";
-
-    /*
-     * This section is not used yet, and my not be used at all. I am still deciding...
-     * 
-     *
-        if (alphaBuild)
-        {
-            buildVersion = pVersion + "a";
-        }
-        else
-        {
-            buildVersion = pVersion + "b";
-        }
-    */
+    
     int step = -1;
     int result = 0;
 
@@ -1032,7 +1009,7 @@ int main()
         }
 
         if (thisOS == OS_type::Linux_Mint) {
-            install_apt_required_dependencies();
+            install_apt_required_dependencies(fileName_Build, programName, createScriptOnly);
         }
 
         if (thisOS == OS_type::MaxOSX) {
