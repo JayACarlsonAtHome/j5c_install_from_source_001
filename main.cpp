@@ -135,6 +135,7 @@ int appendNewLogSection(sstr &fileName)
         startNewLogSection(file);
     }
     file.close();
+    return result;
 }
 
 int create_file(sstr &fileName)
@@ -170,7 +171,9 @@ int ensure_file(sstr &fileName)
     if (!(file.is_open()))
     {
         create_file(fileName);
+        result = 0;
     }
+    return result;
 }
 
 int write_file_entry(std::ofstream& file, sstr entry, bool includeTime = false)
@@ -502,6 +505,69 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
+
+
+int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool createScriptOnly)
+{
+    sstr command = "";
+    std::vector<sstr> vec;
+    vec.push_back("# Install " + programName + ".");
+    vec.push_back("apt update");
+    vec.push_back("apt upgrade");
+    vec.push_back("apt install wget -y");
+    vec.push_back("apt install autoconf -y");
+    vec.push_back("apt install bison -y");
+    vec.push_back("apt install libboost-dev -y");
+    vec.push_back("apt install bzip2 -y");
+    vec.push_back("apt install cmake -y");
+    vec.push_back("apt install cmake-gui -y");
+    vec.push_back("apt install libncurses-dev -y");
+    vec.push_back("apt install libexpat-dev -y");
+    vec.push_back("apt install ftp -y");
+    vec.push_back("apt install google-chrome-stable -y");
+    vec.push_back("apt install gitk -y");
+    vec.push_back("apt install gcc -y");
+    vec.push_back("apt install gnutls-dev -y");
+    vec.push_back("apt install g++-5 -y");
+    vec.push_back("apt install libjemalloc-dev -y");
+    vec.push_back("apt install openjdk-9-jdk -y");
+    vec.push_back("apt install Judy -y");
+    vec.push_back("apt install libcurl-devel -y");
+    vec.push_back("apt install libedit-devel -y");
+    vec.push_back("apt install libicu-devel -y");
+    vec.push_back("apt install libjpeg-turbo-utils -y");
+    vec.push_back("apt install libjpeg-turbo-devel -y");
+    vec.push_back("apt install libpng-devel -y");
+    vec.push_back("apt install libstdc++ -y");
+    vec.push_back("apt install libstdc++-devel -y");
+    vec.push_back("apt install libstdc++-docs -y");
+    vec.push_back("apt install libstdc++-static -y");
+    vec.push_back("apt install libwebp-devel -y");
+    vec.push_back("apt install libxml2-devel -y");
+    vec.push_back("apt install libxslt-devel -y");
+    vec.push_back("apt install libx11-dev -y");
+    vec.push_back("apt install x11-common -y");
+    vec.push_back("apt install x11-server -y");
+    vec.push_back("apt install x11-utils -y");
+    vec.push_back("apt install openssl-devel -y");
+    vec.push_back("apt install re2c -y");
+    vec.push_back("apt install ruby -y");
+    vec.push_back("apt install sqlite-devel -y");
+    vec.push_back("apt install sqlite-tcl -y");
+    vec.push_back("apt install tcltls-devel -y");
+    vec.push_back("apt install xml2 -y");
+    vec.push_back("apt xorg-x11-fonts* -y");
+    vec.push_back("apt xorg-x11-server-Xnest -y");
+    vec.push_back("apt install vsqlite++-devel -y");
+    vec.push_back("apt update");
+    vec.push_back("apt upgrade");
+
+    int result = do_command(fileName, vec, createScriptOnly);
+
+    return result;
+}
+
+
 
 int install_perl(sstr& fileName,
                  sstr& path,
