@@ -1239,7 +1239,7 @@ int main()
     }
     sstr end = "End of Program";
     file_append_line(fileName_Build, end);
-    file_append_line(fileName_Build, end);
+    file_append_line(fileNameResult, end);
 
     return 0;
 }
