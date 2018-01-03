@@ -524,6 +524,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.push_back("apt install ftp -y");
     vec.push_back("apt install google-chrome-stable -y");
     vec.push_back("apt install gitk -y");
+    vec.push_back("apt install git-cola -y");
     vec.push_back("apt install gcc -y");
     vec.push_back("apt install gnutls-dev -y");
     vec.push_back("apt install g++ -y");
@@ -553,6 +554,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.push_back("apt install sqlite3 -y");
     vec.push_back("apt install xml2 -y");
     vec.push_back("apt install wget -y");
+    vec.push_back("apt install xxdiff -y");
     vec.push_back("apt update");
     vec.push_back("apt upgrade");
     int result = do_command(fileName, vec, createScriptOnly);
