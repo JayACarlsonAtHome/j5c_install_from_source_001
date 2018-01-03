@@ -611,14 +611,14 @@ int install_perl(sstr& homePath,
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + workingPath + "; ./Configure -Dprefix=" + usrPath +" -d -e\"");
-    vec.push_back("eval \"cd " + workingPath + "; make \"");
+    vec.push_back("eval \"cd "     + workingPath + "; ./Configure -Dprefix=" + usrPath +" -d -e\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
     if (doTests)
     {
         vec.push_back("eval \"cd " + workingPath + "; make test \"");
     }
-    vec.push_back("eval \"cd " + workingPath + "; make install \"");
-    vec.push_back("eval \"cd " + homePath + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
     int result = do_command(buildFileName, vec, createScriptOnly);
@@ -669,14 +669,16 @@ int install_tcl(sstr& homePath,
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + workingPath + "; ./configure --prefix="  + usrPath + " --enable-threads --enable-shared --enable-symbols;  \"");
-    vec.push_back("eval \"cd " + workingPath + "; make \"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix="  + usrPath
+                                        + " --enable-threads --enable-shared --enable-symbols;  \"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
     if (doTests)
     {
         vec.push_back("eval \"cd " + workingPath + "; make test \"");
     }
-    vec.push_back("eval \"cd " + workingPath + "; make install \"");
-    vec.push_back("eval \"cd " + homePath + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
     int result = do_command(buildFileName, vec, createScriptOnly);
@@ -731,243 +733,364 @@ int install_tk(sstr& homePath,
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
 
-    vec.push_back("eval \"cd " + workingPath + "; ./configure --prefix="  + usrPath +
-                      + " --with-tcl=" + oldPath + "/tcl" + version +"/" + installOS
-                      + " --enable-threads --enable-shared --enable-symbols;  \"");
-    vec.push_back("eval \"cd " + workingPath + "; make \"");
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix="  + usrPath
+                                        + " --with-tcl=" + oldPath + "/tcl" + version +"/" + installOS
+                                        + " --enable-threads --enable-shared --enable-symbols;  \"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
     if (doTests)
     {
         vec.push_back("eval \"cd " + workingPath + "; make test \"");
     }
-    vec.push_back("eval \"cd " + workingPath + "; make install \"");
-    vec.push_back("eval \"cd " + homePath + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
     int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_01(sstr& fileName,
-                           sstr& path,
-                           sstr& usrPath,
-                           sstr& version,
-                           bool createScriptOnly,
-                           bool doTests = true)
-{
-    sstr command = "";
-    sstr installOS = "";
-    std::vector<sstr> vec;
-    appendNewLogSection(fileName);
 
+
+int install_apache_step_01(sstr& homePath,
+                 sstr& buildFileName,
+                 sstr& stgPath,
+                 sstr& srcPath,
+                 sstr& usrPath,
+                 sstr& version,
+                 bool createScriptOnly,
+                 bool doTests = true) {
+
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName = "apr-" + version;
+    sstr compressedFileName = fileName + ".tar.bz2";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
+    }
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished apr install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
     vec.push_back("# Install Apache Step 01 : Get apr source.");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-" + version +".tar.bz2\"");
-    vec.push_back("eval \"cp ./apr-" + version + ".tar.bz2 " + path + "\"");
-    vec.push_back("eval \"rm -f ./apr-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf apr-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "/apr-" + version + "; ./configure --prefix=" + usrPath + "\"");
-    vec.push_back("eval \"cd " + path + "/apr-" + version + "; make\"");
-    if (doTests)
-    {
-        vec.push_back("eval \"cd " + path + "/apr-" + version + "; make test\"");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
     }
-    vec.push_back("eval \"cd " + path + "/apr-" + version + "; make install\"");
-    vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec, createScriptOnly);
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_02(sstr& fileName,
-                           sstr& path,
+int install_apache_step_02(sstr& homePath,
+                           sstr& buildFileName,
+                           sstr& stgPath,
+                           sstr& srcPath,
                            sstr& usrPath,
                            sstr& version,
                            bool createScriptOnly,
-                           bool doTests = true)
-{
+                           bool doTests = true) {
+
     sstr command = "";
-    sstr installOS = "";
     std::vector<sstr> vec;
-    appendNewLogSection(fileName);
+    appendNewLogSection(buildFileName);
 
-    vec.push_back("# Install Apache Step 02: Get apr-util source.");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-util-" + version +".tar.gz\"");
-    vec.push_back("eval \"cp ./apr-util-" + version + ".tar.gz " + path + "\"");
-    vec.push_back("eval \"rm -f ./apr-util-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf apr-util-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
-    vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; make\"");
-    if (doTests)
-    {
-        vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; make test\"");
+    sstr fileName = "apr-util-" + version;
+    sstr compressedFileName = fileName + ".tar.bz2";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
     }
-    vec.push_back("eval \"cd " + path + "/apr-util-" + version + "; make install\"");
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished apr-util install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install Apache Step 02 : Get apr-util source.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
-    vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec, createScriptOnly);
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "  --with-apr=" + usrPath.substr(0,17) + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
+    }
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_03(sstr& fileName,
-                           sstr& path,
+
+int install_apache_step_03(sstr& homePath,
+                           sstr& buildFileName,
+                           sstr& stgPath,
+                           sstr& srcPath,
                            sstr& usrPath,
                            sstr& version,
                            bool createScriptOnly,
-                           bool doTests = false)
-{
-    sstr command = "";
-    sstr installOS = "";
-    std::vector<sstr> vec;
-    appendNewLogSection(fileName);
+                           bool doTests = true) {
 
-    vec.push_back("# Install Apache Step 03: Get apr-iconv source.");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget http://www.apache.org/dist/apr/apr-iconv-" + version +".tar.bz2\"");
-    vec.push_back("eval \"cp ./apr-iconv-" + version + ".tar.bz2 " + path + "\"");
-    vec.push_back("eval \"rm -f ./apr-iconv-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf apr-iconv-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "/apr-iconv-" + version + "; ./configure --prefix=" + usrPath +"  --with-apr=" + usrPath.substr(0,17) + "\"");
-    vec.push_back("eval \"cd " + path + "/apr-iconv-" + version + "; make\"");
-    // no tests -- will stop program if you try
-    vec.push_back("eval \"cd " + path + "/apr-iconv-" + version + "; make install\"");
-    if (doTests)
-    {
-        vec.push_back("# There are no tests to run.");
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName = "apr-iconv-" + version;
+    sstr compressedFileName = fileName + ".tar.bz2";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
     }
-    vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec, createScriptOnly);
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished apr-iconv install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install Apache Step 03 : Get apr-iconv source.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
+                                       + "  --with-apr=" + usrPath.substr(0,17) + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
+    }
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_04(sstr& fileName,
-                           sstr& path,
+
+int install_apache_step_04(sstr& homePath,
+                           sstr& buildFileName,
+                           sstr& stgPath,
+                           sstr& srcPath,
                            sstr& usrPath,
                            sstr& version,
                            bool createScriptOnly,
-                           bool doTests = true )
-{
-    sstr command = "";
-    sstr installOS = "";
-    std::vector<sstr> vec;
-    appendNewLogSection(fileName);
+                           bool doTests = true) {
 
-    vec.push_back("# Install Apache Step 04: Get pcre source.");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget https://ftp.pcre.org/pub/pcre/pcre-" + version +".tar.gz\"");
-    vec.push_back("eval \"cp ./pcre-" + version + ".tar.gz " + path + "\"");
-    vec.push_back("eval \"rm -f ./pcre-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf pcre-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "/pcre-" + version + "; ./configure --prefix=" + usrPath + "\"");
-    vec.push_back("eval \"cd " + path + "/pcre-" + version + "; make\"");
-    if (doTests)
-    {
-        vec.push_back("eval \"cd " + path + "/pcre-" + version + "; make test\"");
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName = "pcre-" + version;
+    sstr compressedFileName = fileName + ".tar.bz2";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget https://ftp.pcre.org/pub/pcre/" + compressedFileName + "\"");
     }
-    vec.push_back("eval \"cd " + path + "/pcre-" + version + "; make install\"");
-    vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec, createScriptOnly);
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished pcre install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install Apache Step 04 : Get pcre source.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
+    }
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache_step_05(sstr& fileName,
-                           sstr& path,
+int install_apache_step_05(sstr& homePath,
+                           sstr& buildFileName,
+                           sstr& stgPath,
+                           sstr& srcPath,
                            sstr& usrPath,
                            sstr& version,
                            bool createScriptOnly,
-                           bool doTests = false )
-{
-    sstr command = "";
-    sstr installOS = "";
-    std::vector<sstr> vec;
-    appendNewLogSection(fileName);
+                           bool doTests = true) {
 
-    vec.push_back("# Install Apache Step 05: Get pcre2 source.");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget https://ftp.pcre.org/pub/pcre/pcre2-" + version +".tar.gz\"");
-    vec.push_back("eval \"cp ./pcre2-" + version + ".tar.gz " + path + "\"");
-    vec.push_back("eval \"rm -f ./pcre2-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf pcre2-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "/pcre2-" + version + "; ./configure --prefix=" + usrPath + "\"");
-    vec.push_back("eval \"cd " + path + "/pcre2-" + version + "; make\"");
-    if (doTests)
-    {
-        vec.push_back("# There are no tests to run.");
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName = "pcre2-" + version;
+    sstr compressedFileName = fileName + ".tar.bz2";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget https://ftp.pcre.org/pub/pcre/" + compressedFileName + "\"");
     }
-    vec.push_back("eval \"cd " + path + "/pcre2-" + version + "; make install\"");
-    vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec, createScriptOnly);
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished pcre2 install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install Apache Step 05 : Get pcre2 source.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
+    }
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_apache(sstr& fileName,
-                           sstr& path,
+int install_apache(sstr& homePath,
+                           sstr& buildFileName,
+                           sstr& stgPath,
+                           sstr& srcPath,
                            sstr& usrPath,
                            sstr& version,
                            bool createScriptOnly,
-                           bool doTests = false)
-{
+                           bool doTests = true) {
+
     sstr command = "";
-    sstr installOS = "";
     std::vector<sstr> vec;
-    appendNewLogSection(fileName);
+    appendNewLogSection(buildFileName);
 
-    vec.push_back("# Install Apache: Get Apache source and install with dependencies.");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget http://www.apache.org/dist/httpd/httpd-" + version +".tar.bz2\"");
-    vec.push_back("eval \"cp ./httpd-" + version + ".tar.bz2 " + path + "\"");
-    vec.push_back("eval \"rm -f ./httpd-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf httpd-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "/httpd-" + version + "; ./configure --prefix=" + usrPath + "  "
-                  + "--with-apr=" + usrPath.substr(0,13) + "/apr/bin  "
-                  + "--with-apr-util="  + usrPath.substr(0,13) + "/apr-util   "
-                  + "--with-apr-iconv=" + usrPath.substr(0,13) + "/apr-iconv  "
-                  + "--with-pcre=" + usrPath.substr(0,13) + "/pcre " + "\"");
-    vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make\"");
-    if (doTests)
-    {
-        vec.push_back("# There are no tests to run.");
+    sstr fileName = "httpd-" + version;
+    sstr compressedFileName = fileName + ".tar.bz2";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/httpd/" + compressedFileName + "\"");
     }
-    vec.push_back("eval \"cd " + path + + "/httpd-" + version + "; make install\"");
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished apache install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install apache.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
-    vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec, createScriptOnly);
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "  "
+                                       + "--with-apr="       + usrPath.substr(0,13) + "/apr/bin  "
+                                       + "--with-apr-util="  + usrPath.substr(0,13) + "/apr-util   "
+                                       + "--with-apr-iconv=" + usrPath.substr(0,13) + "/apr-iconv  "
+                                       + "--with-pcre="      + usrPath.substr(0,13) + "/pcre " + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
+    }
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_mariadb(sstr& fileName,
-                    sstr& path,
-                    sstr& usrPath,
-                    sstr& version,
-                    bool createScriptOnly,
-                    bool doTests = true )
-{
+
+int install_mariadb(sstr& homePath,
+                   sstr& buildFileName,
+                   sstr& stgPath,
+                   sstr& srcPath,
+                   sstr& usrPath,
+                   sstr& version,
+                   bool createScriptOnly,
+                   bool doTests = true) {
+
     sstr command = "";
     std::vector<sstr> vec;
-    appendNewLogSection(fileName);
+    appendNewLogSection(buildFileName);
 
-    int result = 0;
-    vec.push_back("# Install Mariadb");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget https://downloads.mariadb.org/interstitial/mariadb-" + version +"/source/mariadb-" + version +".tar.gz\"");
-    vec.push_back("eval \"cp ./mariadb-" + version + ".tar.gz " + path + "\"");
-    vec.push_back("eval \"rm -f ./mariadb-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "; tar xvf mariadb-" + version + ".tar.gz\"");
-    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; ./BUILD/autorun.sh\"");
-    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; "
+    sstr fileName = "mariadb-" + version;
+    sstr compressedFileName = fileName + ".tar.gz";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget https://downloads.mariadb.org/interstitial/" + fileName + "/source/" + compressedFileName + "\"");
+    }
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished mariadb install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install mariadb.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./BUILD/autorun.sh\"");
+    vec.push_back("eval \"cd "     + workingPath + "; "
                   + "./configure --prefix=" + usrPath + " "  + "\\\n"
                   +  "--enable-assembler                 "   + "\\\n"
                   +  "--with-extra-charsets=complex      "   + "\\\n"
@@ -986,53 +1109,71 @@ int install_mariadb(sstr& fileName,
                   +  "--with-client-ldflags=-all-static  "   + "\\\n"
                   +  "--with-zlib-dir=bundled            "   + "\\\n"
                   +  "--enable-local-infile\"");
-    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make\"");
-    vec.push_back("eval \"cd " + path + "/mariadb-" + version +"; make install\"");
-    result = do_command(fileName, vec, createScriptOnly);
-    if( (result == 0) && (doTests))
-    {
-        //these tests are failing, and return a failing error code
-        //so we must do these differently if we want to load the
-        //whole LAMP system.
 
-        vec.clear();
-        vec.push_back("eval \"#Force run tests, on failure continue --force \"");
-        vec.push_back("eval \"(cd " + usrPath + "/mysql-test; ./mysql-test-run.pl --force)\"");
-        do_command(fileName, vec, createScriptOnly);
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "  "
+                  + "--with-apr="       + usrPath.substr(0,13) + "/apr/bin  "
+                  + "--with-apr-util="  + usrPath.substr(0,13) + "/apr-util   "
+                  + "--with-apr-iconv=" + usrPath.substr(0,13) + "/apr-iconv  "
+                  + "--with-pcre="      + usrPath.substr(0,13) + "/pcre " + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
     }
-    vec.push_back("eval \"cd /j5c\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
-int install_php(sstr& fileName,
-                sstr& path,
-                sstr& usrPath,
-                sstr& version,
-                bool createScriptOnly,
-                bool doTests = true )
-{
+
+int install_php(sstr& homePath,
+                   sstr& buildFileName,
+                   sstr& stgPath,
+                   sstr& srcPath,
+                   sstr& usrPath,
+                   sstr& version,
+                   bool createScriptOnly,
+                   bool doTests = true) {
+
     sstr command = "";
     std::vector<sstr> vec;
-    appendNewLogSection(fileName);
+    appendNewLogSection(buildFileName);
 
-    vec.push_back("# Install PHP");
-    vec.push_back("eval \"mkdir -p " + path + "\"");
-    vec.push_back("eval \"mkdir -p " + path + "staged\"");
-    vec.push_back("eval \"cd " + path + "staged\"");
-    vec.push_back("eval \"wget http://php.net/get/php-" + version + ".tar.bz2/from/this/mirror\"");
-    vec.push_back("eval \"cp ./mirror " + path + "\"");
-    vec.push_back("eval \"rm -f ./mirror\"");
-    vec.push_back("eval \"cd " + path + "; mv mirror php-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "; tar xvjf php-" + version + ".tar.bz2\"");
-    vec.push_back("eval \"cd " + path + "/php-" + version + "; ./configure --prefix=" + usrPath + "\"");
-    vec.push_back("eval \"cd " + path + "/php-" + version + "; make\"");
-    if (doTests)
-    {
-        vec.push_back("eval \"cd " + path + "/php-" + version + "; make test\"");
+    sstr fileName = "php-" + version;
+    sstr compressedFileName = fileName + ".tar.bz2";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back("eval \"cd " + stgPath + "; wget http://php.net/get/" + compressedFileName + "/from/this/mirror\"");
     }
-    vec.push_back("eval \"cd " + path + "/php-" + version + "; make install\"");
-    vec.push_back("eval \"cd /j5c\"");
-    int result = do_command(fileName, vec, createScriptOnly);
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished PHP install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install PHP.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
+    vec.push_back("eval \"cd "     + workingPath + "; make \"");
+    if (doTests) {
+        vec.push_back("eval \"cd " + workingPath + "; make test \"");
+    }
+    vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
     return result;
 }
 
@@ -1175,20 +1316,18 @@ int main()
         section_already_loaded(programName, version);
     }
 
-    /*
     //Get and Build Apache Dependencies
     programName = "apr";
     version     = "1.6.3";
     step = 1;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_apache_step_01(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_apache_step_01(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -1196,18 +1335,18 @@ int main()
         section_already_loaded(programName, version);
     }
 
+
     programName = "apr-util";
     version     = "1.6.1";
     step = 2;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_apache_step_02(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_apache_step_02(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -1218,15 +1357,14 @@ int main()
     programName = "apr-iconv";
     version     = "1.2.2";
     step = 3;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_apache_step_03(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_apache_step_03(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -1237,15 +1375,14 @@ int main()
     programName = "pcre";
     version     = "8.41";
     step = 4;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_apache_step_04(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_apache_step_04(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -1253,19 +1390,17 @@ int main()
         section_already_loaded(programName, version);
     }
 
-
     programName = "pcre2";
     version     = "10.30";
     step = 5;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_apache_step_05(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_apache_step_05(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -1276,15 +1411,14 @@ int main()
     programName = "apache";
     version     = "2.4.29";
     step = -1;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_apache(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_apache(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -1295,15 +1429,14 @@ int main()
     programName = "mariadb";
     version     = "10.3.3";
     step = -1;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_mariadb(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_mariadb(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
@@ -1314,22 +1447,21 @@ int main()
     programName = "php";
     version     = "7.2.0";
     step = -1;
-    srcPath = setPath(company, prod_PathOffset, programName);
-    usrPath = setUsrPath(company, prod_Usr_Offset, programName);
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        removeDirectory(fileName_Build, srcPath, createScriptOnly);
-        removeDirectory(fileName_Build, usrPath, createScriptOnly);
-        result = install_php(fileName_Build, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_mariadb(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
     {
         section_already_loaded(programName, version);
     }
-     */
+
     sstr end = "End of Program";
     file_append_line(fileName_Build, end);
     file_append_line(fileNameResult, end);
