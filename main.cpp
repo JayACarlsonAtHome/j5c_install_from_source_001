@@ -1149,7 +1149,12 @@ int install_php(sstr& homePath,
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        // this will download the file with the fileName of mirror
         vec.push_back("eval \"cd " + stgPath + "; wget http://php.net/get/" + compressedFileName + "/from/this/mirror\"");
+        // copy to the compressedFileName
+        vec.push_back("eval \"cd " + stgPath + "; cp ./"    + "mirror " + compressedFileName + "\"");
+        // remove the mirror file
+        vec.push_back("eval \"cd " + stgPath + "; rm -f "   + "mirror\"");
     }
     vec.push_back("# ");
     vec.push_back("# Remove unfinished PHP install (if any).");
@@ -1160,8 +1165,6 @@ int install_php(sstr& homePath,
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
-    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + "mirror " + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + stgPath + "; rm -f "   + "mirror\"");
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
@@ -1173,6 +1176,58 @@ int install_php(sstr& homePath,
     }
     vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
+    return result;
+}
+
+int install_postfix(sstr& homePath,
+                sstr& buildFileName,
+                sstr& stgPath,
+                sstr& srcPath,
+                sstr& usrPath,
+                sstr& version,
+                bool createScriptOnly,
+                bool doTests = true) {
+
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName = "postfix-" + version;
+    sstr compressedFileName = fileName + ".tar.gz";
+    sstr stagedFileName = stgPath + "/" + compressedFileName;
+    sstr workingPath = srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+        vec.push_back(
+                "eval \"cd " + stgPath + "; wget https://archive.mgm51.com/mirrors/postfix-source/official/" + compressedFileName + "\"");
+    }
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished postfix install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install postfix.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    //Currently I do not support installing postfix... but hope to soon...
+
+    //vec.push_back("eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"");
+    //vec.push_back("eval \"cd " + workingPath + "; make \"");
+    //if (doTests) {
+    //    vec.push_back("eval \"cd " + workingPath + "; make test \"");
+    //}
+    //vec.push_back("eval \"cd " + workingPath + "; make install \"");
+    vec.push_back("eval \"cd " + homePath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
     int result = do_command(buildFileName, vec, createScriptOnly);
@@ -1457,6 +1512,24 @@ int main()
     {
         appendNewLogSection(fileName_Build);
         result = install_php(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
+        reportResults(fileName_Build, fileNameResult,  programName, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
+
+    programName = "postfix";
+    version     = "3.2.4";
+    step = -1;
+    stgPath = setPath(company, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        appendNewLogSection(fileName_Build);
+        result = install_postfix(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
