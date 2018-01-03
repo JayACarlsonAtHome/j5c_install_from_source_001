@@ -1160,6 +1160,8 @@ int install_php(sstr& homePath,
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + "mirror " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + stgPath + "; rm -f "   + "mirror\"");
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
@@ -1454,7 +1456,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_mariadb(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
+        result = install_php(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests);
         reportResults(fileName_Build, fileNameResult,  programName, step, result);
     }
     else
