@@ -1175,6 +1175,18 @@ int install_php(sstr& homePath,
         vec.push_back("eval \"cd " + workingPath + "; make test \"");
     }
     vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+
+    if ( ((    version.substr(0,1) == "7") && ( version.substr(1,1) == "." ))
+         && (( version.substr(2,1) == "0") || ( version.substr(2,1) == "1")) )
+    {
+        vec.push_back("eval \"cd " + usrPath     + "/bin; ./pecl install xdebug\"");
+    }
+    else
+    {
+        vec.push_back("# Xdebug not installed. Not compatible with this version of PHP");
+    }
+
+
     vec.push_back("eval \"cd "     + homePath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
