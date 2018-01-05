@@ -254,15 +254,10 @@ int file_append_line(sstr &fileName, sstr &line)
 
 int file_append_results(sstr& fileName, sstr& programName, sstr& version, int step, int installResult)
 {
-    //          1         2
-    //012345678901234567890
-    //Install Dependencies
-    int width1 = 30;
+    int width1 = 31;
     int width2 = 40;
-    //int width3 = 10;
     sstr fill1(width1,'.');
     sstr fill2(width2,'.');
-    //sstr fill3(width3,'.');
 
     std::ofstream file;
     sstr line;
@@ -288,12 +283,12 @@ int file_append_results(sstr& fileName, sstr& programName, sstr& version, int st
 
         if ((!found) && (step < 10))
         {
-            line = line.substr(0,width1) +  " step 0"  + std::to_string(step) + fill2;
+            line = line.substr(0,width1) +  "step 0"  + std::to_string(step) + fill2;
             found = true;
         }
         if ((!found) && (step > 9))
         {
-            line = line.substr(0,width1) +  " step "  + std::to_string(step) + fill2;
+            line = line.substr(0,width1) +  "step "  + std::to_string(step) + fill2;
             found = true;
         }
         line = line.substr(0,width2);
@@ -305,7 +300,7 @@ int file_append_results(sstr& fileName, sstr& programName, sstr& version, int st
         }
         else
         {
-            line += "  :  ( Something didn't go right...)";
+            line += "  :  ( What the heck?...)";
         }
 
 
@@ -594,6 +589,7 @@ int install_perl(sstr& homePath,
                  sstr& stgPath,
                  sstr& srcPath,
                  sstr& usrPath,
+                 sstr& tstPath,
                  sstr& version,
                  bool createScriptOnly,
                  bool doTests = true,
@@ -617,10 +613,12 @@ int install_perl(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished Perl install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Perl.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -633,7 +631,7 @@ int install_perl(sstr& homePath,
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Perl_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -650,6 +648,7 @@ int install_tcl(sstr& homePath,
                  sstr& stgPath,
                  sstr& srcPath,
                  sstr& usrPath,
+                 sstr& tstPath,
                  sstr& version,
                  bool createScriptOnly,
                  bool doTests = true,
@@ -681,10 +680,12 @@ int install_tcl(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished Tcl install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Tcl.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -698,7 +699,7 @@ int install_tcl(sstr& homePath,
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Tcl_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -716,6 +717,7 @@ int install_tk(sstr& homePath,
                 sstr& stgPath,
                 sstr& srcPath,
                 sstr& usrPath,
+                sstr& tstPath,
                 sstr& oldPath,
                 sstr& version,
                 bool createScriptOnly,
@@ -748,10 +750,12 @@ int install_tk(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished Tk install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Tk.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -766,7 +770,7 @@ int install_tk(sstr& homePath,
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Tk_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
         vec.push_back("eval \"cd " + homePath + "\"");
@@ -782,6 +786,7 @@ int install_apache_step_01(sstr& homePath,
                  sstr& stgPath,
                  sstr& srcPath,
                  sstr& usrPath,
+                 sstr& tstPath,
                  sstr& version,
                  bool createScriptOnly,
                  bool doTests = true,
@@ -805,10 +810,12 @@ int install_apache_step_01(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished apr install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Apache Step 01 : Get apr source.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -820,7 +827,7 @@ int install_apache_step_01(sstr& homePath,
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Apr_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -836,6 +843,7 @@ int install_apache_step_02(sstr& homePath,
                            sstr& stgPath,
                            sstr& srcPath,
                            sstr& usrPath,
+                           sstr& tstPath,
                            sstr& version,
                            bool createScriptOnly,
                            bool doTests = true,
@@ -859,10 +867,12 @@ int install_apache_step_02(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished apr-util install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Apache Step 02 : Get apr-util source.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -875,7 +885,7 @@ int install_apache_step_02(sstr& homePath,
                       usrPath.substr(0, 17) + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Apr-Util_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -892,6 +902,7 @@ int install_apache_step_03(sstr& homePath,
                            sstr& stgPath,
                            sstr& srcPath,
                            sstr& usrPath,
+                           sstr& tstPath,
                            sstr& version,
                            bool createScriptOnly,
                            bool doTests = true,
@@ -915,10 +926,12 @@ int install_apache_step_03(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished apr-iconv install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Apache Step 03 : Get apr-iconv source.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -930,7 +943,10 @@ int install_apache_step_03(sstr& homePath,
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
                      + "  --with-apr=" + usrPath.substr(0, 17) + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests) {
+
+        // there are no tests at this time
+        if (doTests && false)
+        {
             vec.push_back("eval \"cd " + workingPath + "; make test \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
@@ -948,6 +964,7 @@ int install_apache_step_04(sstr& homePath,
                            sstr& stgPath,
                            sstr& srcPath,
                            sstr& usrPath,
+                           sstr& tstPath,
                            sstr& version,
                            bool createScriptOnly,
                            bool doTests = true,
@@ -971,10 +988,12 @@ int install_apache_step_04(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished pcre install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Apache Step 04 : Get pcre source.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -986,7 +1005,7 @@ int install_apache_step_04(sstr& homePath,
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Pcre_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -1002,6 +1021,7 @@ int install_apache_step_05(sstr& homePath,
                            sstr& stgPath,
                            sstr& srcPath,
                            sstr& usrPath,
+                           sstr& tstPath,
                            sstr& version,
                            bool createScriptOnly,
                            bool doTests = true,
@@ -1025,10 +1045,12 @@ int install_apache_step_05(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished pcre2 install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Apache Step 05 : Get pcre2 source.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -1039,7 +1061,10 @@ int install_apache_step_05(sstr& homePath,
     {
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests) {
+
+        // There are no tests at this time
+        if (doTests && false)
+        {
             vec.push_back("eval \"cd " + workingPath + "; make test \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
@@ -1056,6 +1081,7 @@ int install_apache(sstr& homePath,
                            sstr& stgPath,
                            sstr& srcPath,
                            sstr& usrPath,
+                           sstr& tstPath,
                            sstr& version,
                            bool createScriptOnly,
                            bool doTests = true,
@@ -1079,10 +1105,12 @@ int install_apache(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished apache install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install apache.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -1098,7 +1126,7 @@ int install_apache(sstr& homePath,
                 + "--with-pcre="       + usrPath.substr(0, 13) + "/pcre " + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Apache_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -1115,6 +1143,7 @@ int install_mariadb(sstr& homePath,
                    sstr& stgPath,
                    sstr& srcPath,
                    sstr& usrPath,
+                   sstr& tstPath,
                    sstr& version,
                    bool createScriptOnly,
                    bool doTests = true,
@@ -1135,13 +1164,17 @@ int install_mariadb(sstr& homePath,
     if (!(isFileNotEmptyOrNull(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget https://downloads.mariadb.org/interstitial/" + fileName + "/source/" + compressedFileName + "\"");
     }
+
     vec.push_back("# ");
     vec.push_back("# Remove unfinished mariadb install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+
     vec.push_back("# ");
     vec.push_back("# Install mariadb.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -1149,6 +1182,7 @@ int install_mariadb(sstr& homePath,
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
 
     if (!debugOnly) {
+
         vec.push_back("eval \"cd "     + workingPath + "; ./BUILD/autorun.sh\"");
         vec.push_back("eval \"cd "     + workingPath + "; "
                       + "./configure --prefix=" + usrPath + " " + "\\\n"
@@ -1171,15 +1205,18 @@ int install_mariadb(sstr& homePath,
                       + "--enable-local-infile\"");
 
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
-        }
-        vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
     vec.push_back("eval \"cd "     + homePath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
     int result = do_command(buildFileName, vec, createScriptOnly);
+    if (doTests) {
+        // These tests will fail the build if we do it before
+        vec.clear();
+        vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Mariadb_TestResults_1.txt\"");
+        vec.push_back("eval \"cd " + workingPath + "/mysql-test; ./mysql-test-run.pl 2>&1 | tee " + tstPath + "/Mariadb_TestResults_2.txt\"");
+        do_command(buildFileName, vec, createScriptOnly);
+    }
     return result;
 }
 
@@ -1189,6 +1226,7 @@ int install_php(sstr& homePath,
                    sstr& stgPath,
                    sstr& srcPath,
                    sstr& usrPath,
+                   sstr& tstPath,
                    sstr& version,
                    bool createScriptOnly,
                    bool doTests = true,
@@ -1217,10 +1255,12 @@ int install_php(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Remove unfinished PHP install (if any).");
     removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install PHP.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -1231,9 +1271,6 @@ int install_php(sstr& homePath,
     {
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test \"");
-        }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
 
         if (   ((version.substr(0, 1) == "7") && (version.substr(1, 1) == "."))
@@ -1250,6 +1287,12 @@ int install_php(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# ");
     int result = do_command(buildFileName, vec, createScriptOnly);
+    if (doTests) {
+        // These tests will fail the build if we do it before
+        vec.clear();
+        vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/PHP_TestResults.txt & \"");
+        do_command(buildFileName, vec, createScriptOnly);
+    }
     return result;
 }
 
@@ -1258,6 +1301,7 @@ int install_postfix(sstr& homePath,
                 sstr& stgPath,
                 sstr& srcPath,
                 sstr& usrPath,
+                sstr& tstPath,
                 sstr& version,
                 bool createScriptOnly,
                 bool doTests = true,
@@ -1286,6 +1330,7 @@ int install_postfix(sstr& homePath,
     vec.push_back("# ");
     vec.push_back("# Install postfix.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
     vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
@@ -1340,33 +1385,42 @@ int main()
     //basic setup
     bool sectionLoaded      = false;
     bool createScriptOnly   = false;
-    bool doTests            = false;
+    bool doTests            = true;
     bool debugOnly          = false;
 
     sstr company = "/j5c";
     sstr version = "";
     sstr pVersion = "001";
+    sstr basePath = "/" + company + "/p" + pVersion;
+
     sstr buildPathOffset = "/build_" + pVersion;
     sstr prod_Stg_Offset = "/p"      + pVersion + "/stg";
     sstr prod_Src_Offset = "/p"      + pVersion + "/src";
     sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
+    sstr prod_Tst_Offset = "/p"      + pVersion + "/tst";
     sstr programName = "Dependencies";
     sstr stgPathName = "stg";
     sstr stgPath = "xxx";
     sstr srcPath = "xxx";
     sstr usrPath = "xxx";
+    sstr tstPath = "xxx";
     sstr buildVersion = "";
 
     
     int step = -1;
     int result = 0;
 
-    ensure_Directory_exists1(company);
+    ensure_Directory_exists1(basePath);
+    sstr fileName_Build = "/" + company + "/p" + pVersion + "/Installation_Builds_p" + pVersion + ".txt";
+    sstr fileNameIssues = "/" + company + "/p" + pVersion + "/Installation_Issues_p" + pVersion + ".txt";
+    sstr fileName_Notes = "/" + company + "/p" + pVersion + "/Installation_Notes__p" + pVersion + ".txt";
+    sstr fileNameResult = "/" + company + "/p" + pVersion + "/Installation_Result_p" + pVersion + ".txt";
 
-    sstr fileName_Build = "Installation_Script_Builds_p" + pVersion + ".txt";
-    sstr fileNameResult = "Installation_Script_Result_p" + pVersion + ".txt";
     create_file(fileName_Build);
+    ensure_file(fileNameIssues);
+    ensure_file(fileName_Notes);
     ensure_file(fileNameResult);
+
     appendNewLogSection(fileNameResult);
 
     sectionLoaded = prior_Results(fileNameResult, programName, step);
@@ -1398,11 +1452,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_perl(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_perl(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -1417,11 +1472,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_tcl(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, thisOS, debugOnly );
+        result = install_tcl(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, thisOS, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -1437,17 +1493,19 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_tk(company, fileName_Build, stgPath, srcPath, usrPath, oldPath, version, createScriptOnly, doTests, thisOS, debugOnly );
+        result = install_tk(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, oldPath, version, createScriptOnly, doTests, thisOS, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
     {
         section_already_loaded(programName, version);
     }
+
 
     //Get and Build Apache Dependencies
     programName = "apr";
@@ -1456,11 +1514,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_01(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_01(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1475,11 +1534,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_02(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_02(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1493,11 +1553,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_03(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_03(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1511,11 +1572,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_04(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_04(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1529,11 +1591,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_05(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_05(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1547,11 +1610,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1565,11 +1629,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_mariadb(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_mariadb(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1583,11 +1648,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_php(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_php(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1601,11 +1667,12 @@ int main()
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_postfix(company, fileName_Build, stgPath, srcPath, usrPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_postfix(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
