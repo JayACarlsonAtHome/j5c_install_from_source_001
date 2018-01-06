@@ -168,13 +168,35 @@ int create_file(sstr &fileName)
         file << "# Jay A Carlson" << std::endl;
         file << "# jay.a.carlson@gmail.com" << std::endl;
         file << "# 360-649-6218" << std::endl;
-        result += startNewLogSection(file);
+        file << "# " << std::endl;
+        file << "# " << std::endl;
+        file.close();
     }
     else
     {
         std::cout << "!!!Error -- unable to create file -- " << std::endl;
         result = 1;
     }
+
+    sstr c1 = "eval \"uname -a >> ";
+    sstr f1 = fileName;
+    sstr c2 = c1 + f1 + "\"";
+
+    system(c2.c_str() );
+
+    file.open(fileName, std::ios::out | std::ios::app );
+    if ( (file.is_open()) && (file.good()) )
+    {
+        file << "# " << std::endl;
+        file << "# " << std::endl;
+        result += startNewLogSection(file);
+    }
+    else
+    {
+        std::cout << "!!!Error -- unable to append to file -- " << std::endl;
+        result = 1;
+    }
+
     file.close();
     return result;
 }
@@ -695,7 +717,7 @@ int install_tcl(sstr& homePath,
     if (!debugOnly)
     {
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix="  + usrPath
-                                       + " --enable-threads --enable-shared --enable-symbols;  \"");
+                                       + " --enable-threads --enable-shared --enable-symbols --enable-64bit;\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests)
         {
@@ -766,7 +788,7 @@ int install_tk(sstr& homePath,
     {
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix="  + usrPath
                                        + " --with-tcl=" + oldPath + "/tcl" + version +"/" + installOS
-                                       + " --enable-threads --enable-shared --enable-symbols;  \"");
+                                       + " --enable-threads --enable-shared --enable-symbols --enable-64bit ;  \"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests)
         {
@@ -1385,16 +1407,16 @@ int main()
     //basic setup
     bool sectionLoaded      = false;
     bool createScriptOnly   = false;
-    bool doTests            = true;
+    bool doTests            = false;
     bool debugOnly          = false;
 
     sstr company = "/j5c";
     sstr version = "";
-    sstr pVersion = "001";
+    sstr pVersion = "004";
     sstr basePath = "/" + company + "/p" + pVersion;
 
     sstr buildPathOffset = "/build_" + pVersion;
-    sstr prod_Stg_Offset = "/p"      + pVersion + "/stg";
+    sstr prod_Stg_Offset = "/stg";
     sstr prod_Src_Offset = "/p"      + pVersion + "/src";
     sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
     sstr prod_Tst_Offset = "/p"      + pVersion + "/tst";
