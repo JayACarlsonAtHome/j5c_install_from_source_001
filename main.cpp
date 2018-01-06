@@ -25,36 +25,40 @@
 using sstr = std::string;
 using namespace J5C_DSL_Code;
 
-const sstr ABBR_COMPANYNAME = "Abbr_CompanyName";
-const sstr CREATESCRIPTONLY = "CreateScriptOnly";
-const sstr THE_PATH_VERSION = "The_Path_Version";
-const sstr OPERATIONGSYSTEM = "Red Hat";
+const sstr ABBR_COMPANYNAME = "Section_a1_Abbr_CompanyName";
+const sstr DEF__COMPANYNAME = "j5c";
+const sstr CREATESCRIPTONLY = "Section_a2_CreateScriptOnly";
+const sstr DEFLT_SCRIPTONLY = "false";
+const sstr THE_PATH_VERSION = "Section_a3_The_Path_Version";
+const sstr DEF_PATH_VERSION = "001";
+const sstr OPERATIONGSYSTEM = "Section_a4_The_Operating_System";
+const sstr DEF_OPER__SYSTEM = "Red Hat";
 
-const sstr THE_PERL_VERSION = "The_Perl_Version";
+const sstr THE_PERL_VERSION = "Section_b1_The_Perl_Version";
 const sstr DEFAULT_PERL_VER = "5.26.1";
-const sstr THE_TCL__VERSION = "The_Tcl_Version";
+const sstr THE_TCL__VERSION = "Section_b2_The_Tcl_Version";
 const sstr DEFAULT_TCL_VERS = "8.6.8";
-const sstr THE_TK___VERSION = "The_Tk_Version";
+const sstr THE_TK___VERSION = "Section_b3_The_Tk_Version";
 const sstr DEFAULT_TK_VERSI = "8.6.8";
 
-const sstr THE_APR__VERSION = "The_Apr_Version";
+const sstr THE_APR__VERSION = "Section_c1_The_Apr_Version";
 const sstr DEFAULT_APR_VERS = "1.6.3";
-const sstr THE_APR_UTIL_VER = "The_Apr-Util_Version";
+const sstr THE_APR_UTIL_VER = "Section_c2_The_Apr-Util_Version";
 const sstr DEF_APR_UTIL_VER = "1.6.1";
-const sstr THE_APR_ICONVVER = "The_Apr-Iconv_Version";
+const sstr THE_APR_ICONVVER = "Section_c3_The_Apr-Iconv_Version";
 const sstr DEF_APR_ICONVVER = "1.2.2";
-const sstr THE_PCRE_VERSION = "The_Pcre_Version";
+const sstr THE_PCRE_VERSION = "Section_c4_The_Pcre_Version";
 const sstr DEF_PCRE_VERSION = "8.41";
-const sstr THE_PCRE2_VERS_N = "The_Pcre2_Version";
+const sstr THE_PCRE2_VERS_N = "Section_c5_The_Pcre2_Version";
 const sstr DEF_PCRE2_VERS_N = "10.30";
-const sstr THE_APACHE_VERSN = "The_Apache_Version";
+const sstr THE_APACHE_VERSN = "Section_c6_The_Apache_Version";
 const sstr DEF_APACHE_VERSN = "2.4.29";
 
-const sstr THE_MARIADB_VERS = "The_MariaDB_Version";
+const sstr THE_MARIADB_VERS = "Section_d1_The_MariaDB_Version";
 const sstr DEF_MARIADB_VERS = "10.3.3";
-const sstr THE_PHP__VERSION = "The_PHP_Version";
+const sstr THE_PHP__VERSION = "Section_d2_The_PHP_Version";
 const sstr DEF_PHP__VERSION = "7.2.0";
-const sstr THE_POSTFIX_VERS = "The_PostFix_Version";
+const sstr THE_POSTFIX_VERS = "Section_d3_The_PostFix_Version";
 const sstr DEF_POSTFIX_VERS = "3.2.4";
 
 
@@ -352,7 +356,10 @@ int file_append_results(sstr& fileName, sstr& programName, sstr& version, int st
             found = true;
         }
         line = line.substr(0,width2);
-        line += " : Result = " + std::to_string(installResult);
+
+        sstr strResults = "      " + std::to_string(installResult);
+        strResults = strResults.substr(strResults.length()-5,5);
+        line += " : Result = " + strResults;
 
         if (installResult == 0)
         {
@@ -427,6 +434,8 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
 {
     int count = 10000;
     bool result = false;
+    bool temp_result = false;
+    bool cont = true;
     sstr it_data = "";
     auto max = std::numeric_limits<unsigned long>::max();
 
@@ -435,14 +444,19 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
     {
         it_data = *it;
         auto found1 = it_data.find(programName);
-        auto found2 = found1;
-        auto found3 = found1;
         if ( found1 != max )
         {
-            found2 = it_data.find("Result = 0");
-            found3 = it_data.find("result = 0");
-
-            if ((found2 != max) || (found3 != max))
+            auto found2 = it_data.find("esult =");
+            sstr temp1;
+            sstr temp2;
+            if (found2 < max)
+            {
+                temp1 = it_data.substr(found2+7,it_data.length());
+            }
+            auto end = temp1.find_first_of(":");
+            temp2 = temp1.substr(0, end-1);
+            auto temp3 = std::stol(temp2, nullptr, 10);
+            if (temp3 == 0)
             {
                 result = true;
                 break;
@@ -459,10 +473,10 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
     std::map<sstr, sstr> result;
 
     //load default values into map
-    result.emplace(std::pair<sstr , sstr >(ABBR_COMPANYNAME, "j5c"));
-    result.emplace(std::pair<sstr , sstr >(THE_PATH_VERSION, "001"));
-    result.emplace(std::pair<sstr , sstr >(OPERATIONGSYSTEM, "Red Hat"));
-    result.emplace(std::pair<sstr , sstr >(CREATESCRIPTONLY, "false"));
+    result.emplace(std::pair<sstr , sstr >(ABBR_COMPANYNAME, DEF__COMPANYNAME));
+    result.emplace(std::pair<sstr , sstr >(THE_PATH_VERSION, DEF_PATH_VERSION));
+    result.emplace(std::pair<sstr , sstr >(OPERATIONGSYSTEM, DEF_OPER__SYSTEM));
+    result.emplace(std::pair<sstr , sstr >(CREATESCRIPTONLY, DEFLT_SCRIPTONLY));
 
     result.emplace(std::pair<sstr , sstr >(THE_PERL_VERSION, DEFAULT_PERL_VER));
     result.emplace(std::pair<sstr , sstr >(THE_TCL__VERSION, DEFAULT_TCL_VERS));
@@ -499,12 +513,38 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
     // : CreateScriptOnly : false;
     // : CreateScriptOnly : true;
 
+    int width = 32;
+
+
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element  =  result.cbegin();
+              element !=  result.cend();
+           ++ element)
+    {
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
+    }
+
+
 
     std::vector<sstr> data = readFile(fileSettings, theCount);
     for (auto it = data.cbegin(); it != data.cend(); ++it )
     {
         it_data = *it;
     }
+
+    std::cout << std::endl << std::endl;
+
+    std::cout << "#    Listing Settings : Values (Loading Setting from File)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element  =  result.cbegin();
+         element !=  result.cend();
+         ++ element)
+    {
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
+    }
+
+
     return result;
 }
 
@@ -1515,6 +1555,7 @@ int main()
     // put settings into program variables
     sstr company    = settings[ABBR_COMPANYNAME];
     sstr pVersion   = settings[THE_PATH_VERSION];
+
     sstr scriptOnly = settings[CREATESCRIPTONLY];
     sstr theOStext  = settings[OPERATIONGSYSTEM];
 
