@@ -6,10 +6,15 @@
 // This program can automatically install a LAMP system
 //   and a backup system
 
+#include <unicode/unistr.h>
+#include <unicode/ustream.h>
+#include <unicode/locid.h>
+
 #include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <map>
 #include <vector>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -20,7 +25,40 @@
 using sstr = std::string;
 using namespace J5C_DSL_Code;
 
-bool isFileNotEmptyOrNull(sstr& fileName)
+const sstr ABBR_COMPANYNAME = "Abbr_CompanyName";
+const sstr CREATESCRIPTONLY = "CreateScriptOnly";
+const sstr THE_PATH_VERSION = "The_Path_Version";
+const sstr OPERATIONGSYSTEM = "Red Hat";
+
+const sstr THE_PERL_VERSION = "The_Perl_Version";
+const sstr DEFAULT_PERL_VER = "5.26.1";
+const sstr THE_TCL__VERSION = "The_Tcl_Version";
+const sstr DEFAULT_TCL_VERS = "8.6.8";
+const sstr THE_TK___VERSION = "The_Tk_Version";
+const sstr DEFAULT_TK_VERSI = "8.6.8";
+
+const sstr THE_APR__VERSION = "The_Apr_Version";
+const sstr DEFAULT_APR_VERS = "1.6.3";
+const sstr THE_APR_UTIL_VER = "The_Apr-Util_Version";
+const sstr DEF_APR_UTIL_VER = "1.6.1";
+const sstr THE_APR_ICONVVER = "The_Apr-Iconv_Version";
+const sstr DEF_APR_ICONVVER = "1.2.2";
+const sstr THE_PCRE_VERSION = "The_Pcre_Version";
+const sstr DEF_PCRE_VERSION = "8.41";
+const sstr THE_PCRE2_VERS_N = "The_Pcre2_Version";
+const sstr DEF_PCRE2_VERS_N = "10.30";
+const sstr THE_APACHE_VERSN = "The_Apache_Version";
+const sstr DEF_APACHE_VERSN = "2.4.29";
+
+const sstr THE_MARIADB_VERS = "The_MariaDB_Version";
+const sstr DEF_MARIADB_VERS = "10.3.3";
+const sstr THE_PHP__VERSION = "The_PHP_Version";
+const sstr DEF_PHP__VERSION = "7.2.0";
+const sstr THE_POSTFIX_VERS = "The_PostFix_Version";
+const sstr DEF_POSTFIX_VERS = "3.2.4";
+
+
+bool isFileSizeGtZero(sstr &fileName)
 {
     bool result = false;
     std::streampos fsize = 0;
@@ -276,8 +314,8 @@ int file_append_line(sstr &fileName, sstr &line)
 
 int file_append_results(sstr& fileName, sstr& programName, sstr& version, int step, int installResult)
 {
-    int width1 = 31;
-    int width2 = 40;
+    unsigned long width1 = 31;
+    unsigned long width2 = 40;
     sstr fill1(width1,'.');
     sstr fill2(width2,'.');
 
@@ -357,8 +395,9 @@ int file_append_blank_lines(sstr& fileName, int count)
     return result;
 }
 
-std::vector<sstr> file_read_file(sstr& fileName, int count)
+std::vector<sstr> readFile(sstr &fileName, int maxCount)
 {
+    int theCount = 0;
     std::ifstream file;
     std::vector<sstr> result;
     file.open(fileName, std::ios::in );
@@ -368,6 +407,12 @@ std::vector<sstr> file_read_file(sstr& fileName, int count)
         while (getline(file, lineData))
         {
             result.push_back(lineData + "\n");
+            theCount += 1;
+            if (theCount >= maxCount)
+            {
+                break;
+            }
+
         }
     }
     else
@@ -385,7 +430,7 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
     sstr it_data = "";
     auto max = std::numeric_limits<unsigned long>::max();
 
-    std::vector<sstr> data = file_read_file(fileNameResult, count);
+    std::vector<sstr> data = readFile(fileNameResult, count);
     for (auto it = data.cbegin(); it != data.cend(); ++it )
     {
         it_data = *it;
@@ -406,6 +451,64 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
     }
     return result;
 }
+
+std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
+{
+    int  maxCount = 100;
+    int  theCount = 0;
+    std::map<sstr, sstr> result;
+
+    //load default values into map
+    result.emplace(std::pair<sstr , sstr >(ABBR_COMPANYNAME, "j5c"));
+    result.emplace(std::pair<sstr , sstr >(THE_PATH_VERSION, "001"));
+    result.emplace(std::pair<sstr , sstr >(OPERATIONGSYSTEM, "Red Hat"));
+    result.emplace(std::pair<sstr , sstr >(CREATESCRIPTONLY, "false"));
+
+    result.emplace(std::pair<sstr , sstr >(THE_PERL_VERSION, DEFAULT_PERL_VER));
+    result.emplace(std::pair<sstr , sstr >(THE_TCL__VERSION, DEFAULT_TCL_VERS));
+    result.emplace(std::pair<sstr , sstr >(THE_TK___VERSION, DEFAULT_TK_VERSI));
+
+    // Apache Items
+    result.emplace(std::pair<sstr , sstr >(THE_APR__VERSION, DEFAULT_APR_VERS));
+    result.emplace(std::pair<sstr , sstr >(THE_APR_UTIL_VER, DEF_APR_UTIL_VER));
+    result.emplace(std::pair<sstr , sstr >(THE_APR_ICONVVER, DEF_APR_ICONVVER));
+    result.emplace(std::pair<sstr , sstr >(THE_PCRE_VERSION, DEF_PCRE_VERSION));
+    result.emplace(std::pair<sstr , sstr >(THE_PCRE2_VERS_N, DEF_PCRE2_VERS_N));
+    result.emplace(std::pair<sstr , sstr >(THE_APACHE_VERSN, DEF_APACHE_VERSN));
+
+    result.emplace(std::pair<sstr , sstr >(THE_MARIADB_VERS, DEF_MARIADB_VERS));
+    result.emplace(std::pair<sstr , sstr >(THE_PHP__VERSION, DEF_PHP__VERSION));
+    result.emplace(std::pair<sstr , sstr >(THE_POSTFIX_VERS, DEF_POSTFIX_VERS));
+
+    sstr it_data = "";
+    auto max = std::numeric_limits<unsigned long>::max();
+
+    // file format specifications
+    // # this is a comment line
+    // # # is not allowed to be a delimiter
+
+    // # [delimiter] : variable : value
+    // # : variable  : value
+    // # * variable  * value
+    // # semicolons are optional and are ignored
+    // # only one variable : value pair per line
+    // # no spaces allowed in variable name or in value
+
+    // : Company    : j5c
+    // : PathVersion: 001
+    // : CreateScriptOnly : false;
+    // : CreateScriptOnly : true;
+
+
+    std::vector<sstr> data = readFile(fileSettings, theCount);
+    for (auto it = data.cbegin(); it != data.cend(); ++it )
+    {
+        it_data = *it;
+    }
+    return result;
+}
+
+
 
 enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
@@ -628,7 +731,7 @@ int install_perl(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName)))
+    if (!(isFileSizeGtZero(stagedFileName)))
     {
         vec.push_back("eval \"cd " + stgPath + "; wget http://www.cpan.org/src/5.0/" + compressedFileName + "\"");
     }
@@ -694,7 +797,7 @@ int install_tcl(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName)))
+    if (!(isFileSizeGtZero(stagedFileName)))
     {
         vec.push_back("eval \"cd " + stgPath + "; wget https://prdownloads.sourceforge.net/tcl/" + compressedFileName + "\"");
     }
@@ -764,7 +867,7 @@ int install_tk(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName)))
+    if (!(isFileSizeGtZero(stagedFileName)))
     {
         vec.push_back("eval \"cd " + stgPath + "; wget https://prdownloads.sourceforge.net/tcl/" + compressedFileName + "\"");
     }
@@ -826,7 +929,7 @@ int install_apache_step_01(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
     }
     vec.push_back("# ");
@@ -883,7 +986,7 @@ int install_apache_step_02(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
     }
     vec.push_back("# ");
@@ -942,7 +1045,7 @@ int install_apache_step_03(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
     }
     vec.push_back("# ");
@@ -1004,7 +1107,7 @@ int install_apache_step_04(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget https://ftp.pcre.org/pub/pcre/" + compressedFileName + "\"");
     }
     vec.push_back("# ");
@@ -1061,7 +1164,7 @@ int install_apache_step_05(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget https://ftp.pcre.org/pub/pcre/" + compressedFileName + "\"");
     }
     vec.push_back("# ");
@@ -1121,7 +1224,7 @@ int install_apache(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/httpd/" + compressedFileName + "\"");
     }
     vec.push_back("# ");
@@ -1183,7 +1286,7 @@ int install_mariadb(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back("eval \"cd " + stgPath + "; wget https://downloads.mariadb.org/interstitial/" + fileName + "/source/" + compressedFileName + "\"");
     }
 
@@ -1266,7 +1369,7 @@ int install_php(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         // this will download the file with the fileName of mirror
         vec.push_back("eval \"cd " + stgPath + "; wget http://php.net/get/" + compressedFileName + "/from/this/mirror\"");
         // copy to the compressedFileName
@@ -1341,7 +1444,7 @@ int install_postfix(sstr& homePath,
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileNotEmptyOrNull(stagedFileName))) {
+    if (!(isFileSizeGtZero(stagedFileName))) {
         vec.push_back(
                 "eval \"cd " + stgPath + "; wget https://archive.mgm51.com/mirrors/postfix-source/official/" + compressedFileName + "\"");
     }
@@ -1379,7 +1482,7 @@ int install_postfix(sstr& homePath,
 
 sstr setPath(sstr& company, sstr& PathOffset, sstr& programName)
 {
-    return company + PathOffset + "/" + programName;
+    return "/" + company + PathOffset + "/" + programName;
 };
 
 int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, sstr& version, int step, int installResult)
@@ -1401,20 +1504,40 @@ int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName,
 
 int main()
 {
-    OS_type thisOS = OS_type::Linux_Mint;
-    Mac_PM  mpm    = Mac_PM ::Selection_Not_Available;
+    OS_type thisOS;
+    Mac_PM  mpm;
+
+    // get settings from file
+    std::map<sstr, sstr> settings;
+    sstr fileSettings = "/j5c/Install_Settings.cfg";
+    settings = getProgramSettings(fileSettings);
+
+    // put settings into program variables
+    sstr company    = settings[ABBR_COMPANYNAME];
+    sstr pVersion   = settings[THE_PATH_VERSION];
+    sstr scriptOnly = settings[CREATESCRIPTONLY];
+    sstr theOStext  = settings[OPERATIONGSYSTEM];
+
+    if (theOStext == "CentOS")     thisOS = OS_type ::CentOS;
+    if (theOStext == "Linux Mint") thisOS = OS_type ::Linux_Mint;
+    if (theOStext == "OSX")        thisOS = OS_type ::MaxOSX;
+    if (theOStext == "Red Hat")    thisOS = OS_type ::RedHat;
+
+    auto max = std::numeric_limits<unsigned long>::max();
+
+    bool createScriptOnly   = false;
+    if ((scriptOnly.find_first_of("T") != max ) || (scriptOnly.find_first_of("t") != max ))
+    {
+        createScriptOnly = true;
+    }
 
     //basic setup
     bool sectionLoaded      = false;
-    bool createScriptOnly   = false;
     bool doTests            = false;
     bool debugOnly          = false;
 
-    sstr company = "/j5c";
     sstr version = "";
-    sstr pVersion = "004";
     sstr basePath = "/" + company + "/p" + pVersion;
-
     sstr buildPathOffset = "/build_" + pVersion;
     sstr prod_Stg_Offset = "/stg";
     sstr prod_Src_Offset = "/p"      + pVersion + "/src";
@@ -1469,7 +1592,11 @@ int main()
 
     //perl setup
     programName = "perl";
-    version = "5.26.1";
+    version = settings[THE_PERL_VERSION];
+    if (version.length() < 1)
+    {
+        version = DEFAULT_PERL_VER;
+    }
     step = -1;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1479,7 +1606,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_perl(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_perl(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -1489,7 +1616,11 @@ int main()
 
     //tcl setup
     programName = "tcl";
-    version     = "8.6.8";
+    version = settings[THE_TCL__VERSION];
+    if (version.length() < 1)
+    {
+        version = DEFAULT_TCL_VERS;
+    }
     step = -1;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1499,7 +1630,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_tcl(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, thisOS, debugOnly );
+        result = install_tcl(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, thisOS, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -1509,7 +1640,11 @@ int main()
 
     //tk setup
     programName = "tk";
-    version     = "8.6.8";
+    version = settings[THE_TK___VERSION];
+    if (version.length() < 1)
+    {
+        version = DEFAULT_TK_VERSI;
+    }
     step = -1;
     sstr oldPath = srcPath;
     stgPath = setPath(company, prod_Stg_Offset, programName);
@@ -1520,7 +1655,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_tk(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, oldPath, version, createScriptOnly, doTests, thisOS, debugOnly );
+        result = install_tk(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, oldPath, version, createScriptOnly, doTests, thisOS, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -1528,10 +1663,13 @@ int main()
         section_already_loaded(programName, version);
     }
 
-
     //Get and Build Apache Dependencies
     programName = "apr";
-    version     = "1.6.3";
+    version = settings[THE_APR__VERSION];
+    if (version.length() < 1)
+    {
+        version = DEFAULT_APR_VERS;
+    }
     step = 1;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1541,7 +1679,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_01(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_01(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1549,9 +1687,12 @@ int main()
         section_already_loaded(programName, version);
     }
 
-
     programName = "apr-util";
-    version     = "1.6.1";
+    version = settings[THE_APR_UTIL_VER];
+    if (version.length() < 1)
+    {
+        version = DEF_APR_UTIL_VER;
+    }
     step = 2;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1561,7 +1702,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_02(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_02(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1570,7 +1711,11 @@ int main()
     }
 
     programName = "apr-iconv";
-    version     = "1.2.2";
+    version = settings[THE_APR_ICONVVER];
+    if (version.length() < 1)
+    {
+        version = DEF_APR_ICONVVER;
+    }
     step = 3;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1580,7 +1725,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_03(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_03(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1589,7 +1734,11 @@ int main()
     }
 
     programName = "pcre";
-    version     = "8.41";
+    version = settings[THE_PCRE_VERSION];
+    if (version.length() < 1)
+    {
+        version = DEF_PCRE_VERSION;
+    }
     step = 4;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1599,7 +1748,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_04(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_04(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1608,7 +1757,11 @@ int main()
     }
 
     programName = "pcre2";
-    version     = "10.30";
+    version = settings[THE_PCRE2_VERS_N];
+    if (version.length() < 1)
+    {
+        version = DEF_PCRE2_VERS_N;
+    }
     step = 5;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1618,7 +1771,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache_step_05(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache_step_05(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1627,7 +1780,11 @@ int main()
     }
 
     programName = "apache";
-    version     = "2.4.29";
+    version = settings[THE_APACHE_VERSN];
+    if (version.length() < 1)
+    {
+        version = DEF_APACHE_VERSN;
+    }
     step = -1;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1637,7 +1794,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_apache(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_apache(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1646,7 +1803,11 @@ int main()
     }
 
     programName = "mariadb";
-    version     = "10.3.3";
+    version = settings[THE_MARIADB_VERS];
+    if (version.length() < 1)
+    {
+        version = DEF_MARIADB_VERS;
+    }
     step = -1;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1656,7 +1817,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_mariadb(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_mariadb(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1665,7 +1826,11 @@ int main()
     }
 
     programName = "php";
-    version     = "7.2.0";
+    version = settings[THE_PHP__VERSION];
+    if (version.length() < 1)
+    {
+        version = DEF_PHP__VERSION;
+    }
     step = -1;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1675,7 +1840,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_php(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_php(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
@@ -1684,7 +1849,11 @@ int main()
     }
 
     programName = "postfix";
-    version     = "3.2.4";
+    version = settings[THE_POSTFIX_VERS];
+    if (version.length() < 1)
+    {
+        version = DEF_POSTFIX_VERS;
+    }
     step = -1;
     stgPath = setPath(company, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
@@ -1694,7 +1863,7 @@ int main()
     if (!sectionLoaded)
     {
         appendNewLogSection(fileName_Build);
-        result = install_postfix(company, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_postfix(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
     else
