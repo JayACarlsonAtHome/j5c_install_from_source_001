@@ -30,8 +30,12 @@
 
 namespace J5C_DSL_Code {
 
+class j5c_Date;
+
 #include "j5c_date_static_values.hsv"
-    class j5c_Date {
+
+
+class j5c_Date {
 
         friend std::ostream& operator<<(std::ostream& out, const J5C_DSL_Code::j5c_Date& d);
 

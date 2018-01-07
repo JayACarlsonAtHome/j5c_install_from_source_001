@@ -61,6 +61,22 @@ const sstr DEF_PHP__VERSION = "7.2.0";
 const sstr THE_POSTFIX_VERS = "Section_d3_The_PostFix_Version";
 const sstr DEF_POSTFIX_VERS = "3.2.4";
 
+sstr trimLeftAndRight(sstr& inString, sstr& ws)
+{
+    sstr result;
+    if (ws.length() == 0)
+    {
+        ws = " \n\r\t";
+    }
+    auto max = std::numeric_limits<unsigned long>::max();
+    auto start = inString.find_first_not_of(ws);
+    if (start != max)
+    {
+        result = inString.substr(start, inString.find_last_not_of(ws) - start + 1);
+    }
+    return result;
+}
+
 
 bool isFileSizeGtZero(sstr &fileName)
 {
@@ -402,9 +418,9 @@ int file_append_blank_lines(sstr& fileName, int count)
     return result;
 }
 
-std::vector<sstr> readFile(sstr &fileName, int maxCount)
+std::vector<sstr> readFile(sstr &fileName, unsigned long maxCount)
 {
-    int theCount = 0;
+    unsigned long theCount = 0;
     std::ifstream file;
     std::vector<sstr> result;
     file.open(fileName, std::ios::in );
@@ -419,7 +435,6 @@ std::vector<sstr> readFile(sstr &fileName, int maxCount)
             {
                 break;
             }
-
         }
     }
     else
@@ -468,9 +483,16 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
 
 std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
 {
-    int  maxCount = 100;
+    auto max = std::numeric_limits<unsigned long>::max();
+
+    auto maxLineCount = max;
     int  theCount = 0;
     std::map<sstr, sstr> result;
+    sstr it_data   = "";
+    sstr delimiter = "";
+    sstr key       = "";
+    sstr value     = "";
+    sstr ws        = " \t\n\r";
 
     //load default values into map
     result.emplace(std::pair<sstr , sstr >(ABBR_COMPANYNAME, DEF__COMPANYNAME));
@@ -494,28 +516,9 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
     result.emplace(std::pair<sstr , sstr >(THE_PHP__VERSION, DEF_PHP__VERSION));
     result.emplace(std::pair<sstr , sstr >(THE_POSTFIX_VERS, DEF_POSTFIX_VERS));
 
-    sstr it_data = "";
-    auto max = std::numeric_limits<unsigned long>::max();
-
-    // file format specifications
-    // # this is a comment line
-    // # # is not allowed to be a delimiter
-
-    // # [delimiter] : variable : value
-    // # : variable  : value
-    // # * variable  * value
-    // # semicolons are optional and are ignored
-    // # only one variable : value pair per line
-    // # no spaces allowed in variable name or in value
-
-    // : Company    : j5c
-    // : PathVersion: 001
-    // : CreateScriptOnly : false;
-    // : CreateScriptOnly : true;
-
     int width = 32;
 
-
+    std::cout << std::endl << std::endl;
     std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
     std::cout << "#=========================================================" << std::endl;
     for (auto element  =  result.cbegin();
@@ -527,23 +530,46 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
 
 
 
-    std::vector<sstr> data = readFile(fileSettings, theCount);
+    std::vector<sstr> data = readFile(fileSettings, maxLineCount);
     for (auto it = data.cbegin(); it != data.cend(); ++it )
     {
         it_data = *it;
+        if (it_data.length() > 1)
+        {
+            delimiter = it_data.substr(0,1);
+            if (delimiter != "#") {
+                it_data = it_data.substr(1, it_data.length());
+                auto split = it_data.find_first_of(delimiter);
+                if (split < max) {
+                    key = it_data.substr(0, split - 1);
+                    key = trimLeftAndRight(key, ws);
+                    value = it_data.substr(split+2, it_data.length());
+                    value = trimLeftAndRight(value, ws);
+
+                    //std::cout << "it_data = ***" << it_data << "***" << std::endl;
+                    //std::cout << "Key     = ***" << key     << "***" << std::endl;
+                    //std::cout << "Value   = ***" << value   << "***" << std::endl;
+
+                    if (value.length() > 0) {
+                        auto pair = result.find(key);
+                        if (pair != result.cend())
+                        {
+                            result[key] = value;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     std::cout << std::endl << std::endl;
-
     std::cout << "#    Listing Settings : Values (Loading Setting from File)" << std::endl;
     std::cout << "#=========================================================" << std::endl;
-    for (auto element  =  result.cbegin();
-         element !=  result.cend();
-         ++ element)
+    for (auto element  =  result.cbegin();  element !=  result.cend(); ++element)
     {
         std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
-
+    std::cout << std::endl << std::endl;
 
     return result;
 }
@@ -1553,6 +1579,8 @@ int main()
     settings = getProgramSettings(fileSettings);
 
     // put settings into program variables
+    std::cout << "Puttins settings into program variables..." << std::endl;
+    sstr pricomy    = "j5c";
     sstr company    = settings[ABBR_COMPANYNAME];
     sstr pVersion   = settings[THE_PATH_VERSION];
 
@@ -1639,7 +1667,7 @@ int main()
         version = DEFAULT_PERL_VER;
     }
     step = -1;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1663,7 +1691,7 @@ int main()
         version = DEFAULT_TCL_VERS;
     }
     step = -1;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1688,7 +1716,7 @@ int main()
     }
     step = -1;
     sstr oldPath = srcPath;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1712,7 +1740,7 @@ int main()
         version = DEFAULT_APR_VERS;
     }
     step = 1;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1735,7 +1763,7 @@ int main()
         version = DEF_APR_UTIL_VER;
     }
     step = 2;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1758,7 +1786,7 @@ int main()
         version = DEF_APR_ICONVVER;
     }
     step = 3;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1781,7 +1809,7 @@ int main()
         version = DEF_PCRE_VERSION;
     }
     step = 4;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1804,7 +1832,7 @@ int main()
         version = DEF_PCRE2_VERS_N;
     }
     step = 5;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1827,7 +1855,7 @@ int main()
         version = DEF_APACHE_VERSN;
     }
     step = -1;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1850,7 +1878,7 @@ int main()
         version = DEF_MARIADB_VERS;
     }
     step = -1;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1873,7 +1901,7 @@ int main()
         version = DEF_PHP__VERSION;
     }
     step = -1;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);
@@ -1896,7 +1924,7 @@ int main()
         version = DEF_POSTFIX_VERS;
     }
     step = -1;
-    stgPath = setPath(company, prod_Stg_Offset, programName);
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
     srcPath = setPath(company, prod_Src_Offset, programName);
     usrPath = setPath(company, prod_Usr_Offset, programName);
     tstPath = setPath(company, prod_Tst_Offset, programName);

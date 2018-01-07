@@ -20,7 +20,6 @@
 
 namespace J5C_DSL_Code {
 
-
     void j5c_Date::cout_InvalidDate() const noexcept
     {
         std::cout << "!!! *** Invalid Date *** !!! -> "
@@ -488,7 +487,7 @@ namespace J5C_DSL_Code {
 
     std::string j5c_Date::padright(int width, int value) const noexcept
     {
-        unsigned long w = static_cast<unsigned long>(width);
+        auto w = static_cast<unsigned long>(width);
         std::string output = std::string{"0000"} + std::to_string(value);
         unsigned long len = output.length();
         return output.substr(len-w, len);
