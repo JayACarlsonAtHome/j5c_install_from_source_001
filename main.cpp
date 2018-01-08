@@ -189,7 +189,7 @@ int startNewLogSection(std::ofstream& file)
         file << std::endl << std::endl;
         file << " Status started on " << thisDate.strDate() << std::endl;
         file << " 24-Hour  (UTC) : Command(s) / Comment(s)" << std::endl;
-        file << " ========================================================================================" << std::endl;
+        file << " ==============================================================================================" << std::endl;
         result = 0; // success
     }
     else
@@ -373,17 +373,17 @@ int file_append_results(sstr& fileName, sstr& programName, sstr& version, int st
         }
         line = line.substr(0,width2);
 
-        sstr strResults = "      " + std::to_string(installResult);
+        sstr strResults = "......" + std::to_string(installResult);
         strResults = strResults.substr(strResults.length()-5,5);
         line += " : Result = " + strResults;
 
         if (installResult == 0)
         {
-            line += "  :  ( Good... ) ";
+            line += " : Good.............";
         }
         else
         {
-            line += "  :  ( What the heck?...)";
+            line += " : What the heck?...";
         }
 
 
@@ -447,10 +447,8 @@ std::vector<sstr> readFile(sstr &fileName, unsigned long maxCount)
 
 bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
 {
-    int count = 10000;
+    int count = 50000;
     bool result = false;
-    bool temp_result = false;
-    bool cont = true;
     sstr it_data = "";
     auto max = std::numeric_limits<unsigned long>::max();
 
@@ -463,15 +461,21 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
         {
             auto found2 = it_data.find("esult =");
             sstr temp1;
-            sstr temp2;
             if (found2 < max)
             {
                 temp1 = it_data.substr(found2+7,it_data.length());
             }
             auto end = temp1.find_first_of(":");
-            temp2 = temp1.substr(0, end-1);
-            auto temp3 = std::stol(temp2, nullptr, 10);
-            if (temp3 == 0)
+            temp1 = temp1.substr(0, end - 1);
+            unsigned long idx = 0;
+            while (idx < temp1.length())
+            {
+                if (isdigit(temp1[idx])) break;
+                if (temp1[idx] == '.') temp1[idx] = ' ';
+                ++idx;
+            }
+            auto temp2 = std::stol(temp1, nullptr, 10);
+            if (temp2 == 0)
             {
                 result = true;
                 break;
@@ -1674,7 +1678,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_perl(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
@@ -1698,7 +1701,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_tcl(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, thisOS, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
@@ -1723,7 +1725,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_tk(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, oldPath, version, createScriptOnly, doTests, thisOS, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
@@ -1747,7 +1748,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_apache_step_01(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1770,7 +1770,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_apache_step_02(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1793,7 +1792,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_apache_step_03(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1816,7 +1814,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_apache_step_04(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1839,7 +1836,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_apache_step_05(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1862,7 +1858,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_apache(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1885,7 +1880,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_mariadb(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1908,7 +1902,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_php(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
@@ -1931,7 +1924,6 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        appendNewLogSection(fileName_Build);
         result = install_postfix(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
     }
