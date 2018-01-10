@@ -6,9 +6,9 @@
 // This program can automatically install a LAMP system
 //   and a backup system
 
-#include <unicode/unistr.h>
-#include <unicode/ustream.h>
-#include <unicode/locid.h>
+//#include <unicode/unistr.h>
+//#include <unicode/ustream.h>
+//#include <unicode/locid.h>
 
 #include <fstream>
 #include <iostream>
@@ -36,9 +36,11 @@ const sstr DEF_OPER__SYSTEM = "Red Hat";
 
 const sstr THE_PERL_VERSION = "Section_b1_The_Perl_Version";
 const sstr DEFAULT_PERL_VER = "5.26.1";
-const sstr THE_TCL__VERSION = "Section_b2_The_Tcl_Version";
+const sstr THE_RUBY_VERSION = "Section_b2_The_Ruby_Version";
+const sstr DEFAULT_RUBY_VER = "2.5.0";
+const sstr THE_TCL__VERSION = "Section_b3_The_Tcl_Version";
 const sstr DEFAULT_TCL_VERS = "8.6.8";
-const sstr THE_TK___VERSION = "Section_b3_The_Tk_Version";
+const sstr THE_TK___VERSION = "Section_b4_The_Tk_Version";
 const sstr DEFAULT_TK_VERSI = "8.6.8";
 
 const sstr THE_APR__VERSION = "Section_c1_The_Apr_Version";
@@ -505,6 +507,7 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
     result.emplace(std::pair<sstr , sstr >(CREATESCRIPTONLY, DEFLT_SCRIPTONLY));
 
     result.emplace(std::pair<sstr , sstr >(THE_PERL_VERSION, DEFAULT_PERL_VER));
+    result.emplace(std::pair<sstr , sstr >(THE_RUBY_VERSION, DEFAULT_RUBY_VER));
     result.emplace(std::pair<sstr , sstr >(THE_TCL__VERSION, DEFAULT_TCL_VERS));
     result.emplace(std::pair<sstr , sstr >(THE_TK___VERSION, DEFAULT_TK_VERSI));
 
@@ -827,6 +830,66 @@ int install_perl(sstr& homePath,
         if (doTests)
         {
             vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Perl_TestResults.txt & \"");
+        }
+        vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    }
+
+    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, createScriptOnly);
+    return result;
+}
+
+
+int install_ruby(sstr& homePath,
+                 sstr& buildFileName,
+                 sstr& stgPath,
+                 sstr& srcPath,
+                 sstr& usrPath,
+                 sstr& tstPath,
+                 sstr& version,
+                 bool createScriptOnly,
+                 bool doTests = true,
+                 bool debugOnly = false)
+{
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName           =  "ruby-" + version;
+    sstr compressedFileName =  fileName + ".tar.gz";
+    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
+    sstr workingPath        =  srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileSizeGtZero(stagedFileName)))
+    {
+        vec.push_back("eval \"cd " + stgPath + "; wget https://cache.ruby-lang.org/pub/ruby/2.5/" + compressedFileName + "\"");
+    }
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished Ruby install (if any).");
+    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install Ruby.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    if (!debugOnly)
+    {
+        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
+        vec.push_back("eval \"cd "     + workingPath + "; make \"");
+        if (doTests)
+        {
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Ruby_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -1644,7 +1707,7 @@ int main()
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        if (thisOS == OS_type::RedHat) {
+        if ((thisOS == OS_type::RedHat) || (thisOS == OS_type::CentOS)) {
             install_yum_required_dependencies(fileName_Build, programName, createScriptOnly);
             print_blank_lines(2);
         }
@@ -1679,6 +1742,30 @@ int main()
     if (!sectionLoaded)
     {
         result = install_perl(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
+
+
+    //ruby setup
+    programName = "ruby";
+    version = settings[THE_RUBY_VERSION];
+    if (version.length() < 1)
+    {
+        version = DEFAULT_PERL_VER;
+    }
+    step = -1;
+    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
+    srcPath = setPath(company, prod_Src_Offset, programName);
+    usrPath = setPath(company, prod_Usr_Offset, programName);
+    tstPath = setPath(company, prod_Tst_Offset, programName);
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        result = install_ruby(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
