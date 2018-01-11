@@ -3,12 +3,9 @@
 // jay.a.carlson@gmail.com
 // 360-649-6218
 
-// This program can automatically install a LAMP system
-//   and a backup system
-
-//#include <unicode/unistr.h>
-//#include <unicode/ustream.h>
-//#include <unicode/locid.h>
+// This program can automatically install a LAMP system + other stuff
+// LAMP        := Linux, Apache Web Server, MaraiDB, Php
+// Other stuff := Perl, Ruby, Tcl/Tk
 
 #include <fstream>
 #include <iostream>
@@ -20,48 +17,181 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <limits>
+#include <ctype.h>
+#include <stdio.h>
 #include "source/j5c_date.h"
 
 using sstr = std::string;
 using namespace J5C_DSL_Code;
 
-const sstr ABBR_COMPANYNAME = "Section_a1_Abbr_CompanyName";
+const sstr ABBR_COMPANYNAME = "Section_General_Abbr_CompanyName";
 const sstr DEF__COMPANYNAME = "j5c";
-const sstr CREATESCRIPTONLY = "Section_a2_CreateScriptOnly";
+const sstr CREATESCRIPTONLY = "Section_General_CreateScriptOnly";
 const sstr DEFLT_SCRIPTONLY = "false";
-const sstr THE_PATH_VERSION = "Section_a3_The_Path_Version";
+const sstr ARE_WE_TORUN_TST = "Section_General_RunTests";
+const sstr DEFLT_RUNTESTOFF = "false";
+
+const sstr THE_PATH_VERSION = "Section_General_The_Path_Version";
 const sstr DEF_PATH_VERSION = "001";
-const sstr OPERATIONGSYSTEM = "Section_a4_The_Operating_System";
+const sstr OPERATIONGSYSTEM = "Section_General_The_Operating_System";
 const sstr DEF_OPER__SYSTEM = "Red Hat";
 
-const sstr THE_PERL_VERSION = "Section_b1_The_Perl_Version";
-const sstr DEFAULT_PERL_VER = "5.26.1";
-const sstr THE_RUBY_VERSION = "Section_b2_The_Ruby_Version";
-const sstr DEFAULT_RUBY_VER = "2.5.0";
-const sstr THE_TCL__VERSION = "Section_b3_The_Tcl_Version";
-const sstr DEFAULT_TCL_VERS = "8.6.8";
-const sstr THE_TK___VERSION = "Section_b4_The_Tk_Version";
-const sstr DEFAULT_TK_VERSI = "8.6.8";
+enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
+enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
 
-const sstr THE_APR__VERSION = "Section_c1_The_Apr_Version";
-const sstr DEFAULT_APR_VERS = "1.6.3";
-const sstr THE_APR_UTIL_VER = "Section_c2_The_Apr-Util_Version";
-const sstr DEF_APR_UTIL_VER = "1.6.1";
-const sstr THE_APR_ICONVVER = "Section_c3_The_Apr-Iconv_Version";
-const sstr DEF_APR_ICONVVER = "1.2.2";
-const sstr THE_PCRE_VERSION = "Section_c4_The_Pcre_Version";
-const sstr DEF_PCRE_VERSION = "8.41";
-const sstr THE_PCRE2_VERS_N = "Section_c5_The_Pcre2_Version";
-const sstr DEF_PCRE2_VERS_N = "10.30";
-const sstr THE_APACHE_VERSN = "Section_c6_The_Apache_Version";
-const sstr DEF_APACHE_VERSN = "2.4.29";
+sstr key_part_replacement(sstr& key, sstr& replacement)
+{
+    sstr result = key.replace(0,5, replacement);
+    std::cout << "key = *" << key << "* : replacement = *" << replacement << "* : result = *" << result << "*" << std::endl;
+    return result;
+}
 
-const sstr THE_MARIADB_VERS = "Section_d1_The_MariaDB_Version";
-const sstr DEF_MARIADB_VERS = "10.3.3";
-const sstr THE_PHP__VERSION = "Section_d2_The_PHP_Version";
-const sstr DEF_PHP__VERSION = "7.2.0";
-const sstr THE_POSTFIX_VERS = "Section_d3_The_PostFix_Version";
-const sstr DEF_POSTFIX_VERS = "3.2.4";
+std::map<sstr, sstr> get_program_base_keys(sstr& progName)
+{
+    std::map<sstr, sstr> result;
+
+    sstr key = "XXXXX->Build_Name";
+    sstr newKey  = key_part_replacement(key, progName);
+    sstr novalue = "";
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->WGET";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+
+    key = "XXXXX->STG_Path";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->SRC_Path";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->USR_Path";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->TST_Path";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->RTN_Path";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->Version";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->Compression";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->Script_Only";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->Do_Tests";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->Debug_Only";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->This_OS";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    key = "XXXXX->Step";
+    newKey  = key_part_replacement(key, progName);
+    result.insert(std::pair<sstr, sstr>(newKey, novalue));
+
+    return result;
+};
+
+class installItem
+{
+private:
+    sstr m_returnPath;
+    sstr m_buildFileName;
+    sstr m_prgName;
+    sstr m_getPath;
+    sstr m_stgPath;
+    sstr m_srcPath;
+    sstr m_usrPath;
+    sstr m_tstPath;
+    sstr m_version;
+    sstr m_comprsn;
+    bool m_ScriptOnly;
+    bool m_doTests;
+    bool m_debugOnly;
+    OS_type m_thisOS;
+
+public:
+    installItem(){};
+    installItem(sstr returnPath,
+                sstr buildFileName,
+                sstr prgName,
+                sstr getPath,
+                sstr stgPath,
+                sstr srcPath,
+                sstr usrPath,
+                sstr tstPath,
+                sstr version,
+                sstr compression,
+                bool ScriptOnly,
+                bool doTests,
+                bool debugOnly,
+                OS_type thisOS
+    )
+            : m_returnPath(returnPath),
+              m_buildFileName(buildFileName),
+              m_prgName(prgName),
+              m_getPath(getPath),
+              m_stgPath(stgPath),
+              m_srcPath(srcPath),
+              m_usrPath(usrPath),
+              m_tstPath(tstPath),
+              m_version(version),
+              m_comprsn(compression),
+              m_ScriptOnly(ScriptOnly),
+              m_doTests(doTests),
+              m_debugOnly(debugOnly),
+              m_thisOS(thisOS)
+    {};
+    void set_returnPath(sstr returnPath) { m_returnPath = returnPath; }
+    void set_buildFileName(sstr buildFN) { m_buildFileName = buildFN; }
+    void set_prgName(sstr name) { m_prgName = name; }
+    void set_getPath(sstr path) { m_getPath = path; }
+    void set_stgPath(sstr path) { m_stgPath = path; }
+    void set_srcPath(sstr path) { m_srcPath = path; }
+    void set_usrPath(sstr path) { m_usrPath = path; }
+    void set_tstPath(sstr path) { m_tstPath = path; }
+    void set_version(sstr ver ) { m_version = ver;  }
+    void set_compression(sstr comp) { m_comprsn = comp; }
+
+    void set_ScriptOnly(bool ScriptOnly ) { m_ScriptOnly = ScriptOnly; }
+    void set_doTests(   bool doTests  )   { m_doTests    = doTests;   }
+    void set_debugOnly( bool debugOnly)   { m_debugOnly  = debugOnly; }
+    void set_ThisOS(OS_type thisOS)       { m_thisOS     = thisOS;    }
+
+    sstr get_returnPath()   { return m_returnPath; };
+    sstr get_buildFileName(){ return m_buildFileName;  };
+    sstr get_prgName()      { return m_prgName;    }
+    sstr get_getPath()      { return m_getPath;    }
+    sstr get_stgPath()      { return m_stgPath;    }
+    sstr get_srcPath()      { return m_srcPath;    }
+    sstr get_usrPath()      { return m_usrPath;    }
+    sstr get_tstPath()      { return m_tstPath;    }
+    sstr get_version()      { return m_version;    }
+    sstr get_compression()  { return m_comprsn;    }
+    bool get_ScriptOnly()   { return m_ScriptOnly; }
+    bool get_doTests()      { return m_doTests;    }
+    bool get_debugOnly()    { return m_debugOnly;  }
+    OS_type get_ThisOS()    { return m_thisOS;     }
+};
 
 sstr trimLeftAndRight(sstr& inString, sstr& ws)
 {
@@ -490,7 +620,6 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
 std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
 {
     auto max = std::numeric_limits<unsigned long>::max();
-
     auto maxLineCount = max;
     int  theCount = 0;
     std::map<sstr, sstr> result;
@@ -500,11 +629,49 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
     sstr value     = "";
     sstr ws        = " \t\n\r";
 
-    //load default values into map
+    //load general default values into map
+
     result.emplace(std::pair<sstr , sstr >(ABBR_COMPANYNAME, DEF__COMPANYNAME));
     result.emplace(std::pair<sstr , sstr >(THE_PATH_VERSION, DEF_PATH_VERSION));
     result.emplace(std::pair<sstr , sstr >(OPERATIONGSYSTEM, DEF_OPER__SYSTEM));
     result.emplace(std::pair<sstr , sstr >(CREATESCRIPTONLY, DEFLT_SCRIPTONLY));
+    result.emplace(std::pair<sstr , sstr >(ARE_WE_TORUN_TST, DEFLT_RUNTESTOFF));
+
+    //load perl default values into map
+    sstr K_PROGRM_NAME = "Perl";
+    sstr V_PROGRM_NAME = "perl";
+    sstr K_WGET_PATH__ = "Perl WGET";
+    sstr V_WGET_PATH__ = "http://www.cpan.org/src/5.0/";
+    sstr K_PROGRAM_VER = "Perl Version";
+    sstr V_PROGRAM_VER = "5.26.1";
+    sstr K_COMPRESSION = "Perl Compression";
+    sstr V_COMPRESSION = ".tar.gz";
+
+    result.emplace(std::pair<sstr , sstr >(K_PROGRM_NAME, V_PROGRM_NAME));
+    result.emplace(std::pair<sstr , sstr >(K_WGET_PATH__, V_WGET_PATH__));
+    result.emplace(std::pair<sstr , sstr >(K_PROGRAM_VER, V_PROGRAM_VER));
+    result.emplace(std::pair<sstr , sstr >(K_COMPRESSION, V_COMPRESSION));
+
+    //load ruby default values into map
+    K_PROGRM_NAME = "Ruby";
+    V_PROGRM_NAME = "ruby";
+    K_WGET_PATH__ = "Ruby WGET";
+    V_WGET_PATH__ = "https://cache.ruby-lang.org/pub/ruby/2.5/";
+    K_PROGRAM_VER = "Ruby Version";
+    V_PROGRAM_VER = "2.5.0";
+    K_COMPRESSION = "Ruby Compression";
+    V_COMPRESSION = ".tar.gz";
+
+    result.emplace(std::pair<sstr , sstr >(K_PROGRM_NAME, V_PROGRM_NAME));
+    result.emplace(std::pair<sstr , sstr >(K_WGET_PATH__, V_WGET_PATH__));
+    result.emplace(std::pair<sstr , sstr >(K_PROGRAM_VER, V_PROGRAM_VER));
+    result.emplace(std::pair<sstr , sstr >(K_COMPRESSION, V_COMPRESSION));
+
+/*
+
+
+
+
 
     result.emplace(std::pair<sstr , sstr >(THE_PERL_VERSION, DEFAULT_PERL_VER));
     result.emplace(std::pair<sstr , sstr >(THE_RUBY_VERSION, DEFAULT_RUBY_VER));
@@ -522,7 +689,7 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
     result.emplace(std::pair<sstr , sstr >(THE_MARIADB_VERS, DEF_MARIADB_VERS));
     result.emplace(std::pair<sstr , sstr >(THE_PHP__VERSION, DEF_PHP__VERSION));
     result.emplace(std::pair<sstr , sstr >(THE_POSTFIX_VERS, DEF_POSTFIX_VERS));
-
+*/
     int width = 32;
 
     std::cout << std::endl << std::endl;
@@ -535,7 +702,7 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
         std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
 
-
+    /*
 
     std::vector<sstr> data = readFile(fileSettings, maxLineCount);
     for (auto it = data.cbegin(); it != data.cend(); ++it )
@@ -568,7 +735,7 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
             }
         }
     }
-
+    */
     std::cout << std::endl << std::endl;
     std::cout << "#    Listing Settings : Values (Loading Setting from File)" << std::endl;
     std::cout << "#=========================================================" << std::endl;
@@ -580,11 +747,6 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
 
     return result;
 }
-
-
-
-enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
-enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
 
 void section_already_loaded(sstr& programName, sstr& version)
 {
@@ -782,17 +944,53 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     return result;
 }
 
-int install_perl(sstr& homePath,
-                 sstr& buildFileName,
-                 sstr& stgPath,
-                 sstr& srcPath,
-                 sstr& usrPath,
-                 sstr& tstPath,
-                 sstr& version,
-                 bool createScriptOnly,
-                 bool doTests = true,
-                 bool debugOnly = false)
+bool getBoolFromString(sstr& some_value)
 {
+    bool result = false;
+    sstr temp1;
+    char temp2;
+    auto idx = some_value.length();
+    for (idx = 0; idx < some_value.length(); ++idx)
+    {
+        if (std::isupper((*some_value.substr(idx,1).c_str())))
+        {
+            temp2 =  tolower(*some_value.substr(idx,1).c_str());
+        }
+        else
+        {
+            temp2 = (*some_value.substr(idx,1).c_str());
+        }
+        temp1.append({temp2});
+    }
+    if (temp1 == "t")    result = true;
+    if (temp1 == "true") result = true;
+    if (temp1 == "on")   result = true;
+    return result;
+}
+
+int install_perl(std::map<sstr, sstr>& perlMap)
+{
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = perlMap["perl->Build_Name"];
+    sstr getPath       = perlMap["perl->WGET"];
+    sstr stgPath       = perlMap["perl->STG_Path"];
+    sstr srcPath       = perlMap["perl->SRC_Path"];
+    sstr usrPath       = perlMap["perl->USR_Path"];
+    sstr tstPath       = perlMap["perl->TST_Path"];
+    sstr rtnPath       = perlMap["perl->RTN_Path"];
+    sstr version       = perlMap["perl->Version"];
+    sstr compression   = perlMap["perl->Compression"];
+    sstr scriptOnly    = perlMap["perl->Script_Only"];
+    sstr doTests       = perlMap["perl->Do_Tests"];
+    sstr debugOnly     = perlMap["perl->Debug_Only"];
+    sstr thisOS        = perlMap["perl->This_OS"];
+    sstr step          = perlMap["perl->Step"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+
     sstr command = "";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
@@ -806,13 +1004,13 @@ int install_perl(sstr& homePath,
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     if (!(isFileSizeGtZero(stagedFileName)))
     {
-        vec.push_back("eval \"cd " + stgPath + "; wget http://www.cpan.org/src/5.0/" + compressedFileName + "\"");
+        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
     }
     vec.push_back("# ");
     vec.push_back("# Remove unfinished Perl install (if any).");
-    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Perl.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
@@ -823,36 +1021,47 @@ int install_perl(sstr& homePath,
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
 
-    if (!debugOnly)
+    if (!bDebug)
     {
         vec.push_back("eval \"cd "     + workingPath + "; ./Configure -Dprefix=" + usrPath +" -d -e\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests)
+        if (bDoTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Perl_TestResults.txt & \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | " + tstPath +"/Perl_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
 
-    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("eval \"cd " + rtnPath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
-    int result = do_command(buildFileName, vec, createScriptOnly);
+    int result = do_command(buildFileName, vec, bScriptOnly);
     return result;
 }
 
 
-int install_ruby(sstr& homePath,
-                 sstr& buildFileName,
-                 sstr& stgPath,
-                 sstr& srcPath,
-                 sstr& usrPath,
-                 sstr& tstPath,
-                 sstr& version,
-                 bool createScriptOnly,
-                 bool doTests = true,
-                 bool debugOnly = false)
+int install_ruby(std::map<sstr, sstr>& rubyMap)
 {
+    //unpack the map to make the code easier to read
+    sstr buildFileName = rubyMap["ruby->Build_Name"];
+    sstr getPath       = rubyMap["ruby->WGET"];
+    sstr stgPath       = rubyMap["ruby->STG_Path"];
+    sstr srcPath       = rubyMap["ruby->SRC_Path"];
+    sstr usrPath       = rubyMap["ruby->USR_Path"];
+    sstr tstPath       = rubyMap["ruby->TST_Path"];
+    sstr rtnPath       = rubyMap["ruby->RTN_Path"];
+    sstr version       = rubyMap["ruby->Version"];
+    sstr compression   = rubyMap["ruby->Compression"];
+    sstr scriptOnly    = rubyMap["ruby->Script_Only"];
+    sstr doTests       = rubyMap["ruby->Do_Tests"];
+    sstr debugOnly     = rubyMap["ruby->Debug_Only"];
+    sstr thisOS        = rubyMap["ruby->This_OS"];
+    sstr step          = rubyMap["ruby->Step"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+
     sstr command = "";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
@@ -866,13 +1075,13 @@ int install_ruby(sstr& homePath,
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     if (!(isFileSizeGtZero(stagedFileName)))
     {
-        vec.push_back("eval \"cd " + stgPath + "; wget https://cache.ruby-lang.org/pub/ruby/2.5/" + compressedFileName + "\"");
+        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
     }
     vec.push_back("# ");
     vec.push_back("# Remove unfinished Ruby install (if any).");
-    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Ruby.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
@@ -883,23 +1092,24 @@ int install_ruby(sstr& homePath,
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
 
-    if (!debugOnly)
+    if (!bDebug)
     {
-        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
+        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath +"\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests)
+        if (bDoTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Ruby_TestResults.txt & \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | " + tstPath +"/Ruby_TestResults.txt & \"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
 
-    vec.push_back("eval \"cd "     + homePath + "\"");
+    vec.push_back("eval \"cd " + rtnPath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
-    int result = do_command(buildFileName, vec, createScriptOnly);
+    int result = do_command(buildFileName, vec, bScriptOnly);
     return result;
 }
+
 
 int install_tcl(sstr& homePath,
                  sstr& buildFileName,
@@ -1012,7 +1222,8 @@ int install_tk(sstr& homePath,
     removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Tk.");
-    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir"
+                          " -p " + srcPath + "\"");
     vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
@@ -1623,11 +1834,11 @@ int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName,
     int result = 0;
     if (step < 0)
     {
-        std::cout << "Install " << programName << " result = " << installResult << "." << std::endl;
+        std::cout << "Install " << programName << "-" + version << " result = " << installResult << "." << std::endl;
     }
     else
     {
-        std::cout << "Install " << programName << " step " << std::setw(2) << std::setfill('0') << step <<  " : Result = " << installResult << std::endl;
+        std::cout << "Install " << programName << "-" + version << " step " << std::setw(2) << std::setfill('0') << step <<  " : Result = " << installResult << std::endl;
     }
     result += file_append_results(fileNameBuilds, programName, version, step, installResult);
     result += file_append_results(fileNameResult, programName, version, step, installResult);
@@ -1642,45 +1853,53 @@ int main()
 
     // get settings from file
     std::map<sstr, sstr> settings;
-    sstr fileSettings = "/j5c/Install_Settings.cfg";
-    settings = getProgramSettings(fileSettings);
+    sstr fileSettings   = "/j5c/Install_Settings.cfg";
+    settings            = getProgramSettings(fileSettings);
 
     // put settings into program variables
     std::cout << "Puttins settings into program variables..." << std::endl;
     sstr pricomy    = "j5c";
-    sstr company    = settings[ABBR_COMPANYNAME];
+    sstr company    = "zzz";
     sstr pVersion   = settings[THE_PATH_VERSION];
 
     sstr scriptOnly = settings[CREATESCRIPTONLY];
     sstr theOStext  = settings[OPERATIONGSYSTEM];
 
+    if (theOStext == "Red Hat")    thisOS = OS_type ::RedHat;
     if (theOStext == "CentOS")     thisOS = OS_type ::CentOS;
     if (theOStext == "Linux Mint") thisOS = OS_type ::Linux_Mint;
-    if (theOStext == "OSX")        thisOS = OS_type ::MaxOSX;
-    if (theOStext == "Red Hat")    thisOS = OS_type ::RedHat;
+    if (theOStext == "OSX")
+    {
+        thisOS = OS_type ::MaxOSX;
+        // TODO add a setting for Homebrew or Mac Ports
+        // there currently is no setting for this yet so we will pick the default for now.
+        mpm = Mac_PM::MacPorts;
+    }
 
     auto max = std::numeric_limits<unsigned long>::max();
 
-    bool createScriptOnly   = false;
+    bool ScriptOnly   = false;
     if ((scriptOnly.find_first_of("T") != max ) || (scriptOnly.find_first_of("t") != max ))
     {
-        createScriptOnly = true;
+        ScriptOnly = true;
     }
+
 
     //basic setup
     bool sectionLoaded      = false;
-    bool doTests            = false;
+    bool doTests            = true;
     bool debugOnly          = false;
 
     sstr version = "";
+    sstr compression = "";
     sstr basePath = "/" + company + "/p" + pVersion;
-    sstr buildPathOffset = "/build_" + pVersion;
     sstr prod_Stg_Offset = "/stg";
     sstr prod_Src_Offset = "/p"      + pVersion + "/src";
     sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
     sstr prod_Tst_Offset = "/p"      + pVersion + "/tst";
     sstr programName = "Dependencies";
     sstr stgPathName = "stg";
+    sstr getPath = "xxx";
     sstr stgPath = "xxx";
     sstr srcPath = "xxx";
     sstr usrPath = "xxx";
@@ -1708,12 +1927,12 @@ int main()
     if (!sectionLoaded)
     {
         if ((thisOS == OS_type::RedHat) || (thisOS == OS_type::CentOS)) {
-            install_yum_required_dependencies(fileName_Build, programName, createScriptOnly);
+            install_yum_required_dependencies(fileName_Build, programName, ScriptOnly);
             print_blank_lines(2);
         }
 
         if (thisOS == OS_type::Linux_Mint) {
-            install_apt_required_dependencies(fileName_Build, programName, createScriptOnly);
+            install_apt_required_dependencies(fileName_Build, programName, ScriptOnly);
         }
 
         if (thisOS == OS_type::MaxOSX) {
@@ -1728,44 +1947,81 @@ int main()
 
     //perl setup
     programName = "perl";
-    version = settings[THE_PERL_VERSION];
-    if (version.length() < 1)
+    std::map<sstr, sstr> perl_map = get_program_base_keys(programName);
+    // load defaults;
+    // we could use a generic map here, but the simplicity ensures that
+    //    we are not munging settings across installs.
+    version = "5.26.1";
+    perl_map["perl->Build_Name"]  = fileName_Build;
+    perl_map["perl->WGET"]        = "http://www.cpan.org/src/5.0/";
+    perl_map["perl->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    perl_map["perl->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    perl_map["perl->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    perl_map["perl->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    perl_map["perl->RTN_Path"]    = basePath;
+    perl_map["perl->Version"]     = version;
+    perl_map["perl->Compression"] = ".tar.gz";
+    perl_map["perl->Script_Only"] = "false";
+    perl_map["perl->Do_Tests"]    = "true";
+    perl_map["perl->Debug_Only"]  = "false";
+    perl_map["perl->This_OS"]     = "Red Hat";
+    perl_map["perl->Step"]        = "-1";
+
+    int width = 32;
+    std::cout << std::endl << std::endl;
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element = perl_map.cbegin(); element !=  perl_map.cend(); ++ element)
     {
-        version = DEFAULT_PERL_VER;
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
-    step = -1;
-    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
-    srcPath = setPath(company, prod_Src_Offset, programName);
-    usrPath = setPath(company, prod_Usr_Offset, programName);
-    tstPath = setPath(company, prod_Tst_Offset, programName);
+
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        result = install_perl(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_perl(perl_map);
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
     {
         section_already_loaded(programName, version);
     }
-
 
     //ruby setup
     programName = "ruby";
-    version = settings[THE_RUBY_VERSION];
-    if (version.length() < 1)
+    std::map<sstr, sstr> ruby_map = get_program_base_keys(programName);
+    // load defaults;
+    // we could use a generic map here, but the simplicity ensures that
+    //    we are not munging settings across installs.
+    version = "2.5.0";
+    ruby_map["ruby->Build_Name"]  = fileName_Build;
+    ruby_map["ruby->WGET"]        = "https://cache.ruby-lang.org/pub/ruby/2.5/";
+    ruby_map["ruby->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    ruby_map["ruby->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    ruby_map["ruby->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    ruby_map["ruby->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    ruby_map["ruby->RTN_Path"]    = basePath;
+    ruby_map["ruby->Version"]     = version;
+    ruby_map["ruby->Compression"] = ".tar.gz";
+    ruby_map["ruby->Script_Only"] = "false";
+    ruby_map["ruby->Do_Tests"]    = "true";
+    ruby_map["ruby->Debug_Only"]  = "false";
+    ruby_map["ruby->This_OS"]     = "Red Hat";
+    ruby_map["ruby->Step"]        = "-1";
+
+    width = 32;
+    std::cout << std::endl << std::endl;
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element = ruby_map.cbegin(); element != ruby_map.cend(); ++element)
     {
-        version = DEFAULT_PERL_VER;
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
-    step = -1;
-    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
-    srcPath = setPath(company, prod_Src_Offset, programName);
-    usrPath = setPath(company, prod_Usr_Offset, programName);
-    tstPath = setPath(company, prod_Tst_Offset, programName);
+
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        result = install_ruby(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
+        result = install_ruby(ruby_map);
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -1773,6 +2029,7 @@ int main()
         section_already_loaded(programName, version);
     }
 
+    /*
     //tcl setup
     programName = "tcl";
     version = settings[THE_TCL__VERSION];
@@ -2019,6 +2276,7 @@ int main()
         section_already_loaded(programName, version);
     }
 
+    */
     sstr end = "End of Program";
     file_append_line(fileName_Build, end);
     file_append_line(fileNameResult, end);
