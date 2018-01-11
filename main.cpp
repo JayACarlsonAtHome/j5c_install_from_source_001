@@ -1027,7 +1027,9 @@ int install_perl(std::map<sstr, sstr>& perlMap)
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (bDoTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | " + tstPath +"/Perl_TestResults.txt & \"");
+            vec.push_back("# make test > " + tstPath +"/Perl_TestResults.txt");
+            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Perl_TestResults.txt\"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -1098,7 +1100,9 @@ int install_ruby(std::map<sstr, sstr>& rubyMap)
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (bDoTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | " + tstPath +"/Ruby_TestResults.txt & \"");
+            vec.push_back("# make test > " + tstPath +"/Ruby_TestResults.txt");
+            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Ruby_TestResults.txt\"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -1111,27 +1115,37 @@ int install_ruby(std::map<sstr, sstr>& rubyMap)
 }
 
 
-int install_tcl(sstr& homePath,
-                 sstr& buildFileName,
-                 sstr& stgPath,
-                 sstr& srcPath,
-                 sstr& usrPath,
-                 sstr& tstPath,
-                 sstr& version,
-                 bool createScriptOnly,
-                 bool doTests = true,
-                 OS_type thisOS = OS_type::Linux_Mint,
-                 bool debugOnly = false)
+int install_tcl(std::map<sstr, sstr>& tclMap)
 {
+    sstr installOS = "";
+    //unpack the map to make the code easier to read
+    sstr buildFileName = tclMap["tcl->Build_Name"];
+    sstr getPath       = tclMap["tcl->WGET"];
+    sstr stgPath       = tclMap["tcl->STG_Path"];
+    sstr srcPath       = tclMap["tcl->SRC_Path"];
+    sstr usrPath       = tclMap["tcl->USR_Path"];
+    sstr tstPath       = tclMap["tcl->TST_Path"];
+    sstr rtnPath       = tclMap["tcl->RTN_Path"];
+    sstr version       = tclMap["tcl->Version"];
+    sstr compression   = tclMap["tcl->Compression"];
+    sstr scriptOnly    = tclMap["tcl->Script_Only"];
+    sstr doTests       = tclMap["tcl->Do_Tests"];
+    sstr debugOnly     = tclMap["tcl->Debug_Only"];
+    sstr thisOS        = tclMap["tcl->This_OS"];
+    sstr step          = tclMap["tcl->Step"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+
+    if (thisOS == "CentOS")       installOS = "unix";
+    if (thisOS == "Linux Mint")   installOS = "unix";
+    if (thisOS == "Red Hat")      installOS = "unix";
+    if (thisOS == "Mac OSX")      installOS = "macosx";
 
     sstr command = "";
-    sstr installOS = "unix";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
-
-    if (thisOS == OS_type::RedHat)      installOS = "unix";
-    if (thisOS == OS_type::Linux_Mint)  installOS = "unix";
-    if (thisOS == OS_type::MaxOSX)      installOS = "macosx";
 
     sstr fileName           =  "tcl" + version;
     sstr compressedFileName =  fileName + "-src.tar.gz";
@@ -1142,14 +1156,13 @@ int install_tcl(sstr& homePath,
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     if (!(isFileSizeGtZero(stagedFileName)))
     {
-        vec.push_back("eval \"cd " + stgPath + "; wget https://prdownloads.sourceforge.net/tcl/" + compressedFileName + "\"");
+        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
     }
-
     vec.push_back("# ");
     vec.push_back("# Remove unfinished Tcl install (if any).");
-    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
     vec.push_back("# ");
     vec.push_back("# Install Tcl.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
@@ -1160,48 +1173,59 @@ int install_tcl(sstr& homePath,
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
 
-    if (!debugOnly)
+    if (!bDebug)
     {
-        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix="  + usrPath
-                                       + " --enable-threads --enable-shared --enable-symbols --enable-64bit;\"");
+        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
+                        + " --enable-threads --enable-shared --enable-symbols --enable-64bit;\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests)
+        if (bDoTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Tcl_TestResults.txt & \"");
+            vec.push_back("# make test > " + tstPath +"/Tcl_TestResults.txt");
+            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Tcl_TestResults.txt\"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
-    vec.push_back("eval \"cd " + homePath + "\"");
+
+    vec.push_back("eval \"cd " + rtnPath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
-    int result = do_command(buildFileName, vec, createScriptOnly);
+    int result = do_command(buildFileName, vec, bScriptOnly);
     return result;
 }
 
-
-
-int install_tk(sstr& homePath,
-                sstr& buildFileName,
-                sstr& stgPath,
-                sstr& srcPath,
-                sstr& usrPath,
-                sstr& tstPath,
-                sstr& oldPath,
-                sstr& version,
-                bool createScriptOnly,
-                bool doTests = true,
-                OS_type thisOS = OS_type::Linux_Mint,
-                bool debugOnly = false)
+int install_tk(std::map<sstr, sstr>& tkMap)
 {
+    sstr installOS = "";
+    //unpack the map to make the code easier to read
+    sstr buildFileName = tkMap["tk->Build_Name"];
+    sstr getPath       = tkMap["tk->WGET"];
+    sstr stgPath       = tkMap["tk->STG_Path"];
+    sstr srcPath       = tkMap["tk->SRC_Path"];
+    sstr usrPath       = tkMap["tk->USR_Path"];
+    sstr tstPath       = tkMap["tk->TST_Path"];
+    sstr rtnPath       = tkMap["tk->RTN_Path"];
+    sstr version       = tkMap["tk->Version"];
+    sstr compression   = tkMap["tk->Compression"];
+    sstr scriptOnly    = tkMap["tk->Script_Only"];
+    sstr doTests       = tkMap["tk->Do_Tests"];
+    sstr debugOnly     = tkMap["tk->Debug_Only"];
+    sstr thisOS        = tkMap["tk->This_OS"];
+    sstr step          = tkMap["tk->Step"];
+    sstr oldPath       = tkMap["tk->OLD_Path"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+
+    if (thisOS == "CentOS")       installOS = "unix";
+    if (thisOS == "Linux Mint")   installOS = "unix";
+    if (thisOS == "Red Hat")      installOS = "unix";
+    if (thisOS == "Mac OSX")      installOS = "macosx";
 
     sstr command = "";
-    sstr installOS = "unix";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
-
-    if (thisOS == OS_type::RedHat)      installOS = "unix";
-    if (thisOS == OS_type::Linux_Mint)  installOS = "unix";
-    if (thisOS == OS_type::MaxOSX)      installOS = "macosx";
 
     sstr fileName           =  "tk" + version;
     sstr compressedFileName =  fileName + "-src.tar.gz";
@@ -1212,18 +1236,16 @@ int install_tk(sstr& homePath,
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     if (!(isFileSizeGtZero(stagedFileName)))
     {
-        vec.push_back("eval \"cd " + stgPath + "; wget https://prdownloads.sourceforge.net/tcl/" + compressedFileName + "\"");
+        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
     }
-
     vec.push_back("# ");
-    vec.push_back("# Remove unfinished Tk install (if any).");
-    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# Remove unfinished Tcl install (if any).");
+    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
     vec.push_back("# ");
-    vec.push_back("# Install Tk.");
-    vec.push_back("eval \"mkdir"
-                          " -p " + srcPath + "\"");
+    vec.push_back("# Install Tcl.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
     vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
@@ -1231,115 +1253,73 @@ int install_tk(sstr& homePath,
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
 
-    if (!debugOnly)
+    if (!bDebug)
     {
-        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix="  + usrPath
-                                       + " --with-tcl=" + oldPath + "/tcl" + version +"/" + installOS
-                                       + " --enable-threads --enable-shared --enable-symbols --enable-64bit ;  \"");
+        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
+                      + " --with-tcl=" + oldPath + "/tcl" + version +"/" + installOS
+                      + " --enable-threads --enable-shared --enable-symbols --enable-64bit ;  \"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests)
+        if (bDoTests)
         {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Tk_TestResults.txt & \"");
+            vec.push_back("# make test > " + tstPath +"/Tk_TestResults.txt");
+            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Tk_TestResults.txt\"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
-        vec.push_back("eval \"cd " + homePath + "\"");
     }
+
+    vec.push_back("eval \"cd " + rtnPath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
-    int result = do_command(buildFileName, vec, createScriptOnly);
+    int result = do_command(buildFileName, vec, bScriptOnly);
     return result;
 }
 
-int install_apache_step_01(sstr& homePath,
-                 sstr& buildFileName,
-                 sstr& stgPath,
-                 sstr& srcPath,
-                 sstr& usrPath,
-                 sstr& tstPath,
-                 sstr& version,
-                 bool createScriptOnly,
-                 bool doTests = true,
-                 bool debugOnly = false)
+int install_apache_step_01(std::map<sstr, sstr>& aprMap)
 {
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = aprMap["apr->Build_Name"];
+    sstr getPath       = aprMap["apr->WGET"];
+    sstr stgPath       = aprMap["apr->STG_Path"];
+    sstr srcPath       = aprMap["apr->SRC_Path"];
+    sstr usrPath       = aprMap["apr->USR_Path"];
+    sstr tstPath       = aprMap["apr->TST_Path"];
+    sstr rtnPath       = aprMap["apr->RTN_Path"];
+    sstr version       = aprMap["apr->Version"];
+    sstr compression   = aprMap["apr->Compression"];
+    sstr scriptOnly    = aprMap["apr->Script_Only"];
+    sstr doTests       = aprMap["apr->Do_Tests"];
+    sstr debugOnly     = aprMap["apr->Debug_Only"];
+    sstr thisOS        = aprMap["apr->This_OS"];
+    sstr step          = aprMap["apr->Step"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
 
     sstr command = "";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName = "apr-" + version;
-    sstr compressedFileName = fileName + ".tar.bz2";
-    sstr stagedFileName = stgPath + "/" + compressedFileName;
-    sstr workingPath = srcPath + "/" + fileName;
+    sstr fileName           =  "apr-" + version;
+    sstr compressedFileName =  fileName + ".tar.bz2";
+    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
+    sstr workingPath        =  srcPath + "/" + fileName;
 
     vec.push_back("# Ensure stg directory exists.");
     vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileSizeGtZero(stagedFileName))) {
-        vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
-    }
-    vec.push_back("# ");
-    vec.push_back("# Remove unfinished apr install (if any).");
-    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
-    vec.push_back("# ");
-    vec.push_back("# Install Apache Step 01 : Get apr source.");
-    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
-    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
-    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
-
-    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
-
-    if (!debugOnly)
+    if (!(isFileSizeGtZero(stagedFileName)))
     {
-        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
-        vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Apr_TestResults.txt & \"");
-        }
-        vec.push_back("eval \"cd "     + workingPath + "; make install \"");
-    }
-    vec.push_back("eval \"cd " + homePath + "\"");
-    vec.push_back("# ");
-    vec.push_back("# ");
-    int result = do_command(buildFileName, vec, createScriptOnly);
-    return result;
-}
-
-int install_apache_step_02(sstr& homePath,
-                           sstr& buildFileName,
-                           sstr& stgPath,
-                           sstr& srcPath,
-                           sstr& usrPath,
-                           sstr& tstPath,
-                           sstr& version,
-                           bool createScriptOnly,
-                           bool doTests = true,
-                           bool debugOnly = false)
-{
-
-    sstr command = "";
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName = "apr-util-" + version;
-    sstr compressedFileName = fileName + ".tar.bz2";
-    sstr stagedFileName = stgPath + "/" + compressedFileName;
-    sstr workingPath = srcPath + "/" + fileName;
-
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileSizeGtZero(stagedFileName))) {
-        vec.push_back("eval \"cd " + stgPath + "; wget http://www.apache.org/dist/apr/" + compressedFileName + "\"");
+        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
     }
     vec.push_back("# ");
-    vec.push_back("# Remove unfinished apr-util install (if any).");
-    removeDirectory(buildFileName, srcPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, createScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, createScriptOnly, vec);
+    vec.push_back("# Remove unfinished Apr install (if any).");
+    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
     vec.push_back("# ");
-    vec.push_back("# Install Apache Step 02 : Get apr-util source.");
+    vec.push_back("# Install Apache Step 01: Apr.");
     vec.push_back("eval \"mkdir -p " + srcPath + "\"");
     vec.push_back("eval \"mkdir -p " + tstPath + "\"");
     vec.push_back("eval \"mkdir -p " + usrPath + "\"");
@@ -1348,23 +1328,166 @@ int install_apache_step_02(sstr& homePath,
     vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
     vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
 
-    if (!debugOnly)
+    if (!bDebug)
+    {
+        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath +"\"");
+        vec.push_back("eval \"cd "     + workingPath + "; make \"");
+        if (bDoTests)
+        {
+            vec.push_back("# make test > " + tstPath +"/Apr_TestResults.txt");
+            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Apr_TestResults.txt\"");
+        }
+        vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    }
+
+    vec.push_back("eval \"cd " + rtnPath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    return result;
+}
+
+int install_apache_step_02(std::map<sstr, sstr>& apr_util_Map)
+{
+    //unpack the map to make the code easier to read
+    sstr buildFileName = apr_util_Map["apr-util->Build_Name"];
+    sstr getPath       = apr_util_Map["apr-util->WGET"];
+    sstr stgPath       = apr_util_Map["apr-util->STG_Path"];
+    sstr srcPath       = apr_util_Map["apr-util->SRC_Path"];
+    sstr usrPath       = apr_util_Map["apr-util->USR_Path"];
+    sstr tstPath       = apr_util_Map["apr-util->TST_Path"];
+    sstr rtnPath       = apr_util_Map["apr-util->RTN_Path"];
+    sstr version       = apr_util_Map["apr-util->Version"];
+    sstr compression   = apr_util_Map["apr-util->Compression"];
+    sstr scriptOnly    = apr_util_Map["apr-util->Script_Only"];
+    sstr doTests       = apr_util_Map["apr-util->Do_Tests"];
+    sstr debugOnly     = apr_util_Map["apr-util->Debug_Only"];
+    sstr thisOS        = apr_util_Map["apr-util->This_OS"];
+    sstr step          = apr_util_Map["apr-util->Step"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName           =  "apr-util-" + version;
+    sstr compressedFileName =  fileName + ".tar.bz2";
+    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
+    sstr workingPath        =  srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileSizeGtZero(stagedFileName)))
+    {
+        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
+    }
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished Apr-Util install (if any).");
+    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install Apache Step 02: Apr-Util.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    if (!bDebug)
     {
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "  --with-apr=" +
                       usrPath.substr(0, 17) + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Apr-Util_TestResults.txt & \"");
+        if (bDoTests) {
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Apr-Util_TestResults.txt\"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
-    vec.push_back("eval \"cd "         + homePath + "\"");
+    vec.push_back("eval \"cd "         + rtnPath + "\"");
     vec.push_back("# ");
     vec.push_back("# ");
-    int result = do_command(buildFileName, vec, createScriptOnly);
+    int result = do_command(buildFileName, vec, bScriptOnly);
     return result;
 }
 
+int install_apache_step_03(std::map<sstr, sstr>& apr_iconv_Map)
+{
+    //unpack the map to make the code easier to read
+    sstr buildFileName = apr_iconv_Map["apr-iconv->Build_Name"];
+    sstr getPath       = apr_iconv_Map["apr-iconv->WGET"];
+    sstr stgPath       = apr_iconv_Map["apr-iconv->STG_Path"];
+    sstr srcPath       = apr_iconv_Map["apr-iconv->SRC_Path"];
+    sstr usrPath       = apr_iconv_Map["apr-iconv->USR_Path"];
+    sstr tstPath       = apr_iconv_Map["apr-iconv->TST_Path"];
+    sstr rtnPath       = apr_iconv_Map["apr-iconv->RTN_Path"];
+    sstr version       = apr_iconv_Map["apr-iconv->Version"];
+    sstr compression   = apr_iconv_Map["apr-iconv->Compression"];
+    sstr scriptOnly    = apr_iconv_Map["apr-iconv->Script_Only"];
+    sstr doTests       = apr_iconv_Map["apr-iconv->Do_Tests"];
+    sstr debugOnly     = apr_iconv_Map["apr-iconv->Debug_Only"];
+    sstr thisOS        = apr_iconv_Map["apr-iconv->This_OS"];
+    sstr step          = apr_iconv_Map["apr-iconv->Step"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName           =  "apr-iconv-" + version;
+    sstr compressedFileName =  fileName + ".tar.bz2";
+    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
+    sstr workingPath        =  srcPath + "/" + fileName;
+
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
+    if (!(isFileSizeGtZero(stagedFileName)))
+    {
+        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
+    }
+    vec.push_back("# ");
+    vec.push_back("# Remove unfinished Apr-Iconv install (if any).");
+    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
+    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
+    vec.push_back("# ");
+    vec.push_back("# Install Apache Step 03: Apr-Iconv.");
+    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
+    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
+    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+
+    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
+    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+
+    if (!bDebug)
+    {
+        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
+                      + "  --with-apr=" + usrPath.substr(0, 17) + "\"");
+        vec.push_back("eval \"cd "     + workingPath + "; make \"");
+
+        // there are no tests at this time
+        if (bDoTests && false)
+        {
+            vec.push_back("eval \"cd " + workingPath + "; make test \"");
+        }
+        vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+    }
+    vec.push_back("eval \"cd " + rtnPath + "\"");
+    vec.push_back("# ");
+    vec.push_back("# ");
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    return result;
+}
 
 int install_apache_step_03(sstr& homePath,
                            sstr& buildFileName,
@@ -1474,7 +1597,7 @@ int install_apache_step_04(sstr& homePath,
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Pcre_TestResults.txt & \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Pcre_TestResults.txt\"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -1595,7 +1718,7 @@ int install_apache(sstr& homePath,
                 + "--with-pcre="       + usrPath.substr(0, 13) + "/pcre " + "\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (doTests) {
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Apache_TestResults.txt & \"");
+            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Apache_TestResults.txt\"");
         }
         vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
@@ -1682,8 +1805,8 @@ int install_mariadb(sstr& homePath,
     if (doTests) {
         // These tests will fail the build if we do it before
         vec.clear();
-        vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/Mariadb_TestResults_1.txt\"");
-        vec.push_back("eval \"cd " + workingPath + "/mysql-test; ./mysql-test-run.pl 2>&1 | tee " + tstPath + "/Mariadb_TestResults_2.txt\"");
+        vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/Mariadb_TestResults_1.txt\"");
+        vec.push_back("eval \"cd " + workingPath + "/mysql-test; ./mysql-test-run.pl 2>&1 >  " + tstPath + "/Mariadb_TestResults_2.txt\"");
         do_command(buildFileName, vec, createScriptOnly);
     }
     return result;
@@ -1759,7 +1882,7 @@ int install_php(sstr& homePath,
     if (doTests) {
         // These tests will fail the build if we do it before
         vec.clear();
-        vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 | tee " + tstPath +"/PHP_TestResults.txt & \"");
+        vec.push_back("eval \"cd " + workingPath + "; make test 2>&1 > " + tstPath +"/PHP_TestResults.txt\"");
         do_command(buildFileName, vec, createScriptOnly);
     }
     return result;
@@ -2029,23 +2152,41 @@ int main()
         section_already_loaded(programName, version);
     }
 
-    /*
     //tcl setup
     programName = "tcl";
-    version = settings[THE_TCL__VERSION];
-    if (version.length() < 1)
+    std::map<sstr, sstr> tcl_map = get_program_base_keys(programName);
+    // load defaults;
+    // we could use a generic map here, but the simplicity ensures that
+    //    we are not munging settings across installs.
+    version = "8.7a1";
+    tcl_map["tcl->Build_Name"]  = fileName_Build;
+    tcl_map["tcl->WGET"]        = "https://prdownloads.sourceforge.net/tcl/";
+    tcl_map["tcl->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    tcl_map["tcl->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    tcl_map["tcl->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    tcl_map["tcl->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    tcl_map["tcl->RTN_Path"]    = basePath;
+    tcl_map["tcl->Version"]     = version;
+    tcl_map["tcl->Compression"] = ".tar.gz";
+    tcl_map["tcl->Script_Only"] = "false";
+    tcl_map["tcl->Do_Tests"]    = "true";
+    tcl_map["tcl->Debug_Only"]  = "false";
+    tcl_map["tcl->This_OS"]     = "Red Hat";
+    tcl_map["tcl->Step"]        = "-1";
+
+    width = 32;
+    std::cout << std::endl << std::endl;
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element = tcl_map.cbegin(); element != tcl_map.cend(); ++element)
     {
-        version = DEFAULT_TCL_VERS;
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
-    step = -1;
-    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
-    srcPath = setPath(company, prod_Src_Offset, programName);
-    usrPath = setPath(company, prod_Usr_Offset, programName);
-    tstPath = setPath(company, prod_Tst_Offset, programName);
+
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        result = install_tcl(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, thisOS, debugOnly );
+        result = install_tcl(tcl_map);
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -2055,21 +2196,40 @@ int main()
 
     //tk setup
     programName = "tk";
-    version = settings[THE_TK___VERSION];
-    if (version.length() < 1)
+    std::map<sstr, sstr> tk_map = get_program_base_keys(programName);
+    // load defaults;
+    // we could use a generic map here, but the simplicity ensures that
+    //    we are not munging settings across installs.
+    version = "8.7a1";
+    tk_map["tk->Build_Name"]  = fileName_Build;
+    tk_map["tk->WGET"]        = "https://prdownloads.sourceforge.net/tcl/";
+    tk_map["tk->OLD_Path"]    = tcl_map["tcl->SRC_Path"];
+    tk_map["tk->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    tk_map["tk->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    tk_map["tk->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    tk_map["tk->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    tk_map["tk->RTN_Path"]    = basePath;
+    tk_map["tk->Version"]     = version;
+    tk_map["tk->Compression"] = ".tar.gz";
+    tk_map["tk->Script_Only"] = "false";
+    tk_map["tk->Do_Tests"]    = "true";
+    tk_map["tk->Debug_Only"]  = "false";
+    tk_map["tk->This_OS"]     = "Red Hat";
+    tk_map["tk->Step"]        = "-1";
+
+    width = 32;
+    std::cout << std::endl << std::endl;
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element = tk_map.cbegin(); element != tk_map.cend(); ++element)
     {
-        version = DEFAULT_TK_VERSI;
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
-    step = -1;
-    sstr oldPath = srcPath;
-    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
-    srcPath = setPath(company, prod_Src_Offset, programName);
-    usrPath = setPath(company, prod_Usr_Offset, programName);
-    tstPath = setPath(company, prod_Tst_Offset, programName);
+
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        result = install_tk(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, oldPath, version, createScriptOnly, doTests, thisOS, debugOnly );
+        result = install_tk(tk_map);
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
@@ -2079,21 +2239,42 @@ int main()
 
     //Get and Build Apache Dependencies
     programName = "apr";
-    version = settings[THE_APR__VERSION];
-    if (version.length() < 1)
+    std::map<sstr, sstr> apr_map = get_program_base_keys(programName);
+    // load defaults;
+    // we could use a generic map here, but the simplicity ensures that
+    //    we are not munging settings across installs.
+
+    version = "1.6.3";
+    apr_map["apr->Build_Name"]  = fileName_Build;
+    apr_map["apr->WGET"]        = "http://www.apache.org/dist/apr/";
+    apr_map["apr->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    apr_map["apr->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    apr_map["apr->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    apr_map["apr->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    apr_map["apr->RTN_Path"]    = basePath;
+    apr_map["apr->Version"]     = version;
+    apr_map["apr->Compression"] = ".tar.bz2";
+    apr_map["apr->Script_Only"] = "false";
+    apr_map["apr->Do_Tests"]    = "true";
+    apr_map["apr->Debug_Only"]  = "false";
+    apr_map["apr->This_OS"]     = "Red Hat";
+    apr_map["apr->Step"]        = "1";
+
+
+    width = 32;
+    std::cout << std::endl << std::endl;
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element = apr_map.cbegin(); element != apr_map.cend(); ++element)
     {
-        version = DEFAULT_APR_VERS;
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
-    step = 1;
-    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
-    srcPath = setPath(company, prod_Src_Offset, programName);
-    usrPath = setPath(company, prod_Usr_Offset, programName);
-    tstPath = setPath(company, prod_Tst_Offset, programName);
+
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        result = install_apache_step_01(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
-        reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
+        result = install_apache_step_01(apr_map);
+        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
     {
@@ -2101,27 +2282,90 @@ int main()
     }
 
     programName = "apr-util";
-    version = settings[THE_APR_UTIL_VER];
-    if (version.length() < 1)
+    std::map<sstr, sstr> apr_util_map = get_program_base_keys(programName);
+    // load defaults;
+    // we could use a generic map here, but the simplicity ensures that
+    //    we are not munging settings across installs.
+
+    version = "1.6.1";
+    apr_util_map["apr-util->Build_Name"]  = fileName_Build;
+    apr_util_map["apr-util->WGET"]        = "http://www.apache.org/dist/apr/";
+    apr_util_map["apr-util->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    apr_util_map["apr-util->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    apr_util_map["apr-util->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    apr_util_map["apr-util->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    apr_util_map["apr-util->RTN_Path"]    = basePath;
+    apr_util_map["apr-util->Version"]     = version;
+    apr_util_map["apr-util->Compression"] = ".tar.bz2";
+    apr_util_map["apr-util->Script_Only"] = "false";
+    apr_util_map["apr-util->Do_Tests"]    = "true";
+    apr_util_map["apr-util->Debug_Only"]  = "false";
+    apr_util_map["apr-util->This_OS"]     = "Red Hat";
+    apr_util_map["apr-util->Step"]        = "2";
+
+    width = 32;
+    std::cout << std::endl << std::endl;
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element = apr_util_map.cbegin(); element != apr_util_map.cend(); ++element)
     {
-        version = DEF_APR_UTIL_VER;
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
-    step = 2;
-    stgPath = setPath(pricomy, prod_Stg_Offset, programName);
-    srcPath = setPath(company, prod_Src_Offset, programName);
-    usrPath = setPath(company, prod_Usr_Offset, programName);
-    tstPath = setPath(company, prod_Tst_Offset, programName);
+
     sectionLoaded = prior_Results(fileNameResult, programName, step);
     if (!sectionLoaded)
     {
-        result = install_apache_step_02(basePath, fileName_Build, stgPath, srcPath, usrPath, tstPath, version, createScriptOnly, doTests, debugOnly );
-        reportResults(fileName_Build, fileNameResult,  programName, version, step, result);
+        result = install_apache_step_02(apr_util_map);
+        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
     {
         section_already_loaded(programName, version);
     }
 
+    programName = "apr-iconv";
+    std::map<sstr, sstr> apr_iconv_map = get_program_base_keys(programName);
+    // load defaults;
+    // we could use a generic map here, but the simplicity ensures that
+    //    we are not munging settings across installs.
+
+    version = "1.6.1";
+    apr_iconv_map["apr-iconv->Build_Name"]  = fileName_Build;
+    apr_iconv_map["apr-iconv->WGET"]        = "http://www.apache.org/dist/apr/";
+    apr_iconv_map["apr-iconv->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    apr_iconv_map["apr-iconv->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    apr_iconv_map["apr-iconv->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    apr_iconv_map["apr-iconv->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    apr_iconv_map["apr-iconv->RTN_Path"]    = basePath;
+    apr_iconv_map["apr-iconv->Version"]     = version;
+    apr_iconv_map["apr-iconv->Compression"] = ".tar.bz2";
+    apr_iconv_map["apr-iconv->Script_Only"] = "false";
+    apr_iconv_map["apr-iconv->Do_Tests"]    = "true";
+    apr_iconv_map["apr-iconv->Debug_Only"]  = "false";
+    apr_iconv_map["apr-iconv->This_OS"]     = "Red Hat";
+    apr_iconv_map["apr-iconv->Step"]        = "3";
+
+    width = 32;
+    std::cout << std::endl << std::endl;
+    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
+    std::cout << "#=========================================================" << std::endl;
+    for (auto element = apr_iconv_map.cbegin(); element != apr_iconv_map.cend(); ++element)
+    {
+        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
+    }
+
+    sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        result = install_apache_step_03(apr_iconv_map);
+        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
+
+    /*
     programName = "apr-iconv";
     version = settings[THE_APR_ICONVVER];
     if (version.length() < 1)
