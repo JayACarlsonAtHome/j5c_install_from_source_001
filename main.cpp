@@ -11,6 +11,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <sstream>
 #include <map>
 #include <vector>
 #include <stdio.h>
@@ -24,17 +25,18 @@
 using sstr = std::string;
 using namespace J5C_DSL_Code;
 
-const sstr ABBR_COMPANYNAME = "Section_General_Abbr_CompanyName";
-const sstr DEF__COMPANYNAME = "j5c";
-const sstr CREATESCRIPTONLY = "Section_General_CreateScriptOnly";
-const sstr DEFLT_SCRIPTONLY = "false";
-const sstr ARE_WE_TORUN_TST = "Section_General_RunTests";
-const sstr DEFLT_RUNTESTOFF = "false";
-
-const sstr THE_PATH_VERSION = "Section_General_The_Path_Version";
-const sstr DEF_PATH_VERSION = "001";
-const sstr OPERATIONGSYSTEM = "Section_General_The_Operating_System";
-const sstr DEF_OPER__SYSTEM = "Red Hat";
+const sstr KEY_COMPANY_NAME = "Section_a1_Abbr_CompanyName";
+const sstr VAL_COMPANY_NAME = "zzz";
+const sstr KEY_DEFLT_PREFIX = "Section_a2_The_Default_Prefix";
+const sstr VAL_DEFLT_PREFIX = "/usr/local";
+const sstr KEY_TOUSE_PREFIX = "Section_a3_Use_Prefix";
+const sstr VAL_TOUSE_PREFIX = "false";
+const sstr KEY_PATH_VERSION = "Section_a4_The_Path_Version";
+const sstr VAL_PATH_VERSION = "001";
+const sstr KEY_AN_OS_SYSTEM = "Section_a5_The_Operating_System";
+const sstr VAL_AN_OS_SYSTEM = "Red Hat";
+const sstr KEY_RUN_DEPENDCS = "Section_a6_Run_Dependencies";
+const sstr VAL_RUN_DEPENDCS = "false";
 
 enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
@@ -57,7 +59,6 @@ std::map<sstr, sstr> get_program_base_keys(sstr& progName)
     key = "XXXXX->WGET";
     newKey  = key_part_replacement(key, progName);
     result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
 
     key = "XXXXX->STG_Path";
     newKey  = key_part_replacement(key, progName);
@@ -549,8 +550,9 @@ bool prior_Results(sstr& fileNameResult, sstr& programName, const int step)
 
 std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
 {
-    auto max = std::numeric_limits<unsigned long>::max();
-    auto maxLineCount = max;
+    static sstr temp;
+    static auto max = temp.max_size();
+    auto maxLineCount = 500;
     int  theCount = 0;
     std::map<sstr, sstr> result;
     sstr it_data   = "";
@@ -561,16 +563,14 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
 
     //load general default values into map
 
-    result.emplace(std::pair<sstr , sstr >(ABBR_COMPANYNAME, DEF__COMPANYNAME));
-    result.emplace(std::pair<sstr , sstr >(THE_PATH_VERSION, DEF_PATH_VERSION));
-    result.emplace(std::pair<sstr , sstr >(OPERATIONGSYSTEM, DEF_OPER__SYSTEM));
-    result.emplace(std::pair<sstr , sstr >(CREATESCRIPTONLY, DEFLT_SCRIPTONLY));
-    result.emplace(std::pair<sstr , sstr >(ARE_WE_TORUN_TST, DEFLT_RUNTESTOFF));
-
-    //load perl default values into map
+    result.emplace(std::pair<sstr , sstr >(KEY_COMPANY_NAME, VAL_COMPANY_NAME));
+    result.emplace(std::pair<sstr , sstr >(KEY_DEFLT_PREFIX, VAL_DEFLT_PREFIX));
+    result.emplace(std::pair<sstr , sstr >(KEY_TOUSE_PREFIX, VAL_TOUSE_PREFIX));
+    result.emplace(std::pair<sstr , sstr >(KEY_PATH_VERSION, VAL_PATH_VERSION));
+    result.emplace(std::pair<sstr , sstr >(KEY_AN_OS_SYSTEM, VAL_AN_OS_SYSTEM));
+    result.emplace(std::pair<sstr , sstr >(KEY_RUN_DEPENDCS, VAL_RUN_DEPENDCS));
 
     int width = 32;
-
     std::cout << std::endl << std::endl;
     std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
     std::cout << "#=========================================================" << std::endl;
@@ -581,6 +581,7 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
         std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
     }
 
+    std::cout << std::endl;
     std::vector<sstr> data = readFile(fileSettings, maxLineCount);
     for (auto it = data.cbegin(); it != data.cend(); ++it )
     {
@@ -597,16 +598,12 @@ std::map<sstr, sstr> getProgramSettings(sstr& fileSettings)
                     value = it_data.substr(split+2, it_data.length());
                     value = trimLeftAndRight(value, ws);
 
-                    //std::cout << "it_data = ***" << it_data << "***" << std::endl;
-                    //std::cout << "Key     = ***" << key     << "***" << std::endl;
-                    //std::cout << "Value   = ***" << value   << "***" << std::endl;
+                    std::cout << "Key     = ***" << key     << "***" << std::endl;
+                    std::cout << "Value   = ***" << value   << "***" << std::endl;
+                    std::cout << std::endl;
 
                     if (value.length() > 0) {
-                        auto pair = result.find(key);
-                        if (pair != result.cend())
-                        {
-                            result[key] = value;
-                        }
+                        result[key] = value;
                     }
                 }
             }
@@ -645,7 +642,7 @@ void print_blank_lines(int count)
     }
 }
 
-int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly)
+int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = false)
 {
     sstr command = "";
     int result = 0;
@@ -1131,7 +1128,7 @@ int install_tk(std::map<sstr, sstr>& tk_Map)
     {
         vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
                       + " --with-tcl=" + oldPath + "/tcl" + version +"/" + installOS
-                      + " --enable-threads --enable-shared --enable-symbols --enable-64bit ;  \"");
+                      + " --enable-threads --enable-shared --enable-symbols --enable-64bit\"");
         vec.push_back("eval \"cd "     + workingPath + "; make \"");
         if (bDoTests)
         {
@@ -1979,7 +1976,7 @@ int install_postfix(std::map<sstr, sstr>& postfix_Map)
 
 sstr setPath(sstr& company, sstr& PathOffset, sstr& programName)
 {
-    return "/" + company + PathOffset + "/" + programName;
+    return company + PathOffset + "/" + programName;
 };
 
 int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, sstr& version, int step, int installResult)
@@ -1999,24 +1996,82 @@ int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName,
     return result;
 };
 
+int logFinalSettings(sstr& fileNameBuilds, std::map<sstr, sstr>& settings, sstr& programName )
+{
+    int max_set_width = 32;
+    sstr pad_string;
+    sstr str_buffer;
+    std::vector<sstr> generated_settings;
+    std::cout << std::endl << std::endl;
+    generated_settings.push_back("#                 Listing Settings : Values ");
+    generated_settings.push_back("#============================================================================");
+    for (auto element = settings.cbegin(); element !=  settings.cend(); ++ element)
+    {
+        if (element->first.substr(0, programName.length()) == programName) {
+            int pad_length = max_set_width - element->first.length();
+            pad_string = sstr(pad_length, ' ');
+            str_buffer = ": "  + pad_string + element->first + " : " + element->second;
+            generated_settings.push_back(str_buffer);
+        }
+    }
+    file_write_vector_to_file(fileNameBuilds, generated_settings);
+}
+
+int process_section(sstr& fileNameResult,
+                    sstr& fileName_Build,
+                    std::map<sstr, sstr>& settings,
+                    sstr& programName,
+                    sstr& version,
+                    int (*pfunc)(std::map<sstr, sstr>& settings),
+                    int step)
+{
+    int result = -1;
+    bool sectionLoaded = prior_Results(fileNameResult, programName, step);
+    if (!sectionLoaded)
+    {
+        logFinalSettings(fileName_Build, settings, programName);
+        result = pfunc(settings);
+        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
+    }
+    else
+    {
+        section_already_loaded(programName, version);
+    }
+    return result;
+
+}
+
+
+
 int main()
 {
     OS_type thisOS;
     Mac_PM  mpm;
+    sstr prefix = "";
 
     // get settings from file
     std::map<sstr, sstr> settings;
-    sstr fileSettings   = "/j5c/Install_Settings.cfg";
+    sstr fileSettings   = "/usr/local/j5c/Install_Settings.cfg";
     settings            = getProgramSettings(fileSettings);
+    std::vector<sstr>  generated_settings;
 
     // put settings into program variables
-    std::cout << "Puttins settings into program variables..." << std::endl;
-    sstr pricomy    = "j5c";
-    sstr company    = "zzz";
-    sstr pVersion   = settings[THE_PATH_VERSION];
-    sstr scriptOnly = settings[CREATESCRIPTONLY];
-    sstr theOStext  = settings[OPERATIONGSYSTEM];
+    std::cout << "Putting settings into program variables..." << std::endl;
+    sstr pricomy    = "/usr/local/j5c";
+    sstr company    = settings[KEY_COMPANY_NAME];
+    sstr usePrefix  = settings[KEY_TOUSE_PREFIX];
+    bool bUsePrefix = getBoolFromString(usePrefix);
 
+    if (bUsePrefix)  {
+        prefix = settings[KEY_DEFLT_PREFIX];
+        company = prefix + "/" + company;    }
+    else  {
+        company = "/" + company;
+    }
+
+    sstr pVersion   = settings[KEY_PATH_VERSION];
+
+    sstr theOStext  = settings[KEY_AN_OS_SYSTEM];
     if (theOStext == "Red Hat")    thisOS = OS_type ::RedHat;
     if (theOStext == "CentOS")     thisOS = OS_type ::CentOS;
     if (theOStext == "Linux Mint") thisOS = OS_type ::Linux_Mint;
@@ -2028,26 +2083,14 @@ int main()
         mpm = Mac_PM::MacPorts;
     }
 
-    auto max = std::numeric_limits<unsigned long>::max();
+    sstr runDepds        = settings[KEY_RUN_DEPENDCS];
+    bool runDependencies = getBoolFromString(runDepds);
 
-    bool ScriptOnly   = false;
-    if ((scriptOnly.find_first_of("T") != max ) || (scriptOnly.find_first_of("t") != max ))
-    {
-        ScriptOnly = true;
-    }
-
-
-    //basic setup
-    bool sectionLoaded      = false;
-    bool doTests            = false;
-    bool debugOnly          = true;
-    sstr debugOnlyText;
-    if (debugOnly) { debugOnlyText = "true"; } else { debugOnlyText = "false"; }
-
+    bool sectionLoaded        = false;
 
     sstr version = "";
     sstr compression = "";
-    sstr basePath = "/" + company + "/p" + pVersion;
+    sstr basePath = company + "/p" + pVersion;
     sstr prod_Stg_Offset = "/stg";
     sstr prod_Src_Offset = "/p"      + pVersion + "/src";
     sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
@@ -2060,15 +2103,14 @@ int main()
     sstr usrPath = "xxx";
     sstr tstPath = "xxx";
     sstr buildVersion = "";
-
     
     int step = -1;
     int result = 0;
 
     ensure_Directory_exists1(basePath);
-    sstr fileName_Build = "/" + company + "/p" + pVersion + "/Installation_Builds_p" + pVersion + ".txt";
-    sstr fileName_Notes = "/" + company + "/p" + pVersion + "/Installation_Notes__p" + pVersion + ".txt";
-    sstr fileNameResult = "/" + company + "/p" + pVersion + "/Installation_Result_p" + pVersion + ".txt";
+    sstr fileName_Build = company + "/p" + pVersion + "/Installation_Builds_p" + pVersion + ".txt";
+    sstr fileName_Notes = company + "/p" + pVersion + "/Installation_Notes__p" + pVersion + ".txt";
+    sstr fileNameResult = company + "/p" + pVersion + "/Installation_Result_p" + pVersion + ".txt";
 
     create_file(fileName_Build);
 
@@ -2082,20 +2124,16 @@ int main()
     else  {
         ensure_file(fileNameResult);  }
 
-    appendNewLogSection(fileNameResult);
-
     sectionLoaded = prior_Results(fileNameResult, programName, step);
-    //todo
-    sectionLoaded = true;
     if (!sectionLoaded)
     {
         if ((thisOS == OS_type::RedHat) || (thisOS == OS_type::CentOS)) {
-            install_yum_required_dependencies(fileName_Build, programName, ScriptOnly);
+            install_yum_required_dependencies(fileName_Build, programName, runDependencies);
             print_blank_lines(2);
         }
 
         if (thisOS == OS_type::Linux_Mint) {
-            install_apt_required_dependencies(fileName_Build, programName, ScriptOnly);
+            install_apt_required_dependencies(fileName_Build, programName, runDependencies);
         }
 
         if (thisOS == OS_type::MaxOSX) {
@@ -2108,633 +2146,231 @@ int main()
         section_already_loaded(programName, version);
     }
 
+    //function pointer declaration
+    int (*funptr) (std::map<sstr,sstr>& settings );
+
     //perl setup
+    appendNewLogSection(fileName_Build);
     programName = "perl";
-    std::map<sstr, sstr> perl_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "5.26.1";
-    perl_map["perl->Build_Name"]  = fileName_Build;
-    perl_map["perl->WGET"]        = "http://www.cpan.org/src/5.0/";
-    perl_map["perl->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    perl_map["perl->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    perl_map["perl->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    perl_map["perl->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    perl_map["perl->RTN_Path"]    = basePath;
-    perl_map["perl->Version"]     = version;
-    perl_map["perl->Compression"] = ".tar.gz";
-    perl_map["perl->Script_Only"] = "false";
-    perl_map["perl->Do_Tests"]    = "true";
-    perl_map["perl->Debug_Only"]  = debugOnlyText;
-    perl_map["perl->This_OS"]     = theOStext;
-
+    settings["perl->Build_Name"]  = fileName_Build;
+    settings["perl->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["perl->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["perl->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["perl->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["perl->RTN_Path"]    = basePath;
+    version = settings["perl->Version"];
     step = -1;
-    int width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = perl_map.cbegin(); element !=  perl_map.cend(); ++ element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_perl(perl_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
-
+    funptr = &install_perl;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
     //ruby setup
+    appendNewLogSection(fileName_Build);
     programName = "ruby";
-    std::map<sstr, sstr> ruby_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "2.5.0";
-    ruby_map["ruby->Build_Name"]  = fileName_Build;
-    ruby_map["ruby->WGET"]        = "https://cache.ruby-lang.org/pub/ruby/2.5/";
-    ruby_map["ruby->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    ruby_map["ruby->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    ruby_map["ruby->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    ruby_map["ruby->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    ruby_map["ruby->RTN_Path"]    = basePath;
-    ruby_map["ruby->Version"]     = version;
-    ruby_map["ruby->Compression"] = ".tar.gz";
-    ruby_map["ruby->Script_Only"] = "false";
-    ruby_map["ruby->Do_Tests"]    = "true";
-    ruby_map["ruby->Debug_Only"]  = debugOnlyText;
-    ruby_map["ruby->This_OS"]     = theOStext;
-
+    settings["ruby->Build_Name"]  = fileName_Build;
+    settings["ruby->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["ruby->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["ruby->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["ruby->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["ruby->RTN_Path"]    = basePath;
+    version = settings["ruby->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = ruby_map.cbegin(); element != ruby_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_ruby(ruby_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_ruby;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
+
 
     //tcl setup
+    appendNewLogSection(fileName_Build);
     programName = "tcl";
-    std::map<sstr, sstr> tcl_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "8.7a1";
-    tcl_map["tcl->Build_Name"]  = fileName_Build;
-    tcl_map["tcl->WGET"]        = "https://prdownloads.sourceforge.net/tcl/";
-    tcl_map["tcl->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    tcl_map["tcl->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    tcl_map["tcl->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    tcl_map["tcl->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    tcl_map["tcl->RTN_Path"]    = basePath;
-    tcl_map["tcl->Version"]     = version;
-    tcl_map["tcl->Compression"] = ".tar.gz";
-    tcl_map["tcl->Script_Only"] = "false";
-    tcl_map["tcl->Do_Tests"]    = "true";
-    tcl_map["tcl->Debug_Only"]  = debugOnlyText;
-    tcl_map["tcl->This_OS"]     = theOStext;
-
+    settings["tcl->Build_Name"]  = fileName_Build;
+    settings["tcl->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["tcl->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["tcl->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["tcl->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["tcl->RTN_Path"]    = basePath;
+    settings["tcl->This_OS"]     = theOStext;
+    version = settings["tcl->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = tcl_map.cbegin(); element != tcl_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_tcl(tcl_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_tcl;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
     //tk setup
+    appendNewLogSection(fileName_Build);
     programName = "tk";
-    std::map<sstr, sstr> tk_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "8.7a1";
-    tk_map["tk->Build_Name"]  = fileName_Build;
-    tk_map["tk->WGET"]        = "https://prdownloads.sourceforge.net/tcl/";
-    tk_map["tk->OLD_Path"]    = tcl_map["tcl->SRC_Path"];
-    tk_map["tk->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    tk_map["tk->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    tk_map["tk->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    tk_map["tk->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    tk_map["tk->RTN_Path"]    = basePath;
-    tk_map["tk->Version"]     = version;
-    tk_map["tk->Compression"] = ".tar.gz";
-    tk_map["tk->Script_Only"] = "false";
-    tk_map["tk->Do_Tests"]    = "true";
-    tk_map["tk->Debug_Only"]  = debugOnlyText;
-    tk_map["tk->This_OS"]     = theOStext;
-
+    settings["tk->Build_Name"]  = fileName_Build;
+    settings["tk->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["tk->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["tk->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["tk->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["tk->OLD_Path"]    = settings["tcl->SRC_Path"];
+    settings["tk->RTN_Path"]    = basePath;
+    settings["tk->This_OS"]     = theOStext;
+    version = settings["tk->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = tk_map.cbegin(); element != tk_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_tk(tk_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    // function pointer initialization
+    funptr = &install_tk;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
     //Get and Build Apache Dependencies
     programName = "apr";
-    std::map<sstr, sstr> apr_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-
-    version = "1.6.3";
-    apr_map["apr->Build_Name"]  = fileName_Build;
-    apr_map["apr->WGET"]        = "http://www.apache.org/dist/apr/";
-    apr_map["apr->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    apr_map["apr->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    apr_map["apr->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    apr_map["apr->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    apr_map["apr->RTN_Path"]    = basePath;
-    apr_map["apr->Version"]     = version;
-    apr_map["apr->Compression"] = ".tar.bz2";
-    apr_map["apr->Script_Only"] = "false";
-    apr_map["apr->Do_Tests"]    = "true";
-    apr_map["apr->Debug_Only"]  = debugOnlyText;
-    apr_map["apr->This_OS"]     = theOStext;
-
+    appendNewLogSection(fileName_Build);
+    programName = "apr";
+    settings["apr->Build_Name"]  = fileName_Build;
+    settings["apr->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["apr->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["apr->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["apr->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["apr->RTN_Path"]    = basePath;
+    version = settings["apr->Version"];
     step = 1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = apr_map.cbegin(); element != apr_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_apache_step_01(apr_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_apache_step_01;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "apr-util";
-    std::map<sstr, sstr> apr_util_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-
-    version = "1.6.1";
-    apr_util_map["apr-util->Build_Name"]  = fileName_Build;
-    apr_util_map["apr-util->WGET"]        = "http://www.apache.org/dist/apr/";
-    apr_util_map["apr-util->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    apr_util_map["apr-util->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    apr_util_map["apr-util->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    apr_util_map["apr-util->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    apr_util_map["apr-util->RTN_Path"]    = basePath;
-    apr_util_map["apr-util->Version"]     = version;
-    apr_util_map["apr-util->Compression"] = ".tar.bz2";
-    apr_util_map["apr-util->Script_Only"] = "false";
-    apr_util_map["apr-util->Do_Tests"]    = "true";
-    apr_util_map["apr-util->Debug_Only"]  = debugOnlyText;
-    apr_util_map["apr-util->This_OS"]     = theOStext;
-
+    settings["apr-util->Build_Name"]  = fileName_Build;
+    settings["apr-util->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["apr-util->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["apr-util->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["apr-util->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["apr-util->RTN_Path"]    = basePath;
+    version = settings["apr-util->Version"];
     step = 2;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = apr_util_map.cbegin(); element != apr_util_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_apache_step_02(apr_util_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_apache_step_02;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "apr-iconv";
-    std::map<sstr, sstr> apr_iconv_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-
-    version = "1.2.2";
-    apr_iconv_map["apr-iconv->Build_Name"]  = fileName_Build;
-    apr_iconv_map["apr-iconv->WGET"]        = "http://www.apache.org/dist/apr/";
-    apr_iconv_map["apr-iconv->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    apr_iconv_map["apr-iconv->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    apr_iconv_map["apr-iconv->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    apr_iconv_map["apr-iconv->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    apr_iconv_map["apr-iconv->RTN_Path"]    = basePath;
-    apr_iconv_map["apr-iconv->Version"]     = version;
-    apr_iconv_map["apr-iconv->Compression"] = ".tar.bz2";
-    apr_iconv_map["apr-iconv->Script_Only"] = "false";
-    apr_iconv_map["apr-iconv->Do_Tests"]    = "true";
-    apr_iconv_map["apr-iconv->Debug_Only"]  = debugOnlyText;
-    apr_iconv_map["apr-iconv->This_OS"]     = theOStext;
-
+    settings["apr-iconv->Build_Name"]  = fileName_Build;
+    settings["apr-iconv->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["apr-iconv->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["apr-iconv->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["apr-iconv->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["apr-iconv->RTN_Path"]    = basePath;
+    version = settings["apr-iconv->Version"];
     step = 3;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = apr_iconv_map.cbegin(); element != apr_iconv_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_apache_step_03(apr_iconv_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_apache_step_03;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "pcre";
-    std::map<sstr, sstr> pcre_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-
-    version = "8.41";
-    pcre_map["pcre->Build_Name"]  = fileName_Build;
-    pcre_map["pcre->WGET"]        = "https://ftp.pcre.org/pub/pcre/";
-    pcre_map["pcre->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    pcre_map["pcre->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    pcre_map["pcre->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    pcre_map["pcre->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    pcre_map["pcre->RTN_Path"]    = basePath;
-    pcre_map["pcre->Version"]     = version;
-    pcre_map["pcre->Compression"] = ".tar.bz2";
-    pcre_map["pcre->Script_Only"] = "false";
-    pcre_map["pcre->Do_Tests"]    = "true";
-    pcre_map["pcre->Debug_Only"]  = debugOnlyText;
-    pcre_map["pcre->This_OS"]     = theOStext;
-
+    settings["pcre->Build_Name"]  = fileName_Build;
+    settings["pcre->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["pcre->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["pcre->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["pcre->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["pcre->RTN_Path"]    = basePath;
+    version = settings["pcre->Version"];
     step = 4;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = pcre_map.cbegin(); element != pcre_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_apache_step_04(pcre_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_apache_step_04;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "pcre2";
-    std::map<sstr, sstr> pcre2_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "10.30";
-    pcre2_map["pcre2->Build_Name"]  = fileName_Build;
-    pcre2_map["pcre2->WGET"]        = "https://ftp.pcre.org/pub/pcre/";
-    pcre2_map["pcre2->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    pcre2_map["pcre2->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    pcre2_map["pcre2->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    pcre2_map["pcre2->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    pcre2_map["pcre2->RTN_Path"]    = basePath;
-    pcre2_map["pcre2->Version"]     = version;
-    pcre2_map["pcre2->Compression"] = ".tar.bz2";
-    pcre2_map["pcre2->Script_Only"] = "false";
-    pcre2_map["pcre2->Do_Tests"]    = "true";
-    pcre2_map["pcre2->Debug_Only"]  = debugOnlyText;
-    pcre2_map["pcre2->This_OS"]     = theOStext;
-
+    settings["pcre2->Build_Name"]  = fileName_Build;
+    settings["pcre2->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["pcre2->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["pcre2->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["pcre2->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["pcre2->RTN_Path"]    = basePath;
+    version = settings["pcre2->Version"];
     step = 5;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = pcre2_map.cbegin(); element != pcre2_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_apache_step_05(pcre2_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_apache_step_05;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+
+    appendNewLogSection(fileName_Build);
     programName = "apache";
-    std::map<sstr, sstr> apache_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-
-    version = "2.4.29";
-    apache_map["apache->Build_Name"]  = fileName_Build;
-    apache_map["apache->WGET"]        = "http://www.apache.org/dist/httpd/";
-    apache_map["apache->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    apache_map["apache->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    apache_map["apache->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    apache_map["apache->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    apache_map["apache->RTN_Path"]    = basePath;
-    apache_map["apache->Version"]     = version;
-    apache_map["apache->Compression"] = ".tar.bz2";
-    apache_map["apache->Script_Only"] = "false";
-    apache_map["apache->Do_Tests"]    = "true";
-    apache_map["apache->Debug_Only"]  = debugOnlyText;
-    apache_map["apache->This_OS"]     = theOStext;
-
+    settings["apache->Build_Name"]  = fileName_Build;
+    settings["apache->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["apache->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["apache->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["apache->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["apache->RTN_Path"]    = basePath;
+    version = settings["apache->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = apache_map.cbegin(); element != apache_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_apache(apache_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_apache;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "mariadb";
-    std::map<sstr, sstr> mariadb_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "10.3.3";
-    mariadb_map["mariadb->Build_Name"]  = fileName_Build;
-    mariadb_map["mariadb->WGET"]        = "https://downloads.mariadb.org/interstitial/";
-    mariadb_map["mariadb->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    mariadb_map["mariadb->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    mariadb_map["mariadb->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    mariadb_map["mariadb->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    mariadb_map["mariadb->RTN_Path"]    = basePath;
-    mariadb_map["mariadb->Version"]     = version;
-    mariadb_map["mariadb->Compression"] = ".tar.bz2";
-    mariadb_map["mariadb->Script_Only"] = "false";
-    mariadb_map["mariadb->Do_Tests"]    = "false";
-    mariadb_map["mariadb->Debug_Only"]  = debugOnlyText;
-    mariadb_map["mariadb->This_OS"]     = theOStext;
-
+    settings["mariadb->Build_Name"]  = fileName_Build;
+    settings["mariadb->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["mariadb->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["mariadb->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["mariadb->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["mariadb->RTN_Path"]    = basePath;
+    version = settings["mariadb->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = mariadb_map.cbegin(); element != mariadb_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_mariadb(mariadb_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_mariadb;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "php";
-    std::map<sstr, sstr> php_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "7.1.13";
-    php_map["php->Build_Name"]    = fileName_Build;
-    php_map["php->WGET"]          = "http://php.net/get/";
-    php_map["php->STG_Path"]      = setPath(pricomy, prod_Stg_Offset, programName);
-    php_map["php->SRC_Path"]      = setPath(company, prod_Src_Offset, programName);
-    php_map["php->USR_Path"]      = setPath(company, prod_Usr_Offset, programName);
-    php_map["php->TST_Path"]      = setPath(company, prod_Tst_Offset, programName);
-    php_map["php->RTN_Path"]      = basePath;
-    php_map["php->Version"]       = version;
-    php_map["php->Compression"]   = ".tar.bz2";
-    php_map["php->Script_Only"]   = "false";
-    php_map["php->Do_Tests"]      = "false";
-    php_map["php->Debug_Only"]    = debugOnlyText;
-    php_map["php->This_OS"]       = theOStext;
-    php_map["php->Install_Xdebug"]= "true";
-
+    settings["php->Build_Name"]  = fileName_Build;
+    settings["php->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["php->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["php->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["php->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["php->RTN_Path"]    = basePath;
+    version = settings["php->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = php_map.cbegin(); element != php_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_php(php_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_php;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "poco";
-    std::map<sstr, sstr> poco_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "1.8.1";
-    poco_map["poco->Build_Name"]  = fileName_Build;
-    poco_map["poco->WGET"]        = "https://pocoproject.org/releases/";
-    poco_map["poco->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    poco_map["poco->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    poco_map["poco->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    poco_map["poco->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    poco_map["poco->RTN_Path"]    = basePath;
-    poco_map["poco->Version"]     = version;
-    poco_map["poco->Compression"] = ".tar.gz";
-    poco_map["poco->Script_Only"] = "false";
-    poco_map["poco->Do_Tests"]    = "false";
-    poco_map["poco->Debug_Only"]  = debugOnlyText;
-    poco_map["poco->This_OS"]     = theOStext;
-
+    settings["poco->Build_Name"]  = fileName_Build;
+    settings["poco->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["poco->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["poco->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["poco->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["poco->RTN_Path"]    = basePath;
+    version = settings["poco->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = poco_map.cbegin(); element != poco_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_poco(poco_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_poco;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+    appendNewLogSection(fileName_Build);
     programName = "python";
-    std::map<sstr, sstr> python_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "3.6.4";
-    python_map["python->Build_Name"]  = fileName_Build;
-    python_map["python->WGET"]        = "https://www.python.org/ftp/python/3.6.4/";
-    python_map["python->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    python_map["python->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    python_map["python->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    python_map["python->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    python_map["python->RTN_Path"]    = basePath;
-    python_map["python->Version"]     = version;
-    python_map["python->Compression"] = ".tar.xz";
-    python_map["python->Script_Only"] = "false";
-    python_map["python->Do_Tests"]    = "true";
-    python_map["python->Debug_Only"]  = debugOnlyText;
-    python_map["python->This_OS"]     = theOStext;
-
+    settings["python->Build_Name"]  = fileName_Build;
+    settings["python->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["python->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["python->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["python->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["python->RTN_Path"]    = basePath;
+    version = settings["python->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = python_map.cbegin(); element != python_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_python(python_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_python;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
+
+    appendNewLogSection(fileName_Build);
     programName = "postfix";
-    std::map<sstr, sstr> postfix_map = get_program_base_keys(programName);
-    // load defaults;
-    // we could use a generic map here, but the simplicity ensures that
-    //    we are not munging settings across installs.
-    version = "3.2.4";
-    postfix_map["postfix->Build_Name"]    = fileName_Build;
-    postfix_map["postfix->WGET"]          = "https://archive.mgm51.com/mirrors/postfix-source/official/";
-    postfix_map["postfix->STG_Path"]      = setPath(pricomy, prod_Stg_Offset, programName);
-    postfix_map["postfix->SRC_Path"]      = setPath(company, prod_Src_Offset, programName);
-    postfix_map["postfix->USR_Path"]      = setPath(company, prod_Usr_Offset, programName);
-    postfix_map["postfix->TST_Path"]      = setPath(company, prod_Tst_Offset, programName);
-    postfix_map["postfix->RTN_Path"]      = basePath;
-    postfix_map["postfix->Version"]       = version;
-    postfix_map["postfix->Compression"]   = ".tar.bz2";
-    postfix_map["postfix->Script_Only"]   = "false";
-    postfix_map["postfix->Do_Tests"]      = "true";
-    postfix_map["postfix->Debug_Only"]    = debugOnlyText;
-    postfix_map["postfix->This_OS"]       = theOStext;
-
+    settings["postfix->Build_Name"]  = fileName_Build;
+    settings["postfix->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
+    settings["postfix->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings["postfix->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings["postfix->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings["postfix->RTN_Path"]    = basePath;
+    version = settings["postfix->Version"];
     step = -1;
-    width = 32;
-    std::cout << std::endl << std::endl;
-    std::cout << "#    Listing Settings : Values (Defaults)" << std::endl;
-    std::cout << "#=========================================================" << std::endl;
-    for (auto element = postfix_map.cbegin(); element != postfix_map.cend(); ++element)
-    {
-        std::cout << ": " << std::setw(width) << element->first << " : " << element->second << std::endl;
-    }
 
-    sectionLoaded = prior_Results(fileNameResult, programName, step);
-    if (!sectionLoaded)
-    {
-        result = install_postfix(postfix_map);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
-    }
-    else
-    {
-        section_already_loaded(programName, version);
-    }
+    funptr = &install_postfix;
+    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step);
 
     sstr end = "End of Program";
     file_append_line(fileName_Build, end);
