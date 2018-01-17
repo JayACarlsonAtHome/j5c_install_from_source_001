@@ -932,6 +932,9 @@ void stageSourceCodeIfNeeded(sstr& buildFileName,
                              bool bScriptOnly)
 {
     std::vector<sstr> vec;
+    vec.push_back("# ");
+    vec.push_back("# Ensure stg directory exists.");
+    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     if (!(isFileSizeGtZero(stagedFileName)))
     {
         vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
@@ -973,10 +976,24 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
         vec.push_back(configureStr);
         vec.push_back("eval \"cd " + workingPath + "; make \"");
         if (bDoTests) {
-            vec.push_back("# make test 2>&1> " + tstPath + "/" + ProperName + "_TestResults.txt");
-            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1> " + tstPath + "/" + ProperName +
-                          "_TestResults.txt\"");
+            if (ProperName == "Php")
+            {
+                // do nothing..
+                // until I can get "expect" to read the input and "send" n
+                // I don't want the tests to hold up the script.
+
+                vec.push_back("# The tests must be run manually.");
+                vec.push_back("#   So you can answer the questions at the end of the tests.");
+
+            }
+            else
+            {
+                vec.push_back("# make test 2>&1> " + tstPath + "/" + ProperName + "_TestResults.txt");
+                vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
+                vec.push_back("eval \"cd " + workingPath + "; make test 2>&1> " + tstPath + "/" + ProperName +
+                              "_TestResults.txt\"");
+            }
+
         }
         vec.push_back("eval \"cd " + workingPath + "; make install \"");
         vec.push_back("eval \"cd " + rtnPath + "\"");
@@ -985,6 +1002,37 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
     }
     return result;
 }
+
+bool programNotProtected(std::map<sstr, sstr> settings,
+                        sstr& buildFileName, sstr& ProperName, sstr& protectedFileName,
+                        sstr& workingPath,   sstr& usrPath,
+                        bool bScriptOnly)
+{
+    std::vector<sstr> vec;
+    sstr protectModeText = settings[KEY_PROTECT_MODE];
+    bool bProtectMode = getBoolFromString(protectModeText);
+    bool bInstall = true;
+
+    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
+
+    if (isFileSizeGtZero(protectionFileWithPath)) {
+        bProtectMode = true;
+        bInstall = false;
+        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+    }
+    if ((bProtectMode) && (directoryExists(usrPath)))
+    {
+        bInstall = false;
+        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
+        vec.push_back("# This will prevent the installation out of caution. ");
+        vec.push_back("# Remove this directory to install this program.");
+        vec.push_back("# you can use the command below to do it: (without the '#')");
+        vec.push_back("# rm -rf " + usrPath);
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    return bInstall;
+}
+
 
 int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
@@ -1015,7 +1063,6 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1026,33 +1073,10 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+            workingPath,   usrPath,bScriptOnly);
+
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1101,7 +1125,6 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1112,32 +1135,10 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                               workingPath,   usrPath,bScriptOnly);
+
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1204,9 +1205,6 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName + "/" + installOS;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1300,9 +1298,6 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName + "/" + installOS;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1389,9 +1384,6 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1475,9 +1467,6 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1563,9 +1552,6 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1653,9 +1639,6 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1739,9 +1722,6 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1825,11 +1805,7 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    sstr superCompressFileName = compressedFileName + "/from/http%3A//ftp.osuosl.org/pub/mariadb/";
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, superCompressFileName, bScriptOnly);
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
             showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
@@ -1917,9 +1893,6 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# ");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
     if (bProtectMode)    {
         if (directoryExists(usrPath))        {
@@ -1983,143 +1956,48 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     return result;
 }
 
-/*
-int install_mariadb(std::map<sstr, sstr>& mariadb_Map, bool bProtectMode = true)
+int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
+    int result = -1;
+    sstr programName       = "php";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
     //unpack the map to make the code easier to read
-    sstr buildFileName = mariadb_Map["mariadb->Build_Name"];
-    sstr getPath       = mariadb_Map["mariadb->WGET"];
-    sstr stgPath       = mariadb_Map["mariadb->STG_Path"];
-    sstr srcPath       = mariadb_Map["mariadb->SRC_Path"];
-    sstr usrPath       = mariadb_Map["mariadb->USR_Path"];
-    sstr tstPath       = mariadb_Map["mariadb->TST_Path"];
-    sstr rtnPath       = mariadb_Map["mariadb->RTN_Path"];
-    sstr version       = mariadb_Map["mariadb->Version"];
-    sstr compression   = mariadb_Map["mariadb->Compression"];
-    sstr scriptOnly    = mariadb_Map["mariadb->Script_Only"];
-    sstr doTests       = mariadb_Map["mariadb->Do_Tests"];
-    sstr debugOnly     = mariadb_Map["mariadb->Debug_Only"];
-    sstr thisOS        = mariadb_Map["mariadb->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-
-    sstr command = "";
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  "mariadb-" + version;
-    sstr compressedFileName =  fileName + ".tar.gz";
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
-
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileSizeGtZero(stagedFileName))) {
-        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + fileName + "/source/" + compressedFileName + "\"");
-    }
-
-    vec.push_back("# ");
-    vec.push_back("# Remove unfinished MariaDB install (if any).");
-    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
-    vec.push_back("# ");
-    vec.push_back("# Install MariaDB Database Server.");
-    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
-    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
-    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
-
-    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
-
-    if (!bDebug) {
-
-        vec.push_back("eval \"cd "     + workingPath + "; ./BUILD/autorun.sh\"");
-        vec.push_back("eval \"cd "     + workingPath + "; "
-                      + "./configure --prefix=" + usrPath + " " + "\\\n"
-                      + "--enable-assembler                  "  + "\\\n"
-                      + "--jemalloc_static_library=/usr/lib64"  + "\\\n"
-                      + "--with-extra-charsets=complex       "  + "\\\n"
-                      + "--enable-thread-safe-client         "  + "\\\n"
-                      + "--with-big-tables                   "  + "\\\n"
-                      + "--with-plugin-maria                 "  + "\\\n"
-                      + "--with-aria-tmp-tables              "  + "\\\n"
-                      + "--without-plugin-innodb_plugin      "  + "\\\n"
-                      + "--with-mysqld-ldflags=-static       "  + "\\\n"
-                      + "--with-client-ldflags=-static       "  + "\\\n"
-                      + "--with-readline                     "  + "\\\n"
-                      + "--with-ssl                          "  + "\\\n"
-                      + "--with-embedded-server              "  + "\\\n"
-                      + "--with-libevent                     "  + "\\\n"
-                      + "--with-mysqld-ldflags=-all-static   "  + "\\\n"
-                      + "--with-client-ldflags=-all-static   "  + "\\\n"
-                      + "--with-zlib-dir=bundled             "  + "\\\n"
-                      + "--enable-local-infile\"");
-
-        vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        vec.push_back("eval \"cd "     + workingPath + "; make install\"");
-    }
-    vec.push_back("eval \"cd "     + rtnPath + "\"");
-    vec.push_back("# ");
-    vec.push_back("# ");
-    int result = do_command(buildFileName, vec, bScriptOnly);
-    if (bDoTests) {
-        // These tests will fail the build if we do it before
-        vec.clear();
-        vec.push_back("# ");
-        vec.push_back("# MariaDB Tests can take several hours...");
-        vec.push_back("# Your best bet is to either hit control+c to use this shell,");
-        vec.push_back("#    or just check on it tomorrow...seriously...it takes that long");
-        vec.push_back("# Also the tests are expected to fail, so it may not be worth it.");
-        vec.push_back("# Because the tests are expected to fail, it does not cause the installation");
-        vec.push_back("#    to be marked as a failure.  The installation is good or bad separate");
-        vec.push_back("#    from the tests.");
-        vec.push_back("eval \"cd " + workingPath + "/mysql-test; ./mysql-test-run.pl 2>&1> " + tstPath + "/Mariadb_TestResults_2.txt\"");
-        do_command(buildFileName, vec, bScriptOnly);
-    }
-    return result;
-}
-*/
-
-int install_php(std::map<sstr, sstr>& php_Map, bool bProtectMode = true)
-{
-    //unpack the map to make the code easier to read
-    sstr buildFileName  = php_Map["php->Build_Name"];
-    sstr getPath        = php_Map["php->WGET"];
-    sstr stgPath        = php_Map["php->STG_Path"];
-    sstr srcPath        = php_Map["php->SRC_Path"];
-    sstr usrPath        = php_Map["php->USR_Path"];
-    sstr tstPath        = php_Map["php->TST_Path"];
-    sstr rtnPath        = php_Map["php->RTN_Path"];
-    sstr version        = php_Map["php->Version"];
-    sstr compression    = php_Map["php->Compression"];
-    sstr scriptOnly     = php_Map["php->Script_Only"];
-    sstr doTests        = php_Map["php->Do_Tests"];
-    sstr debugOnly      = php_Map["php->Debug_Only"];
-    sstr thisOS         = php_Map["php->This_OS"];
-    sstr Install_Xdebug = php_Map["php->Install_Xdebug"]= "true";
+    sstr buildFileName  = settings[programName + "->Build_Name"];
+    sstr getPath        = settings[programName + "->WGET"];
+    sstr stgPath        = settings[programName + "->STG_Path"];
+    sstr srcPath        = settings[programName + "->SRC_Path"];
+    sstr usrPath        = settings[programName + "->USR_Path"];
+    sstr tstPath        = settings[programName + "->TST_Path"];
+    sstr rtnPath        = settings[programName + "->RTN_Path"];
+    sstr version        = settings[programName + "->Version"];
+    sstr compression    = settings[programName + "->Compression"];
+    sstr scriptOnly     = settings[programName + "->Script_Only"];
+    sstr doTests        = settings[programName + "->Do_Tests"];
+    sstr debugOnly      = settings[programName + "->Debug_Only"];
+    sstr thisOS         = settings[programName + "->This_OS"];
+    sstr Install_Xdebug = settings[programName + "->Install_Xdebug"]= "true";
 
     bool bScriptOnly     = getBoolFromString(scriptOnly);
     bool bDoTests        = getBoolFromString(doTests);
     bool bDebug          = getBoolFromString(debugOnly);
     bool bInstall_Xdebug = getBoolFromString(Install_Xdebug);
+    bool bInstall        = true;
 
     sstr command = "";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName           =  "php-" + version;
-    sstr compressedFileName =  fileName + ".tar.bz2";
+    sstr fileName           =  programName + "-" + version;
+    sstr compressedFileName =  fileName + compression;
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
     if (!(isFileSizeGtZero(stagedFileName))) {
         // this will download the file with the fileName of mirror
         vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
@@ -2128,27 +2006,40 @@ int install_php(std::map<sstr, sstr>& php_Map, bool bProtectMode = true)
         // remove the mirror file
         vec.push_back("eval \"cd " + stgPath + "; rm -f "   + "mirror\"");
     }
-    vec.push_back("# ");
-    vec.push_back("# Remove unfinished PHP install (if any).");
-    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
-    vec.push_back("# ");
-    vec.push_back("# Install PHP.");
-    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
-    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
-    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
 
-    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
-
-    if (!bDebug)
+    if (bProtectMode)    {
+        if (directoryExists(usrPath))        {
+            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
+            bInstall = false;
+        }
+    }
+    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
+    if (isFileSizeGtZero(protectionFileWithPath)) {
+        bProtectMode = true;
+        bInstall = false;
+        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+    }
+    if ((bProtectMode) && (directoryExists(usrPath)))
     {
-        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
-        vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        vec.push_back("eval \"cd "     + workingPath + "; make install \"");
+        bInstall = false;
+        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
+        vec.push_back("# This will prevent the installation out of caution. ");
+        vec.push_back("# Remove this directory to install this program.");
+        vec.push_back("# you can use the command below to do it: (without the '#')");
+        vec.push_back("# rm -rf " + usrPath);
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, srcPath, tstPath, usrPath,
+                                         bScriptOnly);
 
+        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
+        result += basicInstall(buildFileName, ProperName, configureStr,
+                               workingPath, tstPath, usrPath, rtnPath,
+                               bDebug, bDoTests, bScriptOnly);
+        vec.clear();
         if (bInstall_Xdebug)
         {
             vec.push_back("eval \"cd " + usrPath + "/bin; ./pecl install xdebug\"");
@@ -2156,234 +2047,283 @@ int install_php(std::map<sstr, sstr>& php_Map, bool bProtectMode = true)
         {
             vec.push_back("# Xdebug not installed.");
         }
-    }
+        result += do_command(buildFileName, vec, bScriptOnly);
 
-    vec.push_back("eval \"cd " + rtnPath + "\"");
-    vec.push_back("# ");
-    vec.push_back("# ");
-    int result = do_command(buildFileName, vec, bScriptOnly);
-    if (bDoTests) {
-        // These tests will fail the build if we do it before
-        vec.clear();
-        vec.push_back("eval \"cd " + workingPath + "; make test 2>&1> " + tstPath +"/PHP_TestResults.txt\"");
+        if (result == 0)
+        {
+            vec.clear();
+            vec.push_back("#");
+            do_command(buildFileName, vec, bScriptOnly);
+            protectProgramIfRequired( buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
+            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+        }
+    }
+    return result;
+}
+
+
+int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "poco";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr srcPath       = settings[programName + "->SRC_Path"];
+    sstr usrPath       = settings[programName + "->USR_Path"];
+    sstr tstPath       = settings[programName + "->TST_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = true;
+
+    sstr command = "";
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName1           =  programName + "-"  + version;
+    sstr fileName2           =  fileName1 + "-all";
+
+    sstr compressedFileName =  fileName2 + compression;
+    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
+    sstr workingPath        =  srcPath + "/" + fileName2;
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    if (bProtectMode)    {
+        if (directoryExists(usrPath))        {
+            showProgramProtectedByA7(buildFileName, fileName1, workingPath, protectedFileName, bScriptOnly);
+            bInstall = false;
+        }
+    }
+    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
+    if (isFileSizeGtZero(protectionFileWithPath)) {
+        bProtectMode = true;
+        bInstall = false;
+        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+    }
+    if ((bProtectMode) && (directoryExists(usrPath)))
+    {
+        bInstall = false;
+        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
+        vec.push_back("# This will prevent the installation out of caution. ");
+        vec.push_back("# Remove this directory to install this program.");
+        vec.push_back("# you can use the command below to do it: (without the '#')");
+        vec.push_back("# rm -rf " + usrPath);
         do_command(buildFileName, vec, bScriptOnly);
     }
-    return result;
-}
-
-int install_poco(std::map<sstr, sstr>& poco_Map, bool bProtectMode = true)
-{
-    //unpack the map to make the code easier to read
-    sstr buildFileName = poco_Map["poco->Build_Name"];
-    sstr getPath       = poco_Map["poco->WGET"];
-    sstr stgPath       = poco_Map["poco->STG_Path"];
-    sstr srcPath       = poco_Map["poco->SRC_Path"];
-    sstr usrPath       = poco_Map["poco->USR_Path"];
-    sstr tstPath       = poco_Map["poco->TST_Path"];
-    sstr rtnPath       = poco_Map["poco->RTN_Path"];
-    sstr version       = poco_Map["poco->Version"];
-    sstr compression   = poco_Map["poco->Compression"];
-    sstr scriptOnly    = poco_Map["poco->Script_Only"];
-    sstr doTests       = poco_Map["poco->Do_Tests"];
-    sstr debugOnly     = poco_Map["poco->Debug_Only"];
-    sstr thisOS        = poco_Map["poco->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-
-    sstr command = "";
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName1           =  "poco-"  + version;
-    sstr fileName2           =  "poco-"  + version + "-all";
-    sstr compressedFileName =  fileName2 +  compression;
-    sstr stagedFileName     =  stgPath   + "/" + compressedFileName;
-    sstr workingPath        =  srcPath   + "/" + fileName2;
-
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileSizeGtZero(stagedFileName)))
+    if (bInstall)
     {
-        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + fileName1 + "/" + compressedFileName + "\"");
-    }
-    vec.push_back("# ");
-    vec.push_back("# Remove unfinished POCO install (if any).");
-    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
-    vec.push_back("# ");
-    vec.push_back("# Install POCO.");
-    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
-    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
-    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, srcPath, tstPath, usrPath,
+                                         bScriptOnly);
 
-    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "/" + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
+        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
+        bDoTests = false;
+        result += basicInstall(buildFileName, ProperName, configureStr,
+                               workingPath, tstPath, usrPath, rtnPath,
+                               bDebug, bDoTests, bScriptOnly);
 
-    if (!bDebug)
-    {
-        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
-        vec.push_back("eval \"cd "     + workingPath + "; make \"");
-
-        // There are no tests at this time
-        if (bDoTests && false)
+        if (result == 0)
         {
-            vec.push_back("# make test 2>&1> " + tstPath +"/Poco_TestResults.txt");
-            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1> " + tstPath +"/Poco_TestResults.txt");
+            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
+            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
         }
-        vec.push_back("eval \"cd "     + workingPath + "; make install \"");
     }
-    vec.push_back("eval \"cd " + rtnPath + "\"");
-    vec.push_back("# ");
-    vec.push_back("# ");
-    int result = do_command(buildFileName, vec, bScriptOnly);
     return result;
 }
 
-int install_python(std::map<sstr, sstr>& python_Map, bool bProtectMode = true)
+int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
+    int result = -1;
+    sstr programName       = "python";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
     //unpack the map to make the code easier to read
-    sstr buildFileName = python_Map["python->Build_Name"];
-    sstr getPath       = python_Map["python->WGET"];
-    sstr stgPath       = python_Map["python->STG_Path"];
-    sstr srcPath       = python_Map["python->SRC_Path"];
-    sstr usrPath       = python_Map["python->USR_Path"];
-    sstr tstPath       = python_Map["python->TST_Path"];
-    sstr rtnPath       = python_Map["python->RTN_Path"];
-    sstr version       = python_Map["python->Version"];
-    sstr compression   = python_Map["python->Compression"];
-    sstr scriptOnly    = python_Map["python->Script_Only"];
-    sstr doTests       = python_Map["python->Do_Tests"];
-    sstr debugOnly     = python_Map["python->Debug_Only"];
-    sstr thisOS        = python_Map["python->This_OS"];
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr srcPath       = settings[programName + "->SRC_Path"];
+    sstr usrPath       = settings[programName + "->USR_Path"];
+    sstr tstPath       = settings[programName + "->TST_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
 
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName           =  "Python-" + version;
-    sstr compressedFileName =  fileName + ".tar.xz";
+    sstr fileName           =  ProperName + "-" + version;
+    sstr compressedFileName =  fileName + compression;
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileSizeGtZero(stagedFileName)))
-    {
-        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
-    }
-    vec.push_back("# ");
-    vec.push_back("# Remove unfinished Python install (if any).");
-    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
-    vec.push_back("# ");
-    vec.push_back("# Install Python.");
-    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
-    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
-    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
-
-    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
-
-    if (!bDebug)
-    {
-        vec.push_back("eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"");
-        vec.push_back("eval \"cd "     + workingPath + "; make \"");
-        if (bDoTests)
-        {
-            vec.push_back("# make test 2>&1> " + tstPath +"/Python_TestResults.txt");
-            vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
-            vec.push_back("eval \"cd " + workingPath + "; make test 2>&1> " + tstPath +"/Python_TestResults.txt\"");
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
+    if (bProtectMode)    {
+        if (directoryExists(usrPath))        {
+            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
+            bInstall = false;
         }
-        vec.push_back("eval \"cd "     + workingPath + "; make install\"");
     }
+    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
+    if (isFileSizeGtZero(protectionFileWithPath)) {
+        bProtectMode = true;
+        bInstall = false;
+        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+    }
+    if ((bProtectMode) && (directoryExists(usrPath)))
+    {
+        bInstall = false;
+        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
+        vec.push_back("# This will prevent the installation out of caution. ");
+        vec.push_back("# Remove this directory to install this program.");
+        vec.push_back("# you can use the command below to do it: (without the '#')");
+        vec.push_back("# rm -rf " + usrPath);
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, srcPath, tstPath, usrPath,
+                                         bScriptOnly);
 
-    vec.push_back("eval \"cd " + rtnPath + "\"");
-    vec.push_back("# ");
-    vec.push_back("# ");
-    int result = do_command(buildFileName, vec, bScriptOnly);
+        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
+        result += basicInstall(buildFileName, ProperName, configureStr,
+                               workingPath, tstPath, usrPath, rtnPath,
+                               bDebug, bDoTests, bScriptOnly);
+
+        if (result == 0)
+        {
+            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
+            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+        }
+    }
     return result;
 }
 
-int install_postfix(std::map<sstr, sstr>& postfix_Map, bool bProtectMode = true)
+int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
+    int result = -1;
+    sstr programName       = "postfix";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
-    sstr buildFileName = postfix_Map["postfix->Build_Name"];
-    sstr getPath       = postfix_Map["postfix->WGET"];
-    sstr stgPath       = postfix_Map["postfix->STG_Path"];
-    sstr srcPath       = postfix_Map["postfix->SRC_Path"];
-    sstr usrPath       = postfix_Map["postfix->USR_Path"];
-    sstr tstPath       = postfix_Map["postfix->TST_Path"];
-    sstr rtnPath       = postfix_Map["postfix->RTN_Path"];
-    sstr version       = postfix_Map["postfix->Version"];
-    sstr compression   = postfix_Map["postfix->Compression"];
-    sstr scriptOnly    = postfix_Map["postfix->Script_Only"];
-    sstr doTests       = postfix_Map["postfix->Do_Tests"];
-    sstr debugOnly     = postfix_Map["postfix->Debug_Only"];
-    sstr thisOS        = postfix_Map["postfix->This_OS"];
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr srcPath       = settings[programName + "->SRC_Path"];
+    sstr usrPath       = settings[programName + "->USR_Path"];
+    sstr tstPath       = settings[programName + "->TST_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
 
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName           =  "postfix-" + version;
-    sstr compressedFileName =  fileName + ".tar.gz";
+    sstr fileName           =  programName + "-" + version;
+    sstr compressedFileName =  fileName + compression;
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    vec.push_back("# Ensure stg directory exists.");
-    vec.push_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileSizeGtZero(stagedFileName)))
-    {
-        vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
+    if (bProtectMode)    {
+        if (directoryExists(usrPath))        {
+            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
+            bInstall = false;
+        }
     }
-    vec.push_back("# ");
-    vec.push_back("# Remove unfinished Postfix install (if any).");
-    removeDirectory(buildFileName, srcPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, tstPath, bScriptOnly, vec);
-    removeDirectory(buildFileName, usrPath, bScriptOnly, vec);
-    vec.push_back("# ");
-    vec.push_back("# Install Postfix.");
-    vec.push_back("eval \"mkdir -p " + srcPath + "\"");
-    vec.push_back("eval \"mkdir -p " + tstPath + "\"");
-    vec.push_back("eval \"mkdir -p " + usrPath + "\"");
-
-    vec.push_back("eval \"cd " + stgPath + "; cp ./"    + compressedFileName + " " + srcPath + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; tar xvf " + compressedFileName + "\"");
-    vec.push_back("eval \"cd " + srcPath + "; rm -f "   + compressedFileName + "\"");
-
-    if (!bDebug)
-    {
-        //Currently I do not support installing postfix... but hope to soon...
-
-        //vec.push_back("eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"");
-        //vec.push_back("eval \"cd " + workingPath + "; make \"");
-        //if (doTests) {
-        //    vec.push_back("eval \"cd " + workingPath + "; make test \"");
-        //}
-        //vec.push_back("eval \"cd " + workingPath + "; make install \"");
+    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
+    if (isFileSizeGtZero(protectionFileWithPath)) {
+        bProtectMode = true;
+        bInstall = false;
+        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
     }
-    vec.push_back("eval \"cd " + rtnPath + "\"");
-    vec.push_back("# ");
-    vec.push_back("# ");
-    int result = do_command(buildFileName, vec, bScriptOnly);
+    if ((bProtectMode) && (directoryExists(usrPath)))
+    {
+        bInstall = false;
+        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
+        vec.push_back("# This will prevent the installation out of caution. ");
+        vec.push_back("# Remove this directory to install this program.");
+        vec.push_back("# you can use the command below to do it: (without the '#')");
+        vec.push_back("# rm -rf " + usrPath);
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, srcPath, tstPath, usrPath,
+                                         bScriptOnly);
+
+        /*
+         * Currently Installation of this is not supported...
+         *   Maybe later when I know more about it.
+         *
+        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
+        result += basicInstall(buildFileName, ProperName, configureStr,
+                               workingPath, tstPath, usrPath, rtnPath,
+                               bDebug, bDoTests, bScriptOnly);
+
+        */
+        if (result == 0)
+        {
+            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
+            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+        }
+    }
     return result;
 }
+
+sstr setStagePath(sstr& programName)
+{
+    return "/usr/local/j5c/stg/" + programName;
+};
+
 
 sstr setPath(sstr& company, sstr& PathOffset, sstr& programName)
 {
@@ -2458,6 +2398,26 @@ int process_section(sstr& fileNameResult,
     return result;
 
 }
+
+sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileName_Build, sstr& company,
+               sstr& basePath,  sstr& prod_Src_Offset, sstr& prod_Usr_Offset, sstr& prod_Tst_Offset)
+{
+    settings[programName + "->Build_Name"]  = fileName_Build;
+    settings[programName + "->STG_Path"]    = setStagePath(programName);
+    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
+    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
+    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings[programName + "->RTN_Path"]    = basePath;
+    sstr version = settings[programName + "->Version"];
+    return version;
+}
+
+
+/*
+ * Main Starts Here
+ *
+ *
+ */
 
 int main()
 {
@@ -2571,17 +2531,12 @@ int main()
     //function pointer declaration
     int (*funptr) (std::map<sstr,sstr>& settings, bool bProtectMode);
 
-    /*
+
     //perl setup
     appendNewLogSection(fileName_Build);
     programName = "perl";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = -1;
     funptr = &install_perl;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2589,13 +2544,8 @@ int main()
     //ruby setup
     appendNewLogSection(fileName_Build);
     programName = "ruby";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = -1;
     funptr = &install_ruby;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2603,14 +2553,10 @@ int main()
     //tcl setup
     appendNewLogSection(fileName_Build);
     programName = "tcl";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     settings[programName + "->This_OS"]     = theOStext;
-    version = settings[programName + "->Version"];
+
     step = -1;
     funptr = &install_tcl;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2618,30 +2564,20 @@ int main()
     //tk setup
     appendNewLogSection(fileName_Build);
     programName = "tk";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->OLD_Path"]    = settings["tcl->SRC_Path"];
-    settings[programName + "->RTN_Path"]    = basePath;
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     settings[programName + "->This_OS"]     = theOStext;
-    version = settings[programName + "->Version"];
+    settings[programName + "->OLD_Path"]    = settings["tcl->SRC_Path"];
     step = -1;
     funptr = &install_tk;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
-    */
+
 
     //Get and Build Apache Dependencies
     programName = "apr";
     appendNewLogSection(fileName_Build);
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = 1;
     funptr = &install_apache_step_01;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2649,13 +2585,8 @@ int main()
 
     appendNewLogSection(fileName_Build);
     programName = "apr-util";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = 2;
     funptr = &install_apache_step_02;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2663,13 +2594,8 @@ int main()
 
     appendNewLogSection(fileName_Build);
     programName = "apr-iconv";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = 3;
     funptr = &install_apache_step_03;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2677,13 +2603,8 @@ int main()
 
     appendNewLogSection(fileName_Build);
     programName = "pcre";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = 4;
     funptr = &install_apache_step_04;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2691,26 +2612,16 @@ int main()
 
     appendNewLogSection(fileName_Build);
     programName = "pcre2";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = 5;
     funptr = &install_apache_step_05;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
 
     appendNewLogSection(fileName_Build);
     programName = "apache";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = -1;
     funptr = &install_apache;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2718,39 +2629,24 @@ int main()
 
     appendNewLogSection(fileName_Build);
     programName = "mariadb";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = -1;
     funptr = &install_mariadb;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
 
     appendNewLogSection(fileName_Build);
     programName = "php";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = -1;
     funptr = &install_php;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
 
     appendNewLogSection(fileName_Build);
     programName = "poco";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = -1;
     funptr = &install_poco;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2758,27 +2654,16 @@ int main()
 
     appendNewLogSection(fileName_Build);
     programName = "python";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
     step = -1;
     funptr = &install_python;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
 
     appendNewLogSection(fileName_Build);
     programName = "postfix";
-    settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setPath(pricomy, prod_Stg_Offset, programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
-    settings[programName + "->RTN_Path"]    = basePath;
-    version = settings[programName + "->Version"];
-    step = -1;
+    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
+                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);    step = -1;
     funptr = &install_postfix;
     process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
 
