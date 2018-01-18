@@ -25,6 +25,7 @@
 using sstr = std::string;
 using namespace J5C_DSL_Code;
 
+const sstr STG_NAME         = "stg";
 const sstr KEY_COMPANY_NAME = "Section_a1_Abbr_CompanyName";
 const sstr VAL_COMPANY_NAME = "zzz";
 const sstr KEY_DEFLT_PREFIX = "Section_a2_The_Default_Prefix";
@@ -115,6 +116,53 @@ sstr stripCharFromString(sstr& inString, const char c)
     return result;
 }
 
+sstr removeCharFromStartOfString(sstr& str, char c )
+{
+    sstr result;
+    if ((str.length() == 1) && (str.at(0) = c))
+    {
+        result = "";
+    }
+    else {
+        auto first = str.find_first_not_of(c);
+        result = str.substr(first, str.length());
+    }
+    return result;
+}
+
+sstr removeCharFromEndOfString(sstr& str, char c )
+{
+    sstr result;
+    if ((str.length() == 1) && (str.at(0) = c))
+    {
+        result = "";
+    }
+    else {
+        auto last = str.find_last_not_of(c);
+        result = str.substr(0, last + 1);
+    }
+    return result;
+}
+
+sstr joinPathParts(sstr& partA, sstr& partB)
+{
+    sstr fixed1, fixed2, path;
+    fixed1 = removeCharFromStartOfString(partA, '/');
+    fixed1 = removeCharFromEndOfString(fixed1, '/');
+    fixed2 = removeCharFromStartOfString(partB, '/');
+    fixed2 = removeCharFromEndOfString(fixed2, '/');
+    return path = "/" + fixed1 + "/" + fixed2 + "/";
+}
+
+sstr joinPathWithFile(sstr& partA, sstr& fileName)
+{
+    sstr fixed1, fixed2, path;
+    fixed1 = removeCharFromStartOfString(partA, '/');
+    fixed1 = removeCharFromEndOfString(fixed1, '/');
+    fixed2 = removeCharFromStartOfString(fileName, '/');
+    fixed2 = removeCharFromEndOfString(fixed2, '/');
+    return path = "/" + fixed1 + "/" + fixed2;
+}
 
 
 bool isFileSizeGtZero(sstr &fileName)
@@ -1045,8 +1093,8 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1107,8 +1155,9 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
+
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1177,8 +1226,10 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  "tcl" + version;
     sstr compressedFileName =  fileName + "-src" + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName + "/" + installOS;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
+    workingPath             =  joinPathParts(workingPath, installOS);
+
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1250,8 +1301,10 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  "tk" + version;
     sstr compressedFileName =  fileName + "-src" + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName + "/" + installOS;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
+    workingPath             =  joinPathParts(workingPath, installOS);
+
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1317,8 +1370,10 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
+
+
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1381,8 +1436,8 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1446,8 +1501,8 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1513,8 +1568,8 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1576,8 +1631,8 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1639,8 +1694,8 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  "httpd-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1707,8 +1762,8 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1792,8 +1847,8 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     // This section is special to the PHP install.
     // Do not remove and replace with the like section of
@@ -1879,10 +1934,10 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName1           =  programName + "-"  + version;
     sstr fileName2           =  fileName1 + "-all";
-
     sstr compressedFileName =  fileName2 + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName2;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName2);
+
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1945,8 +2000,8 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  ProperName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -2008,8 +2063,8 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr fileName           =  programName + "-" + version;
     sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  stgPath + "/" + compressedFileName;
-    sstr workingPath        =  srcPath + "/" + fileName;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -2039,17 +2094,6 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     }
     return result;
 }
-
-sstr setStagePath(sstr& programName)
-{
-    return "/usr/local/j5c/stg/" + programName;
-};
-
-
-sstr setPath(sstr& company, sstr& PathOffset, sstr& programName)
-{
-    return company + PathOffset + "/" + programName;
-};
 
 int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, sstr& version, int step, int installResult)
 {
@@ -2088,6 +2132,7 @@ int logFinalSettings(sstr& fileNameBuilds, std::map<sstr, sstr>& settings, sstr&
         }
     }
     file_write_vector_to_file(fileNameBuilds, generated_settings);
+    return 0;
 }
 
 int process_section(sstr& fileNameResult,
@@ -2124,13 +2169,14 @@ int process_section(sstr& fileNameResult,
 }
 
 sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileName_Build, sstr& company,
-               sstr& basePath,  sstr& prod_Src_Offset, sstr& prod_Usr_Offset, sstr& prod_Tst_Offset)
+               sstr& basePath,  sstr& srcPath, sstr& usrPath, sstr& tstPath)
 {
+    sstr stg_name = STG_NAME;
     settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = setStagePath(programName);
-    settings[programName + "->SRC_Path"]    = setPath(company, prod_Src_Offset, programName);
-    settings[programName + "->USR_Path"]    = setPath(company, prod_Usr_Offset, programName);
-    settings[programName + "->TST_Path"]    = setPath(company, prod_Tst_Offset, programName);
+    settings[programName + "->STG_Path"]    = joinPathParts(basePath, stg_name);
+    settings[programName + "->SRC_Path"]    = joinPathParts(srcPath,  programName);
+    settings[programName + "->USR_Path"]    = joinPathParts(usrPath,  programName);
+    settings[programName + "->TST_Path"]    = joinPathParts(tstPath,  programName);
     settings[programName + "->RTN_Path"]    = basePath;
     sstr version = settings[programName + "->Version"];
     return version;
@@ -2166,9 +2212,10 @@ int main()
 
     if (bUsePrefix)  {
         prefix = settings[KEY_DEFLT_PREFIX];
-        company = prefix + "/" + company;    }
+        company =  joinPathParts(prefix, company) ;    }
     else  {
-        company = "/" + company;
+        sstr beginPath = "/";
+        company = joinPathParts(beginPath , company);
     }
 
     sstr pVersion   = settings[KEY_PATH_VERSION];
@@ -2195,30 +2242,42 @@ int main()
 
     sstr version = "";
     sstr compression = "";
-    sstr basePath = company + "/p" + pVersion;
-    sstr stg_Offset = "/stg";
-    sstr src_Offset = "/p"      + pVersion + "/src";
-    sstr usr_Offset = "/p"      + pVersion + "/usr";
-    sstr tst_Offset = "/p"      + pVersion + "/tst";
+    sstr temp = "p" + pVersion;
+    sstr basePath = joinPathParts(company, temp);
+    temp = STG_NAME;
+    sstr stgPath = joinPathParts(pricomy, temp);
+    temp = "src";
+    sstr srcPath = joinPathParts(basePath, temp);
+    temp = "usr";
+    sstr usrPath = joinPathParts(basePath, temp);
+    temp = "tst";
+    sstr tstPath = joinPathParts(basePath, temp);
     sstr programName = "Dependencies";
-    sstr stgPathName = "stg";
+
     sstr getPath = "xxx";
-    sstr stgPath = "xxx";
-    sstr srcPath = "xxx";
-    sstr usrPath = "xxx";
-    sstr tstPath = "xxx";
     sstr buildVersion = "";
     
     int step = -1;
     int result = 0;
-    bool installed = false;
     bool anyInstalled = false;
 
-    ensure_Directory_exists1(basePath);
-    sstr fileName_Build = company + "/p" + pVersion + "/Installation_Builds_p" + pVersion + ".txt";
-    sstr fileName_Notes = company + "/p" + pVersion + "/Installation_Notes__p" + pVersion + ".txt";
-    sstr fileNameResult = company + "/p" + pVersion + "/Installation_Result_p" + pVersion + ".txt";
+    temp = "Installation_Builds_p" + pVersion + ".txt";
+    sstr fileName_Build = joinPathWithFile(basePath, temp);
 
+    temp = "Installation_Notes_p" + pVersion + ".txt";
+    sstr fileName_Notes = joinPathWithFile(basePath, temp);
+
+    temp = "Installation_Results_p" + pVersion + ".txt";
+    sstr fileNameResult = joinPathWithFile(basePath, temp);
+
+    std::vector<sstr> vec;
+    vec.push_back("chown -R root:wheel " + company);
+    vec.push_back("chmod -R 770 " + company);
+    vec.push_back("# Sleep for 10 seconds.");
+    vec.push_back("sleep 10");
+    do_command(fileName_Build, vec, false);
+
+    ensure_Directory_exists1(basePath);
     create_file(fileName_Build);
 
     if (!(isFileSizeGtZero(fileName_Notes))) {
@@ -2259,7 +2318,7 @@ int main()
 
     //perl setup
     programName = "perl";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_perl;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2267,7 +2326,7 @@ int main()
 
     //ruby setup
     programName = "ruby";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_ruby;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2275,7 +2334,7 @@ int main()
 
     //tcl setup
     programName = "tcl";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     settings[programName + "->This_OS"]     = theOStext;
     step = -1;
     funptr = &install_tcl;
@@ -2284,7 +2343,7 @@ int main()
 
     //tk setup
     programName = "tk";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     settings[programName + "->This_OS"]     = theOStext;
     settings[programName + "->OLD_Path"]    = settings["tcl->SRC_Path"];
     step = -1;
@@ -2295,7 +2354,7 @@ int main()
     //Get and Build Apache Dependencies
     // apr setup
     programName = "apr";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = 1;
     funptr = &install_apache_step_01;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2303,7 +2362,7 @@ int main()
 
     // apr-util setup
     programName = "apr-util";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = 2;
     funptr = &install_apache_step_02;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2311,7 +2370,7 @@ int main()
 
     // apr-iconv
     programName = "apr-iconv";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = 3;
     funptr = &install_apache_step_03;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2319,7 +2378,7 @@ int main()
 
     // pcre setup
     programName = "pcre";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = 4;
     funptr = &install_apache_step_04;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2327,7 +2386,7 @@ int main()
 
     // pcre2 setup
     programName = "pcre2";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = 5;
     funptr = &install_apache_step_05;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2335,7 +2394,7 @@ int main()
 
     // apache setup
     programName = "apache";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_apache;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2343,7 +2402,7 @@ int main()
 
     // mariadb setup
     programName = "mariadb";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_mariadb;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2351,7 +2410,7 @@ int main()
 
     // php setup
     programName = "php";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_php;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2359,7 +2418,7 @@ int main()
 
     // poco setup
     programName = "poco";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_poco;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2367,7 +2426,7 @@ int main()
 
     // python setup
     programName = "python";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_python;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
@@ -2375,7 +2434,7 @@ int main()
 
     // postfix setup
     programName = "postfix";
-    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     funptr = &install_postfix;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
