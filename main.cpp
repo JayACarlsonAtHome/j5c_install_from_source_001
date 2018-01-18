@@ -43,76 +43,45 @@ const sstr VAL_PROTECT_MODE = "true";
 enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
 
-sstr key_part_replacement(sstr& key, sstr& replacement)
+sstr lowerCaseString(sstr& some_value)
 {
-    sstr result = key.replace(0,5, replacement);
+    sstr result;
+    char oneChar;
+    auto idx = some_value.length();
+    for (idx = 0; idx < some_value.length(); ++idx)
+    {
+        if (std::isupper((*some_value.substr(idx,1).c_str())))
+        {
+            oneChar =  tolower(*some_value.substr(idx,1).c_str());
+        }
+        else
+        {
+            oneChar = (*some_value.substr(idx,1).c_str());
+        }
+        result.append({oneChar});
+    }
     return result;
 }
 
-/*
- * This was used to initially set up the parameters for the
- * configuration files, I don't think we need this anymore
- *
-std::map<sstr, sstr> get_program_base_keys(sstr& progName)
+sstr upperCaseString(sstr& some_value)
 {
-    std::map<sstr, sstr> result;
-
-    sstr key = "XXXXX->Build_Name";
-    sstr newKey  = key_part_replacement(key, progName);
-    sstr novalue = "";
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->WGET";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->STG_Path";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->SRC_Path";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->USR_Path";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->TST_Path";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->RTN_Path";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->Version";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->Compression";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->Script_Only";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->Do_Tests";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->Debug_Only";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
-    key = "XXXXX->This_OS";
-    newKey  = key_part_replacement(key, progName);
-    result.insert(std::pair<sstr, sstr>(newKey, novalue));
-
+    sstr result;
+    char oneChar;
+    auto idx = some_value.length();
+    for (idx = 0; idx < some_value.length(); ++idx)
+    {
+        if (std::islower((*some_value.substr(idx,1).c_str())))
+        {
+            oneChar =  toupper(*some_value.substr(idx,1).c_str());
+        }
+        else
+        {
+            oneChar = (*some_value.substr(idx,1).c_str());
+        }
+        result.append({oneChar});
+    }
     return result;
-};
-*/
+}
 
 sstr trimLeftAndRight(sstr& inString, sstr& ws)
 {
@@ -414,8 +383,12 @@ int file_append_line(sstr &fileName, sstr &line)
 
 sstr getProperNameFromString(sstr& some_value)
 {
+    // make the first letter capital
+    // make all other letters lowercase
+
     sstr result = "";
     sstr temp1 = some_value.substr(1,some_value.length());
+    temp1 = lowerCaseString(temp1);
     if (std::islower((*some_value.substr(0,1).c_str())))
     {
         result =  toupper(*some_value.substr(0,1).c_str());
@@ -475,7 +448,7 @@ int file_append_results(sstr& fileName, sstr& programName, sstr& version, int st
         line += " : Result = " + strResults;
         if (installResult == -1)
         {
-            line += " : Prior Install...";
+            line += " : Install Blocked..";
         }
         if (installResult == 0)
         {
@@ -548,20 +521,23 @@ bool prior_Results(sstr& fileNameResult, sstr& searchStr, const int step)
     int count = 50000;
     bool result = false;
     sstr it_data = "";
+    searchStr = lowerCaseString(searchStr);
     auto max = std::numeric_limits<unsigned long>::max();
 
     std::vector<sstr> data = readFile(fileNameResult, count);
     for (auto it = data.cbegin(); it != data.cend(); ++it )
     {
-        it_data = *it;
+        it_data =  *it;
+        it_data = lowerCaseString(it_data);
+
         auto found1 = it_data.find(searchStr);
         if ( found1 != max )
         {
-            auto found2 = it_data.find("esult =");
+            auto found2 = it_data.find("result =");
             sstr temp1;
             if (found2 < max)
             {
-                temp1 = it_data.substr(found2+7,it_data.length());
+                temp1 = it_data.substr(found2+8,it_data.length());
             }
             auto end = temp1.find_first_of(":");
             temp1 = temp1.substr(0, end - 1);
@@ -791,7 +767,6 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.push_back("yum -y xorg-x11-server-Xnest");
     vec.push_back("yum -y install vsqlite++-devel");
     vec.push_back("yum -y install yum-utils");
-
     int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
@@ -1073,10 +1048,10 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-            workingPath,   usrPath,bScriptOnly);
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1135,9 +1110,10 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
     bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                               workingPath,   usrPath,bScriptOnly);
+                                                  workingPath,   usrPath,    bScriptOnly);
 
     if (bInstall)
     {
@@ -1189,7 +1165,6 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     if (thisOS == "CentOS")       installOS = "unix";
     if (thisOS == "Linux Mint")   installOS = "unix";
@@ -1205,29 +1180,10 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName + "/" + installOS;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1282,7 +1238,6 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     if (thisOS == "CentOS")       installOS = "unix";
     if (thisOS == "Linux Mint")   installOS = "unix";
@@ -1298,29 +1253,11 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName + "/" + installOS;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
+
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1373,7 +1310,6 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1384,29 +1320,11 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
+
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1456,7 +1374,6 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1467,29 +1384,10 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1541,7 +1439,6 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1552,29 +1449,10 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1628,7 +1506,6 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1639,29 +1516,10 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1711,7 +1569,6 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1722,29 +1579,10 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1794,7 +1632,6 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1806,28 +1643,9 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr workingPath        =  srcPath + "/" + fileName;
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1882,7 +1700,6 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1894,28 +1711,9 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr workingPath        =  srcPath + "/" + fileName;
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -1987,7 +1785,6 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bDoTests        = getBoolFromString(doTests);
     bool bDebug          = getBoolFromString(debugOnly);
     bool bInstall_Xdebug = getBoolFromString(Install_Xdebug);
-    bool bInstall        = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -1998,37 +1795,21 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
+    // This section is special to the PHP install.
+    // Do not remove and replace with the like section of
+    //   other programs. It will not work.
     if (!(isFileSizeGtZero(stagedFileName))) {
         // this will download the file with the fileName of mirror
         vec.push_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
         // copy to the compressedFileName
-        vec.push_back("eval \"cd " + stgPath + "; cp ./"    + "mirror " + compressedFileName + "\"");
+        vec.push_back("eval \"cd " + stgPath + "; cp "    + "mirror " + compressedFileName + "\"");
         // remove the mirror file
-        vec.push_back("eval \"cd " + stgPath + "; rm -f "   + "mirror\"");
-    }
-
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
+        vec.push_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
         do_command(buildFileName, vec, bScriptOnly);
     }
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -2091,7 +1872,6 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -2105,28 +1885,9 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr workingPath        =  srcPath + "/" + fileName2;
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName1, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -2177,7 +1938,6 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -2188,29 +1948,10 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -2260,7 +2001,6 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = true;
 
     sstr command = "";
     std::vector<sstr> vec;
@@ -2271,29 +2011,10 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr stagedFileName     =  stgPath + "/" + compressedFileName;
     sstr workingPath        =  srcPath + "/" + fileName;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName,bScriptOnly);
-    if (bProtectMode)    {
-        if (directoryExists(usrPath))        {
-            showProgramProtectedByA7(buildFileName, fileName, workingPath, protectedFileName, bScriptOnly);
-            bInstall = false;
-        }
-    }
-    sstr protectionFileWithPath = workingPath + "/" + protectedFileName;
-    if (isFileSizeGtZero(protectionFileWithPath)) {
-        bProtectMode = true;
-        bInstall = false;
-        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-    }
-    if ((bProtectMode) && (directoryExists(usrPath)))
-    {
-        bInstall = false;
-        vec.push_back("# The " + ProperName + " usr directory (" + usrPath + ") exists already.");
-        vec.push_back("# This will prevent the installation out of caution. ");
-        vec.push_back("# Remove this directory to install this program.");
-        vec.push_back("# you can use the command below to do it: (without the '#')");
-        vec.push_back("# rm -rf " + usrPath);
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
@@ -2333,6 +2054,7 @@ sstr setPath(sstr& company, sstr& PathOffset, sstr& programName)
 int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, sstr& version, int step, int installResult)
 {
     int result = 0;
+    programName = getProperNameFromString(programName);
     if (step < 0)
     {
         std::cout << "Install " << programName << "-" + version << " result = " << installResult << "." << std::endl;
@@ -2379,14 +2101,16 @@ int process_section(sstr& fileNameResult,
 {
     int result = -1;
     sstr searchStr;
-    if (programName.substr(1,programName.length()) != "Dependencies") {
+    programName = lowerCaseString(programName);
+    if (programName != "dependencies") {
         searchStr = programName + "-" + version;
     } else {
-        searchStr = "ependencies";
+        searchStr = "dependencies";
     }
     bool sectionLoaded = prior_Results(fileNameResult, searchStr, step);
     if (!sectionLoaded)
     {
+        appendNewLogSection(fileName_Build);
         logFinalSettings(fileName_Build, settings, programName);
         result = pfunc(settings, protectMode);
         reportResults(fileName_Build, fileNameResult, programName, version, step, result);
@@ -2472,10 +2196,10 @@ int main()
     sstr version = "";
     sstr compression = "";
     sstr basePath = company + "/p" + pVersion;
-    sstr prod_Stg_Offset = "/stg";
-    sstr prod_Src_Offset = "/p"      + pVersion + "/src";
-    sstr prod_Usr_Offset = "/p"      + pVersion + "/usr";
-    sstr prod_Tst_Offset = "/p"      + pVersion + "/tst";
+    sstr stg_Offset = "/stg";
+    sstr src_Offset = "/p"      + pVersion + "/src";
+    sstr usr_Offset = "/p"      + pVersion + "/usr";
+    sstr tst_Offset = "/p"      + pVersion + "/tst";
     sstr programName = "Dependencies";
     sstr stgPathName = "stg";
     sstr getPath = "xxx";
@@ -2487,6 +2211,8 @@ int main()
     
     int step = -1;
     int result = 0;
+    bool installed = false;
+    bool anyInstalled = false;
 
     ensure_Directory_exists1(basePath);
     sstr fileName_Build = company + "/p" + pVersion + "/Installation_Builds_p" + pVersion + ".txt";
@@ -2531,145 +2257,134 @@ int main()
     //function pointer declaration
     int (*funptr) (std::map<sstr,sstr>& settings, bool bProtectMode);
 
-
     //perl setup
-    appendNewLogSection(fileName_Build);
     programName = "perl";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = -1;
     funptr = &install_perl;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
     //ruby setup
-    appendNewLogSection(fileName_Build);
     programName = "ruby";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = -1;
     funptr = &install_ruby;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
     //tcl setup
-    appendNewLogSection(fileName_Build);
     programName = "tcl";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     settings[programName + "->This_OS"]     = theOStext;
-
     step = -1;
     funptr = &install_tcl;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
     //tk setup
-    appendNewLogSection(fileName_Build);
     programName = "tk";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     settings[programName + "->This_OS"]     = theOStext;
     settings[programName + "->OLD_Path"]    = settings["tcl->SRC_Path"];
     step = -1;
     funptr = &install_tk;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
-
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
     //Get and Build Apache Dependencies
+    // apr setup
     programName = "apr";
-    appendNewLogSection(fileName_Build);
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = 1;
     funptr = &install_apache_step_01;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-
-    appendNewLogSection(fileName_Build);
+    // apr-util setup
     programName = "apr-util";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = 2;
     funptr = &install_apache_step_02;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-
-    appendNewLogSection(fileName_Build);
+    // apr-iconv
     programName = "apr-iconv";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = 3;
     funptr = &install_apache_step_03;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-
-    appendNewLogSection(fileName_Build);
+    // pcre setup
     programName = "pcre";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = 4;
     funptr = &install_apache_step_04;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-
-    appendNewLogSection(fileName_Build);
+    // pcre2 setup
     programName = "pcre2";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = 5;
     funptr = &install_apache_step_05;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-    appendNewLogSection(fileName_Build);
+    // apache setup
     programName = "apache";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = -1;
     funptr = &install_apache;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-
-    appendNewLogSection(fileName_Build);
+    // mariadb setup
     programName = "mariadb";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = -1;
     funptr = &install_mariadb;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-    appendNewLogSection(fileName_Build);
+    // php setup
     programName = "php";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = -1;
     funptr = &install_php;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-    appendNewLogSection(fileName_Build);
+    // poco setup
     programName = "poco";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = -1;
     funptr = &install_poco;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-
-    appendNewLogSection(fileName_Build);
+    // python setup
     programName = "python";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     step = -1;
     funptr = &install_python;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-    appendNewLogSection(fileName_Build);
+    // postfix setup
     programName = "postfix";
-    version = set_settings(settings, programName,     fileName_Build,  company,  basePath,
-                           prod_Src_Offset, prod_Usr_Offset, prod_Tst_Offset);    step = -1;
+    version = set_settings(settings, programName, fileName_Build, company, basePath, src_Offset, usr_Offset, tst_Offset);
     funptr = &install_postfix;
-    process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
 
-    sstr end = "End of Program";
-    file_append_line(fileName_Build, end);
-    file_append_line(fileNameResult, end);
+    if (anyInstalled == true) {
+        sstr end = "End of Program";
+        file_append_line(fileName_Build, end);
+        file_append_line(fileNameResult, end);
+    }
 
     return 0;
 }
