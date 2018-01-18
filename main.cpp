@@ -119,7 +119,7 @@ sstr stripCharFromString(sstr& inString, const char c)
 sstr removeCharFromStartOfString(sstr& str, char c )
 {
     sstr result;
-    if ((str.length() == 1) && (str.at(0) = c))
+    if (((str.length() == 1) && (str.at(0) = c)) || (str.length() == 0))
     {
         result = "";
     }
@@ -130,10 +130,10 @@ sstr removeCharFromStartOfString(sstr& str, char c )
     return result;
 }
 
-sstr removeCharFromEndOfString(sstr& str, char c )
+sstr removeCharFromEnd__OfString(sstr &str, char c)
 {
     sstr result;
-    if ((str.length() == 1) && (str.at(0) = c))
+    if (((str.length() == 1) && (str.at(0) = c))  || (str.length() == 0))
     {
         result = "";
     }
@@ -148,9 +148,9 @@ sstr joinPathParts(sstr& partA, sstr& partB)
 {
     sstr fixed1, fixed2, path;
     fixed1 = removeCharFromStartOfString(partA, '/');
-    fixed1 = removeCharFromEndOfString(fixed1, '/');
+    fixed1 = removeCharFromEnd__OfString(fixed1, '/');
     fixed2 = removeCharFromStartOfString(partB, '/');
-    fixed2 = removeCharFromEndOfString(fixed2, '/');
+    fixed2 = removeCharFromEnd__OfString(fixed2, '/');
     return path = "/" + fixed1 + "/" + fixed2 + "/";
 }
 
@@ -158,9 +158,9 @@ sstr joinPathWithFile(sstr& partA, sstr& fileName)
 {
     sstr fixed1, fixed2, path;
     fixed1 = removeCharFromStartOfString(partA, '/');
-    fixed1 = removeCharFromEndOfString(fixed1, '/');
+    fixed1 = removeCharFromEnd__OfString(fixed1, '/');
     fixed2 = removeCharFromStartOfString(fileName, '/');
-    fixed2 = removeCharFromEndOfString(fixed2, '/');
+    fixed2 = removeCharFromEnd__OfString(fixed2, '/');
     return path = "/" + fixed1 + "/" + fixed2;
 }
 
@@ -910,11 +910,11 @@ bool getBoolFromString(sstr& some_value)
     return result;
 }
 
-void protectProgramIfRequired(sstr &buildFileName,
-                              sstr &protectedFileName,
-                              sstr &workingPath,
-                              bool bProtectMode,
-                              bool bScriptOnly)
+void protectProgram_IfRequired(sstr &buildFileName,
+                               sstr &protectedFileName,
+                               sstr &workingPath,
+                               bool bProtectMode,
+                               bool bScriptOnly)
 {
     std::vector<sstr> vec;
     if (!(isFileSizeGtZero(protectedFileName))) {
@@ -1007,9 +1007,10 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
 {
     int result = 0;
     if (!bDebug) {
-        std::vector<sstr> vec;
-        vec.push_back(configureStr);
-        vec.push_back("eval \"cd " + workingPath + "; make \"");
+        std::vector<sstr> vec1;
+        std::vector<sstr> vec2;
+        vec1.push_back(configureStr);
+        vec1.push_back("eval \"cd " + workingPath + "; make \"");
         if (bDoTests) {
             if (ProperName == "Php")
             {
@@ -1017,23 +1018,27 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
                 // until I can get "expect" to read the input and "send" n
                 // I don't want the tests to hold up the script.
 
-                vec.push_back("# The tests must be run manually.");
-                vec.push_back("#   So you can answer the questions at the end of the tests.");
+                vec1.push_back("# The tests must be run manually.");
+                vec1.push_back("#   So you can answer the questions at the end of the tests.");
 
             }
             else
             {
-                vec.push_back("# make test 2>&1> " + tstPath + "/" + ProperName + "_TestResults.txt");
-                vec.push_back("# !!! Warning this may take a while...get some coffee...or something...");
-                vec.push_back("eval \"cd " + workingPath + "; make test 2>&1> " + tstPath + "/" + ProperName +
-                              "_TestResults.txt\"");
+                sstr testPathAndFileName = tstPath;
+                sstr ProperNameAndSuffix = ProperName + "_TestResults.txt";
+                testPathAndFileName = joinPathWithFile(testPathAndFileName, ProperNameAndSuffix);
+
+                vec2.push_back("# make test 2>&1> " + testPathAndFileName);
+                vec2.push_back("# !!! Warning this may take a while...get some coffee...or something...");
+                vec2.push_back("eval \"cd " + workingPath + "; make test 2>&1> " + testPathAndFileName + "\"");
+                do_command(buildFileName, vec2, bScriptOnly);
             }
 
         }
-        vec.push_back("eval \"cd " + workingPath + "; make install \"");
-        vec.push_back("eval \"cd " + rtnPath + "\"");
-        vec.push_back("# ");
-        int result = do_command(buildFileName, vec, bScriptOnly);
+        vec1.push_back("eval \"cd " + workingPath + "; make install \"");
+        vec1.push_back("eval \"cd " + rtnPath + "\"");
+        vec1.push_back("# ");
+        int result = do_command(buildFileName, vec1, bScriptOnly);
     }
     return result;
 }
@@ -1066,6 +1071,20 @@ bool programNotProtected(std::map<sstr, sstr> settings,
         do_command(buildFileName, vec, bScriptOnly);
     }
     return bInstall;
+}
+
+void createProtectionWhenRequired(bool result, sstr& buildFileName, sstr& protectedFileName, sstr& workingPath,
+                                 sstr& ProperName, bool bProtectMode, bool bScriptOnly )
+{
+    std::vector<sstr> vec;
+    if ((bProtectMode) && (result == 0))
+    {
+        vec.clear();
+        vec.push_back("#");
+        protectProgram_IfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
+        howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
+        do_command(buildFileName, vec, bScriptOnly);
+    }
 }
 
 
@@ -1122,11 +1141,8 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                             bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1187,11 +1203,9 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
     }
     return result;
 }
@@ -1260,11 +1274,9 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
     }
     return result;
 }
@@ -1337,11 +1349,8 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1403,11 +1412,8 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1463,16 +1469,13 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
         sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix="
                             + usrPath + "  --with-apr="
-                            + usrPath.substr(0, 17) + "\"";
+                            + usrPath.substr(0, (usrPath.length()-10)) + "/apr/bin \"";
         result += basicInstall(buildFileName, ProperName, configureStr,
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1528,18 +1531,15 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
         sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix="
                             + usrPath    + "  --with-apr="
-                            + usrPath.substr(0, 17) + "\"";
+                            + usrPath.substr(0,(usrPath.length()-11)) + "/apr/bin \"";
 
         bDoTests = false; // there are no tests for this item
         result += basicInstall(buildFileName, ProperName, configureStr,
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1598,11 +1598,8 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1661,11 +1658,8 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1720,20 +1714,19 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                          bScriptOnly);
 
         sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix="
-                            + usrPath + "  " + "--with-apr=" + usrPath.substr(0, 13) + "/apr/bin  "
-                            + "--with-apr-util="  + usrPath.substr(0, 13) + "/apr-util   "
-                            + "--with-apr-iconv=" + usrPath.substr(0, 13) + "/apr-iconv  "
-                            + "--with-pcre="      + usrPath.substr(0, 13) + "/pcre " + "\"";
+                            + usrPath + "  "
+                            + "--with-apr="       + usrPath.substr(0, (usrPath.length()-8)) + "/apr/bin/  "
+                            + "--with-apr-util="  + usrPath.substr(0, (usrPath.length()-8)) + "/apr-util/bin/  "
+                            + "--with-apr-iconv=" + usrPath.substr(0, (usrPath.length()-8)) + "/apr-iconv/bin/  "
+                            + "--with-pcre="      + usrPath.substr(0, (usrPath.length()-8)) + "/pcre/bin/ " + "\"";
 
         result += basicInstall(buildFileName, ProperName, configureStr,
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
     }
     return result;
 }
@@ -1812,11 +1805,8 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1897,14 +1887,8 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         }
         result += do_command(buildFileName, vec, bScriptOnly);
 
-        if (result == 0)
-        {
-            vec.clear();
-            vec.push_back("#");
-            do_command(buildFileName, vec, bScriptOnly);
-            protectProgramIfRequired( buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1967,11 +1951,8 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -2030,11 +2011,8 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -2098,11 +2076,8 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                bDebug, bDoTests, bScriptOnly);
 
         */
-        if (result == 0)
-        {
-            protectProgramIfRequired(buildFileName, protectedFileName, workingPath, bProtectMode, bScriptOnly);
-            howToRemoveFileProtection(buildFileName, ProperName, workingPath, protectedFileName, bScriptOnly);
-        }
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -2128,6 +2103,7 @@ int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName,
 int logFinalSettings(sstr& fileNameBuilds, std::map<sstr, sstr>& settings, sstr& programName )
 {
     int max_set_width = 32;
+    sstr tempProgramName = programName + "->";
     sstr pad_string;
     sstr str_buffer;
     std::vector<sstr> generated_settings;
@@ -2136,7 +2112,8 @@ int logFinalSettings(sstr& fileNameBuilds, std::map<sstr, sstr>& settings, sstr&
     generated_settings.push_back("#============================================================================");
     for (auto element = settings.cbegin(); element !=  settings.cend(); ++ element)
     {
-        if (element->first.substr(0, programName.length()) == programName) {
+
+        if (element->first.substr(0, tempProgramName.length()) == tempProgramName) {
             int pad_length = max_set_width - element->first.length();
             pad_string = sstr(pad_length, ' ');
             str_buffer = ": "  + pad_string + element->first + " : " + element->second;
@@ -2187,7 +2164,7 @@ sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileNa
 
     sstr stgPath = joinPathParts(company,  stg_name);
          stgPath = joinPathParts(stgPath,  programName);
-    
+
     settings[programName + "->Build_Name"]  = fileName_Build;
     settings[programName + "->STG_Path"]    = stgPath;
     settings[programName + "->SRC_Path"]    = joinPathParts(srcPath,  programName);
@@ -2291,23 +2268,18 @@ int main()
     if (thisOS == OS_type ::MaxOSX)
     {
         vec.push_back("chown -R root:wheel " + company);
-        vec.push_back("chown -R root:wheel " + basePath);
     }
     else
     {
         vec.push_back("chown -R root:root " + company);
-        vec.push_back("chown -R root:root " + basePath);
     }
 
-    vec.push_back("chmod 770 " + company);
-    vec.push_back("chmod -R 770 " + basePath);
-
-    vec.push_back("# Sleep for 30 seconds.");
-    vec.push_back("sleep 10");
-    do_command(fileName_Build, vec, false);
-
     ensure_Directory_exists1(basePath);
+    vec.push_back("chmod 770    " + company);
+    vec.push_back("chmod -R 770 " + basePath);
+    vec.push_back("#");
     create_file(fileName_Build);
+    do_command(fileName_Build, vec, false);
 
     if (!(isFileSizeGtZero(fileName_Notes))) {
         create_file(fileName_Notes);  }
