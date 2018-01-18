@@ -706,12 +706,24 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
 {
     sstr command = "";
     int result = 0;
+    bool outputToFile = false;
+    if (fileName.length()> 0)
+    {
+        outputToFile = true;
+    }
+    else
+    {
+        std::cout << "Doing commands will not be saved to file." << std::endl;
+        std::cout << "Because no file name was given."           << std::endl;
+    }
     for (auto it = vec.cbegin(); it != vec.cend(); ++it )
     {
         result = 0;
         command =  *it;
 
-        file_append_line(fileName, command);
+        if (outputToFile) {
+            file_append_line(fileName, command);
+        }
         std::cout << "Command: " << command << std::endl;
 
         if ((command.substr(0,1) != "#") && (command.substr(0,1) != ":")) {
@@ -2172,8 +2184,12 @@ sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileNa
                sstr& basePath,  sstr& srcPath, sstr& usrPath, sstr& tstPath)
 {
     sstr stg_name = STG_NAME;
+
+    sstr stgPath = joinPathParts(company,  stg_name);
+         stgPath = joinPathParts(stgPath,  programName);
+    
     settings[programName + "->Build_Name"]  = fileName_Build;
-    settings[programName + "->STG_Path"]    = joinPathParts(basePath, stg_name);
+    settings[programName + "->STG_Path"]    = stgPath;
     settings[programName + "->SRC_Path"]    = joinPathParts(srcPath,  programName);
     settings[programName + "->USR_Path"]    = joinPathParts(usrPath,  programName);
     settings[programName + "->TST_Path"]    = joinPathParts(tstPath,  programName);
@@ -2201,7 +2217,7 @@ int main()
     std::map<sstr, sstr> settings;
     sstr fileSettings   = "/usr/local/j5c/Install_Settings.cfg";
     settings            = getProgramSettings(fileSettings);
-    std::vector<sstr>  generated_settings;
+    std::vector<sstr>     generated_settings;
 
     // put settings into program variables
     std::cout << "Putting settings into program variables..." << std::endl;
@@ -2271,9 +2287,22 @@ int main()
     sstr fileNameResult = joinPathWithFile(basePath, temp);
 
     std::vector<sstr> vec;
-    vec.push_back("chown -R root:wheel " + company);
-    vec.push_back("chmod -R 770 " + company);
-    vec.push_back("# Sleep for 10 seconds.");
+
+    if (thisOS == OS_type ::MaxOSX)
+    {
+        vec.push_back("chown -R root:wheel " + company);
+        vec.push_back("chown -R root:wheel " + basePath);
+    }
+    else
+    {
+        vec.push_back("chown -R root:root " + company);
+        vec.push_back("chown -R root:root " + basePath);
+    }
+
+    vec.push_back("chmod 770 " + company);
+    vec.push_back("chmod -R 770 " + basePath);
+
+    vec.push_back("# Sleep for 30 seconds.");
     vec.push_back("sleep 10");
     do_command(fileName_Build, vec, false);
 
