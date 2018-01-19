@@ -18,7 +18,7 @@
 
 #include "j5c_date.h"
 
-namespace J5C_DSL_Code {
+
 
     void j5c_Date::cout_InvalidDate() const noexcept
     {
@@ -510,4 +510,4 @@ namespace J5C_DSL_Code {
                 << std::setw(2) << std::setfill('0') << d.m_day;
     }
 
-}
+
