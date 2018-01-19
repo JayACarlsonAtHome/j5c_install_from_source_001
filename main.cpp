@@ -5,7 +5,7 @@
 
 // This program can automatically install a LAMP system + other stuff
 // LAMP        := Linux, Apache Web Server, MariaDB, Php
-// Other stuff := Perl, Ruby, Tcl/Tk
+// Other stuff := Perl, Ruby, Tcl/Tk, POCO C++ Libraries
 
 #include <fstream>
 #include <iostream>
@@ -93,8 +93,24 @@ sstr trimLeftAndRight(sstr& inString, sstr& ws)
 
 sstr getValid_pVersion(sstr& some_value)
 {
+    // explanation of what this does...
+    // input ""         output "001"
+    // input "rr4gre4"  output "00044"
+    // input "2"        output "002"
+    // input "45"       output "045"
+    // input "652"      output "652"
+    // input "843xc"    output "00843"
+
+    // in essence pad leading zeros to max length of string
+    // only except digits in string
+    // prefer a length of 3 digits, but enable to grow to a max of 5 digits
+
     sstr result;
     int oneChar;
+    auto maxWidth = some_value.length();
+    if (maxWidth > 5) { maxWidth  = 5; }
+    if (maxWidth < 3) { maxWidth  = 3; }
+
     for (auto idx = 0ul; idx < some_value.length(); ++idx)
     {
         if (std::isdigit((*some_value.substr(idx,1).c_str())))
@@ -103,15 +119,19 @@ sstr getValid_pVersion(sstr& some_value)
             result.append({static_cast<char>(oneChar)});
         }
     }
-    if ((result.length() < 3) && (result.length() > 0)) {
-        auto padding = 3 - result.length();
-        for (auto i = 0ul; i < padding; i++) {
-            result = "0" + result;
-        }
+    if ((result.length() < maxWidth) && (result.length() > 0))
+    {
+        auto pad_length = maxWidth - result.length();
+        sstr pad_string = sstr(pad_length, '0');
+        result = pad_string.append(result);
     }
     if (result.length() < 3)
     {
         result = "001";
+    }
+    if (result.length() > maxWidth)
+    {
+        result = result.substr(0, maxWidth);
     }
     return result;
 }
@@ -969,6 +989,7 @@ void stageSourceCodeIfNeeded(sstr& buildFileName,
 int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compressedFileName,
               sstr& stgPath, sstr& srcPath, sstr& tstPath, sstr& usrPath, bool bScriptOnly)
 {
+
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Remove unfinished " + ProperName + " install (if any).");
@@ -993,6 +1014,8 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
         bool bDebug, bool bDoTests, bool bScriptOnly)
 {
     int result = -1;
+    bool skipTests = false;
+
     if (!bDebug) {
         std::vector<sstr> vec1;
         std::vector<sstr> vec2;
@@ -1004,12 +1027,39 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
                 // do nothing..
                 // until I can get "expect" to read the input and "send" n
                 // I don't want the tests to hold up the script.
-
+                skipTests = true;
                 vec1.emplace_back("# The tests must be run manually.");
                 vec1.emplace_back("#   So you can answer the questions at the end of the tests.");
-
             }
-            else
+
+            if (ProperName == "Mariadb")
+            {
+                skipTests = true;
+                sstr testPathAndFileName = tstPath;
+                sstr testPathAndFileName1, testPathAndFileName2;
+                sstr ProperNameAndSuffix1 = ProperName + "_TestResults_01.txt";
+                sstr ProperNameAndSuffix2 = ProperName + "_TestResults_02.txt";
+
+                auto len = usrPath.find_first_of("usr");
+                sstr perlPath;
+                perlPath.append(usrPath.substr(0,len -1));
+                perlPath.append("/usr/perl/bin/perl");
+
+                vec2.clear();
+                testPathAndFileName1 = joinPathWithFile(testPathAndFileName, ProperNameAndSuffix1);
+                vec2.emplace_back("# !!! Warning this may take a while...get some coffee...or something...");
+                vec2.emplace_back("# eval \"cd " + workingPath + "; make test 2>&1> " + testPathAndFileName1 + "\"");
+                vec2.emplace_back("  eval \"cd " + workingPath + "; make test 2>&1> " + testPathAndFileName1 + "\"");
+                do_command(buildFileName, vec2, bScriptOnly);
+
+                vec2.clear();
+                testPathAndFileName2 = joinPathWithFile(testPathAndFileName, ProperNameAndSuffix2);
+                vec2.emplace_back("# !!! Warning this may take a few HOURS...play fooshball, get coffee...or something...");
+                vec2.emplace_back("# eval \"cd " + workingPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " + testPathAndFileName2 + "\"");
+                vec2.emplace_back("  eval \"cd " + workingPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " + testPathAndFileName2 + "\"");
+                do_command(buildFileName, vec2, bScriptOnly);
+            }
+            if (!skipTests)
             {
                 sstr testPathAndFileName = tstPath;
                 sstr ProperNameAndSuffix = ProperName + "_TestResults.txt";
@@ -1020,7 +1070,6 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
                 vec2.emplace_back("eval \"cd " + workingPath + "; make test 2>&1> " + testPathAndFileName + "\"");
                 do_command(buildFileName, vec2, bScriptOnly);
             }
-
         }
         vec1.emplace_back("eval \"cd " + workingPath + "; make install \"");
         vec1.emplace_back("eval \"cd " + rtnPath + "\"");
@@ -2044,8 +2093,8 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr thisOS        = settings[programName + "->This_OS"];
 
     bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
+    //bool bDoTests    = getBoolFromString(doTests);
+    //bool bDebug      = getBoolFromString(debugOnly);
     bool bInstall      = false;
 
 
