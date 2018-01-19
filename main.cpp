@@ -91,6 +91,32 @@ sstr trimLeftAndRight(sstr& inString, sstr& ws)
     return result;
 }
 
+sstr getValid_pVersion(sstr& some_value)
+{
+    sstr result;
+    int oneChar;
+    for (auto idx = 0ul; idx < some_value.length(); ++idx)
+    {
+        if (std::isdigit((*some_value.substr(idx,1).c_str())))
+        {
+            oneChar =  *some_value.substr(idx,1).c_str();
+            result.append({static_cast<char>(oneChar)});
+        }
+    }
+    if ((result.length() < 3) && (result.length() > 0)) {
+        auto padding = 3 - result.length();
+        for (auto i = 0ul; i < padding; i++) {
+            result = "0" + result;
+        }
+    }
+    if (result.length() < 3)
+    {
+        result = "001";
+    }
+    return result;
+}
+
+
 sstr stripCharFromString(sstr& inString, const char c)
 {
     sstr result;
@@ -966,7 +992,7 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
                  sstr& workingPath,   sstr& tstPath,    sstr& usrPath,       sstr& rtnPath,
         bool bDebug, bool bDoTests, bool bScriptOnly)
 {
-    int result = 0;
+    int result = -1;
     if (!bDebug) {
         std::vector<sstr> vec1;
         std::vector<sstr> vec2;
@@ -1078,6 +1104,7 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1090,7 +1117,7 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1137,6 +1164,7 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1150,7 +1178,7 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
 
     if (bInstall)
@@ -1201,6 +1229,7 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     if (thisOS == "CentOS")       installOS = "unix";
     if (thisOS == "Linux Mint")   installOS = "unix";
@@ -1220,7 +1249,7 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1274,6 +1303,7 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     if (thisOS == "CentOS")       installOS = "unix";
     if (thisOS == "Linux Mint")   installOS = "unix";
@@ -1293,7 +1323,7 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
 
     if (bInstall)
@@ -1345,6 +1375,7 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1359,7 +1390,7 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
 
     if (bInstall)
@@ -1408,6 +1439,7 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1420,7 +1452,7 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1469,7 +1501,8 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bDoTests;
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1482,7 +1515,7 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1494,7 +1527,6 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
                             + usrPath    + "  --with-apr="
                             + usrPath.substr(0,(usrPath.length()-11)) + "/apr/bin \"";
 
-        bDoTests = false; // there are no tests for this item
         result += basicInstall(buildFileName, ProperName, configureStr,
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
@@ -1534,6 +1566,7 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1546,7 +1579,7 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1594,6 +1627,7 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1606,7 +1640,7 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1654,6 +1688,7 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1666,7 +1701,7 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1721,6 +1756,7 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1733,7 +1769,7 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1803,6 +1839,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bDoTests        = getBoolFromString(doTests);
     bool bDebug          = getBoolFromString(debugOnly);
     bool bInstall_Xdebug = getBoolFromString(Install_Xdebug);
+    bool bInstall        = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1826,7 +1863,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         do_command(buildFileName, vec, bScriptOnly);
     }
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1882,8 +1919,9 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr thisOS        = settings[programName + "->This_OS"];
 
     bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
-    bool bDoTests;
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1898,7 +1936,7 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -1907,7 +1945,7 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                          bScriptOnly);
 
         sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-        bDoTests = false;
+
         result += basicInstall(buildFileName, ProperName, configureStr,
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
@@ -1947,6 +1985,7 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -1959,7 +1998,7 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -2005,7 +2044,10 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr thisOS        = settings[programName + "->This_OS"];
 
     bool bScriptOnly   = getBoolFromString(scriptOnly);
-    //bool bDebug        = getBoolFromString(debugOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
 
     sstr command;
     std::vector<sstr> vec;
@@ -2018,7 +2060,7 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
-    bool bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   workingPath,   usrPath,    bScriptOnly);
     if (bInstall)
     {
@@ -2172,7 +2214,8 @@ int main()
         company = joinPathParts(beginPath , company);
     }
 
-    sstr pVersion   = settings[KEY_PATH_VERSION];
+    sstr pVersion = settings[KEY_PATH_VERSION];
+    pVersion      = getValid_pVersion(pVersion);
 
     // assign a default; and change if not correct...
     thisOS = OS_type ::RedHat;
