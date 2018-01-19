@@ -25,6 +25,7 @@
 using sstr = std::string;
 using namespace J5C_DSL_Code;
 
+const sstr EOL              = "\n";
 const sstr STG_NAME         = "stg";
 const sstr KEY_COMPANY_NAME = "Section_a1_Abbr_CompanyName";
 const sstr VAL_COMPANY_NAME = "zzz";
@@ -437,16 +438,8 @@ sstr getProperNameFromString(sstr& some_value)
     sstr result = "";
     sstr temp1 = some_value.substr(1,some_value.length());
     temp1 = lowerCaseString(temp1);
-    if (std::islower((*some_value.substr(0,1).c_str())))
-    {
-        result =  toupper(*some_value.substr(0,1).c_str());
-    }
-    else
-    {
-        result = (*some_value.substr(0,1).c_str());
-    }
+    result =  toupper(*some_value.substr(0,1).c_str());
     result.append({temp1});
-
     return result;
 }
 
@@ -569,19 +562,18 @@ bool prior_Results(sstr& fileNameResult, sstr& searchStr, const int step)
     int count = 50000;
     bool result = false;
     sstr it_data = "";
-    searchStr = lowerCaseString(searchStr);
+    searchStr = getProperNameFromString(searchStr);
     auto max = std::numeric_limits<unsigned long>::max();
 
     std::vector<sstr> data = readFile(fileNameResult, count);
     for (auto it = data.cbegin(); it != data.cend(); ++it )
     {
         it_data =  *it;
-        it_data = lowerCaseString(it_data);
 
         auto found1 = it_data.find(searchStr);
         if ( found1 != max )
         {
-            auto found2 = it_data.find("result =");
+            auto found2 = it_data.find("Result =");
             sstr temp1;
             if (found2 < max)
             {
@@ -1713,12 +1705,12 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                          stgPath, srcPath, tstPath, usrPath,
                                          bScriptOnly);
 
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix="
-                            + usrPath + "  "
-                            + "--with-apr="       + usrPath.substr(0, (usrPath.length()-8)) + "/apr/bin/  "
-                            + "--with-apr-util="  + usrPath.substr(0, (usrPath.length()-8)) + "/apr-util/bin/  "
-                            + "--with-apr-iconv=" + usrPath.substr(0, (usrPath.length()-8)) + "/apr-iconv/bin/  "
-                            + "--with-pcre="      + usrPath.substr(0, (usrPath.length()-8)) + "/pcre/bin/ " + "\"";
+        sstr configureStr = "eval \"cd " + workingPath + "; "  +
+                              " ./configure --prefix=" + usrPath + " "
+                            + " --with-apr="       + usrPath.substr(0, (usrPath.length()-8)) + "/apr        "
+                            + " --with-apr-util="  + usrPath.substr(0, (usrPath.length()-8)) + "/apr-util   "
+                            + " --with-apr-iconv=" + usrPath.substr(0, (usrPath.length()-8)) + "/apr-iconv  "
+                            + " --with-pcre="      + usrPath.substr(0, (usrPath.length()-8)) + "/pcre " + "\"";
 
         result += basicInstall(buildFileName, ProperName, configureStr,
                                workingPath, tstPath, usrPath, rtnPath,
@@ -2137,9 +2129,10 @@ int process_section(sstr& fileNameResult,
     sstr searchStr;
     programName = lowerCaseString(programName);
     if (programName != "dependencies") {
-        searchStr = programName + "-" + version;
+        searchStr = getProperNameFromString(programName);
+        searchStr = searchStr + "-" + version;
     } else {
-        searchStr = "dependencies";
+        searchStr = "Dependencies";
     }
     bool sectionLoaded = prior_Results(fileNameResult, searchStr, step);
     if (!sectionLoaded)
