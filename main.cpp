@@ -1021,6 +1021,8 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
         std::vector<sstr> vec2;
         vec1.emplace_back(configureStr);
         vec1.emplace_back("eval \"cd " + workingPath + "; make \"");
+        result = do_command(buildFileName, vec1, bScriptOnly);
+
         if (bDoTests) {
             if (ProperName == "Php")
             {
@@ -1071,10 +1073,11 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
                 do_command(buildFileName, vec2, bScriptOnly);
             }
         }
+        vec1.clear();
         vec1.emplace_back("eval \"cd " + workingPath + "; make install \"");
         vec1.emplace_back("eval \"cd " + rtnPath + "\"");
         vec1.emplace_back("# ");
-        result = do_command(buildFileName, vec1, bScriptOnly);
+        result += do_command(buildFileName, vec1, bScriptOnly);
     }
     return result;
 }
