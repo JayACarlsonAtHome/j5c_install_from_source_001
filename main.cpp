@@ -822,6 +822,8 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install gcc-c++-x86_64-linux-gnu");
     vec.emplace_back("yum -y install gnutls-c++");
     vec.emplace_back("yum -y install gnutls-devel");
+    vec.emplace_back("yum -y install innotop");
+    vec.emplace_back("yum -y install iotop");
     vec.emplace_back("yum -y install jemalloc-devel");
     vec.emplace_back("yum -y install java-1.8.0-openjdk");
     vec.emplace_back("yum -y install Judy");
@@ -839,7 +841,12 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install libxml2-devel");
     vec.emplace_back("yum -y install libxslt-devel");
     vec.emplace_back("yum -y install libX11-devel");
+    vec.emplace_back("yum -y install moreutils");
+    vec.emplace_back("yum -y install mysqlreport");
+    vec.emplace_back("yum -y install mysqltuner");
+    vec.emplace_back("yum -y install mytop");
     vec.emplace_back("yum -y install openssl-devel");
+    vec.emplace_back("yum -y install perl-CPAN");
     vec.emplace_back("yum -y install java-1.8.0-openjdk");
     vec.emplace_back("yum -y install re2c");
     vec.emplace_back("yum -y install ruby");
@@ -1024,8 +1031,7 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
         result = do_command(buildFileName, vec1, bScriptOnly);
 
         if (bDoTests) {
-            if (ProperName == "Php")
-            {
+            if (ProperName == "Php") {
                 // do nothing..
                 // until I can get "expect" to read the input and "send" n
                 // I don't want the tests to hold up the script.
@@ -1034,8 +1040,7 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
                 vec1.emplace_back("#   So you can answer the questions at the end of the tests.");
             }
 
-            if (ProperName == "Mariadb")
-            {
+            if (ProperName == "Mariadb") {
                 skipTests = true;
                 sstr testPathAndFileName = tstPath;
                 sstr testPathAndFileName1, testPathAndFileName2;
@@ -1044,7 +1049,7 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
 
                 auto len = usrPath.find_first_of("usr");
                 sstr perlPath;
-                perlPath.append(usrPath.substr(0,len -1));
+                perlPath.append(usrPath.substr(0, len - 1));
                 perlPath.append("/usr/perl/bin/perl");
 
                 vec2.clear();
@@ -1056,13 +1061,17 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
 
                 vec2.clear();
                 testPathAndFileName2 = joinPathWithFile(testPathAndFileName, ProperNameAndSuffix2);
-                vec2.emplace_back("# !!! Warning this may take a few HOURS...play fooshball, get coffee...or something...");
-                vec2.emplace_back("# eval \"cd " + workingPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " + testPathAndFileName2 + "\"");
-                vec2.emplace_back("  eval \"cd " + workingPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " + testPathAndFileName2 + "\"");
+                vec2.emplace_back(
+                        "# !!! Warning this may take a few HOURS...play fooshball, get coffee...or something...");
+                vec2.emplace_back(
+                        "# eval \"cd " + workingPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " +
+                        testPathAndFileName2 + "\"");
+                vec2.emplace_back(
+                        "  eval \"cd " + workingPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " +
+                        testPathAndFileName2 + "\"");
                 do_command(buildFileName, vec2, bScriptOnly);
             }
-            if (!skipTests)
-            {
+            if (!skipTests) {
                 sstr testPathAndFileName = tstPath;
                 sstr ProperNameAndSuffix = ProperName + "_TestResults.txt";
                 testPathAndFileName = joinPathWithFile(testPathAndFileName, ProperNameAndSuffix);
@@ -1075,9 +1084,28 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
         }
         vec1.clear();
         vec1.emplace_back("eval \"cd " + workingPath + "; make install \"");
-        vec1.emplace_back("eval \"cd " + rtnPath + "\"");
         vec1.emplace_back("# ");
         result += do_command(buildFileName, vec1, bScriptOnly);
+        if (ProperName == "Mariadb") {
+            vec2.clear();
+            vec2.emplace_back("eval \"userdel -f mysql \"");
+            vec2.emplace_back("eval \"groupdel   mysql \"");
+            vec2.emplace_back("eval \"groupadd   mysql \"");
+            vec2.emplace_back("eval \"useradd -r mysql -g mysql \"");
+            vec2.emplace_back("# ");
+            do_command(buildFileName, vec2, bScriptOnly);
+            vec1.emplace_back("eval \" mkdir -p         /var/run/mysqld \"");
+            vec1.emplace_back("eval \" chown mysql:root /var/run/mysqld \"");
+            vec1.emplace_back("eval \"cd " + usrPath + "; cd .. ; chown -R mysql:mysql mariadb \"");
+            vec1.emplace_back("eval \"cd " + usrPath + "; ./scripts/mysql_install_db --user=mysql "
+                          + "  --basedir=" + usrPath
+                          + "  --datadir=" + usrPath + "data \""
+                          + "  --tmpdir="  + usrPath + "data/temp \"");
+            vec1.emplace_back("eval \"cd " + usrPath + "; ./bin/mysqld_safe --user=mysql -host 127.0.0.1 & \"");
+            vec1.emplace_back("# ");
+            vec1.emplace_back("eval \"cd " + rtnPath + "\"");
+            result += do_command(buildFileName, vec1, bScriptOnly);
+        }
     }
     return result;
 }
@@ -1127,7 +1155,7 @@ void createProtectionWhenRequired(int result, sstr& buildFileName, sstr& protect
 }
 
 
-int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "perl";
@@ -1183,6 +1211,66 @@ int install_perl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
         createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
                                              bProtectMode,  bScriptOnly );
+    }
+    return result;
+}
+
+int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "rakudo-star";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr srcPath       = settings[programName + "->SRC_Path"];
+    sstr usrPath       = settings[programName + "->USR_Path"];
+    sstr tstPath       = settings[programName + "->TST_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr fileName           =  programName + "-" + version;
+    sstr compressedFileName =  fileName + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+    sstr workingPath        =  joinPathParts(srcPath, fileName);
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   workingPath,   usrPath,    bScriptOnly);
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, srcPath, tstPath, usrPath, bScriptOnly);
+
+        sstr configureStr = "eval \"cd " + workingPath + "; ./Configure -Dprefix=" + usrPath + " -d -e\"";
+        result += basicInstall(buildFileName, ProperName, configureStr,
+                               workingPath, tstPath, usrPath, rtnPath,
+                               bDebug, bDoTests, bScriptOnly);
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
     }
     return result;
 }
@@ -1854,6 +1942,7 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
 
+
         createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
                                      bProtectMode,  bScriptOnly );
     }
@@ -2247,7 +2336,7 @@ int main()
 
     // get settings from file
     std::map<sstr, sstr> settings;
-    sstr fileSettings   = "/usr/local/j5c/Install_Settings.cfg";
+    sstr fileSettings   = "./Install_Settings.cfg";
     settings            = getProgramSettings(fileSettings);
     std::vector<sstr>     generated_settings;
 
@@ -2334,8 +2423,8 @@ int main()
     }
 
     ensure_Directory_exists1(basePath);
-    vec.emplace_back("chmod 770    " + company);
-    vec.emplace_back("chmod -R 770 " + basePath);
+    vec.emplace_back("chmod 771    " + company);
+    vec.emplace_back("chmod -R 771 " + basePath);
     vec.emplace_back("#");
     create_file(fileName_Build);
     do_command(fileName_Build, vec, false);
@@ -2376,14 +2465,24 @@ int main()
     //function pointer declaration
     int (*funptr) (std::map<sstr,sstr>& settings, bool bProtectMode);
 
-    //perl setup
+    //perl(5) setup
     programName = "perl";
     version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
-    funptr = &install_perl;
+    funptr = &install_perl5;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
+    /*
+     * This will need some time to work out the details
+    //perl6 setup
+    programName = "perl6";
+    version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
+    step = -1;
+    funptr = &install_perl6;
+    result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
+    */
     //ruby setup
     programName = "ruby";
     version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
