@@ -18,6 +18,7 @@
 
 #include "j5c_date.h"
 
+namespace J5C_DSL_Code {
 
 
     void j5c_Date::cout_InvalidDate() const noexcept
@@ -120,16 +121,16 @@
     }
 
     int j5c_Date::LeapYearsSinceYear0001(int year, int month) const noexcept
-    {
-        // Check if the current getYear needs to be considered
-        // for the count of leap years or not
-        if (month <= 2) year--;
+        {
+            // Check if the current getYear needs to be considered
+            // for the count of leap years or not
+            if (month <= 2) year--;
 
-        // An year is a leap getYear if it is a multiple of 4,
-        // multiple of 400 and not a multiple of 100.
-        int result = ((year/4) - (year/100) + (year/400));
-        return result;
-    }
+            // An year is a leap getYear if it is a multiple of 4,
+            // multiple of 400 and not a multiple of 100.
+            int result = ((year/4) - (year/100) + (year/400));
+            return result;
+        }
 
     int j5c_Date::daysSinceYear0001Day001(int year, int month, int day) const noexcept
     {
@@ -246,7 +247,27 @@
 
     int j5c_Date::getFirstDayOfYear() const noexcept
     {
-        return firstDayOfYear[m_year];
+        //This needs a little explanation...
+        //  There is no year 0, years go from -1 directly to 1.
+        //  For this class we don't use years less than 1.
+        //  The first day of the year is a repeating pattern every 400 years.
+        //  The first year the first day is Monday      and is stored at array position   1 not zero.
+        //  On the 400th year the first day is Saturday and is stored at array position 400
+        //  ( array position 400 is position 0 in a repeating pattern but we do a substitution instead. )
+
+        //early return possible
+        if (m_year < 1)   return -1;
+        if (m_year < 400) return firstDayOfYear[m_year];
+        //
+        int range = m_year / 400;
+        int yearConversion = m_year - (range * 400);
+
+        //this is year 400,800,1200, etc...
+        // the value at array position [5] is 6 which is the first Saturday in the array
+        if (yearConversion == 0) yearConversion = 5;
+
+        //this is (converted) years 1-399
+        return firstDayOfYear[yearConversion];
     }
 
     int j5c_Date::getDayOfTheYear() const noexcept
@@ -323,11 +344,9 @@
             result = DOWT;
         } else {
             if (forcedLength > DOWT.length()) {
-                unsigned long counter = forcedLength - DOWT.length();
-                while (counter > 0) {
-                    DOWT.append(" ");
-                    counter--;
-                }
+                auto counter = forcedLength - DOWT.length();
+                std::string padding(counter, ' ');
+                DOWT.append(padding);
                 result = DOWT;
             } else {
                 result = DOWT.substr(0, forcedLength);
@@ -401,10 +420,10 @@
 
     // remaining operators defined in terms of the above
     const bool j5c_Date::operator<=(const j5c_Date &d) const noexcept
-    {
-        if (operator==(d)) return true;
-        return operator<(d);
-    };
+        {
+            if (operator==(d)) return true;
+            return operator<(d);
+        };
 
     const bool j5c_Date::operator>=(const j5c_Date &d) const noexcept
     {
@@ -454,7 +473,7 @@
 
     const j5c_Date  j5c_Date::operator--(int) noexcept
     {
-        // postfix++
+        // postfix--
         j5c_Date postfix{*this};
         j5c_Date newThis = this->getPriorDate();
         this->m_year  = newThis.m_year;
@@ -474,7 +493,6 @@
 
     };
 
-
     const j5c_Date& j5c_Date::operator--() noexcept
     {
         // prefix--
@@ -487,17 +505,16 @@
 
     std::string j5c_Date::padright(int width, int value) const noexcept
     {
-        auto w = static_cast<unsigned long>(width);
+        unsigned long w = static_cast<unsigned long>(width);
         std::string output = std::string{"0000"} + std::to_string(value);
         unsigned long len = output.length();
         return output.substr(len-w, len);
     }
 
-
     std::string j5c_Date::strDate() const noexcept
     {
         return
-                padright(4, m_year)  + '-'
+                  padright(4, m_year)  + '-'
                 + padright(2, m_month) + '-'
                 + padright(2, m_day);
     }
@@ -505,9 +522,9 @@
     std::ostream &operator<<(std::ostream &out, const j5c_Date &d)
     {
         return out
-                << std::setw(4) << std::setfill('0') << d.m_year << '-'
-                << std::setw(2) << std::setfill('0') << d.m_month << '-'
-                << std::setw(2) << std::setfill('0') << d.m_day;
+            << std::setw(4) << std::setfill('0') << d.m_year << '-'
+            << std::setw(2) << std::setfill('0') << d.m_month << '-'
+            << std::setw(2) << std::setfill('0') << d.m_day;
     }
 
-
+}

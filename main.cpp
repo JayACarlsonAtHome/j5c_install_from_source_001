@@ -16,6 +16,7 @@
 #include <limits>
 #include "source/j5c_date.h"
 
+using namespace J5C_DSL_Code;
 using sstr = std::string;
 
 const sstr STG_NAME         = "stg";
@@ -849,7 +850,6 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install perl-CPAN");
     vec.emplace_back("yum -y install java-1.8.0-openjdk");
     vec.emplace_back("yum -y install re2c");
-    vec.emplace_back("yum -y install ruby");
     vec.emplace_back("yum -y install sqlite-devel");
     vec.emplace_back("yum -y install sqlite-tcl");
     vec.emplace_back("yum -y install tcltls-devel");
@@ -906,7 +906,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("apt install x11-xserver-utils  -y");
     vec.emplace_back("apt install x11-utils -y");
     vec.emplace_back("apt install re2c -y");
-    vec.emplace_back("apt install ruby -y");
+    //vec.emplace_back("apt install ruby -y");
     vec.emplace_back("apt install sqlite3 -y");
     vec.emplace_back("apt install xml2 -y");
     vec.emplace_back("apt install wget -y");
@@ -1039,6 +1039,14 @@ int basicInstall(sstr& buildFileName, sstr& ProperName, sstr& configureStr,
                 vec1.emplace_back("# The tests must be run manually.");
                 vec1.emplace_back("#   So you can answer the questions at the end of the tests.");
             }
+            if (ProperName == "Perl6")
+            {
+                vec2.clear();
+                vec2.emplace_back("make test");
+                vec2.emplace_back("rakudo-test");
+                vec2.emplace_back("make rakudo-spectest");
+                vec2.emplace_back("make modules-test");
+            }
 
             if (ProperName == "Mariadb") {
                 skipTests = true;
@@ -1167,18 +1175,25 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr ProperName = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
+
+    //This part needs explanation....
+    //  Perl now has two versions.
+    //  Perl5 and Perl6, and Perl6 is not backwards compatible
+    //  So in the settings I use Perl5 and Perl6
+    //  As for the "program name" Perl5 is just Perl
+
     sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr getPath       = settings[programName + "->WGET"];
+    sstr getPath       = settings[programName + "5->WGET"];        // We are adding 5 to match perl5 in the settings
     sstr stgPath       = settings[programName + "->STG_Path"];
     sstr srcPath       = settings[programName + "->SRC_Path"];
     sstr usrPath       = settings[programName + "->USR_Path"];
     sstr tstPath       = settings[programName + "->TST_Path"];
     sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr version       = settings[programName + "5->Version"];      // We are adding 5 to match perl5 in the settings
+    sstr compression   = settings[programName + "5->Compression"];  // We are adding 5 to match perl5 in the settings
+    sstr scriptOnly    = settings[programName + "5->Script_Only"];  // We are adding 5 to match perl5 in the settings
+    sstr doTests       = settings[programName + "5->Do_Tests"];     // We are adding 5 to match perl5 in the settings
+    sstr debugOnly     = settings[programName + "5->Debug_Only"];   // We are adding 5 to match perl5 in the settings
     sstr thisOS        = settings[programName + "->This_OS"];
 
     bool bScriptOnly   = getBoolFromString(scriptOnly);
@@ -1218,7 +1233,8 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
-    sstr programName       = "rakudo-star";
+    sstr programName       = "perl6";
+    //sstr programName       = "rakudo-star";
     sstr protectedFileName = "protection";
     protectedFileName.append("-");
     protectedFileName.append(programName);
@@ -1227,10 +1243,21 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr ProperName = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
+
+    //This part needs explanation....
+    //  Perl now has two versions.
+    //  Perl5 and Perl6, and Perl6 is not backwards compatible
+    //  So in the settings I use Perl5 and Perl6
+    //  As for the "program name" Perl5 is just Perl
+    //  Program Name for "Perl6 is Perl6.
+    //  But since the setting prefix Perl6 = the Program name Perl6 we don't have to do anything funky here.
+
     sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr fileName      = settings[programName + "->FileName"];
     sstr getPath       = settings[programName + "->WGET"];
     sstr stgPath       = settings[programName + "->STG_Path"];
     sstr srcPath       = settings[programName + "->SRC_Path"];
+
     sstr usrPath       = settings[programName + "->USR_Path"];
     sstr tstPath       = settings[programName + "->TST_Path"];
     sstr rtnPath       = settings[programName + "->RTN_Path"];
@@ -1241,6 +1268,10 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr debugOnly     = settings[programName + "->Debug_Only"];
     sstr thisOS        = settings[programName + "->This_OS"];
 
+    // we need this path for running perl5 as part of the configure statement
+    sstr usrPathPerl5Executable  = settings[programName + "->Perl5_Executable"];
+
+
     bool bScriptOnly   = getBoolFromString(scriptOnly);
     bool bDoTests      = getBoolFromString(doTests);
     bool bDebug        = getBoolFromString(debugOnly);
@@ -1250,7 +1281,7 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName           =  programName + "-" + version;
+    fileName                =  fileName + "-" + version;
     sstr compressedFileName =  fileName + compression;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
     sstr workingPath        =  joinPathParts(srcPath, fileName);
@@ -1264,7 +1295,8 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
                                          stgPath, srcPath, tstPath, usrPath, bScriptOnly);
 
-        sstr configureStr = "eval \"cd " + workingPath + "; ./Configure -Dprefix=" + usrPath + " -d -e\"";
+        sstr configureStr = "eval \"cd " + workingPath + "; " + usrPathPerl5Executable + "perl Configure.pl "
+                              + " --backend=moar --gen-moar --prefix=" + usrPath + "\"";
         result += basicInstall(buildFileName, ProperName, configureStr,
                                workingPath, tstPath, usrPath, rtnPath,
                                bDebug, bDoTests, bScriptOnly);
@@ -2316,6 +2348,13 @@ sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileNa
     settings[programName + "->TST_Path"]    = joinPathParts(tstPath,  programName);
     settings[programName + "->RTN_Path"]    = basePath;
     sstr version = settings[programName + "->Version"];
+    settings.emplace(std::pair<sstr,sstr>(programName + "->Perl5_Executable",""));
+    if (programName == "perl6")
+    {
+        sstr perl5path = "perl/bin";
+        sstr path      = joinPathParts(usrPath,  perl5path);
+        settings[programName + "->Perl5_Executable"]    = path;
+    }
     return version;
 }
 
@@ -2473,8 +2512,6 @@ int main()
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
-    /*
-     * This will need some time to work out the details
     //perl6 setup
     programName = "perl6";
     version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);
@@ -2482,7 +2519,7 @@ int main()
     funptr = &install_perl6;
     result = process_section(fileNameResult, fileName_Build,  settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
-    */
+
     //ruby setup
     programName = "ruby";
     version = set_settings(settings, programName, fileName_Build, company, basePath, srcPath, usrPath, tstPath);

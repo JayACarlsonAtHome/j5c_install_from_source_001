@@ -7,7 +7,6 @@ set(SOURCE_FILES
         source/j5c_date.h
         source/j5c_date.cpp
         main.cpp
-
         )
 
 add_executable(Install.sh ${SOURCE_FILES})
