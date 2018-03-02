@@ -1,0 +1,114 @@
+#######################################################################
+#
+# Notes / Commands / To Finish Installation of MariaDB
+#
+# Created by Jay Carlson of J5C Marketing LLC
+# 360-649-6218
+# 1084 NE Beaumont Lane, Bremerton, WA 98311
+#
+########################################################################
+
+cd /wd3/zzz/p001/usr/mariadb
+
+eval "userdel -f mysql "
+eval "groupdel   mysql "
+eval "groupadd   mysql "
+eval "useradd -g mysql mysql "
+eval "mkdir -p /wd3/zzz/p001/usr/mariadb/run "
+eval "cd /wd3/zzz/p001/usr/mariadb/run; touch mariadb.socket "
+eval "cd /wd3/zzz/p001/usr/mariadb/run; touch pid "
+eval "mkdir -p /wd3/zzz/p001/usr/mariadb/var/log "
+eval "mkdir -p /wd3/zzz/p001/usr/mariadb/data/temp "
+
+eval "cd /wd3/zzz/p001/usr/mariadb/../; chown -R root:mysql mariadb "
+eval "cd /wd3/zzz/p001/usr/mariadb/../; chmod -R 770        mariadb "
+eval "cd /wd3/zzz/p001/usr/mariadb; chown -R mysql:mysql data "
+eval "cd /wd3/zzz/p001/usr/mariadb; chmod -R 770         data "
+eval "cd /wd3/zzz/p001/usr/mariadb; chown -R mysql:mysql run "
+eval "cd /wd3/zzz/p001/usr/mariadb; chmod -R 770         run "
+eval "cd /wd3/zzz/p001/usr/mariadb; chown -R mysql:mysql var "
+eval "cd /wd3/zzz/p001/usr/mariadb; chmod -R 770         var "
+
+#for my copy and paste requirements
+/wd3/zzz/p001/usr/mariadb/bin/mysql_secure_installation --socket='/wd3/zzz/p001/usr/mariadb/run/mariadb.socket'
+
+
+#You must run the install script
+cd /wd3/zzz/p001/usr/mariadb
+./scripts/mysql_install_db --user=mysql        \
+  --basedir=/wd3/zzz/p001/usr/mariadb          \
+  --datadir=/wd3/zzz/p001/usr/mariadb/data     \
+  --tmpdir=/wd3/zzz/p001/usr/mariadb/data/temp \
+  --socket='/wd3/zzz/p001/usr/mariadb/run/mariadb.socket'
+
+#Now you need to start MariaDB daemon
+#You can start the MariaDB daemon with:
+    cd /wd3/zzz/p001/usr/mariadb
+    ./bin/mysqld_safe --datadir='/wd3/zzz/p001/usr/mariadb/data' &
+
+#Or you can start the MariaDB daemon with:
+    cd /wd3/zzz/p001/usr/mariadb
+    ./bin/mysqld                                   \
+        --datadir='/wd3/zzz/p001/usr/mariadb/data' \
+        --socket='/wd3/zzz/p001/usr/mariadb/run/mariadb.socket' &
+
+#You really should secure the installation
+cd /wd3/zzz/p001/usr/mariadb
+# secure the installation -- set a root password, etc
+./bin/mysql_secure_installation --socket='/wd3/zzz/p001/usr/mariadb/run/mariadb.socket'
+
+#Now you can start the client console
+./bin/mysql --socket='/wd3/zzz/p001/usr/mariadb/run/mariadb.socket' -u root -p
+
+#Finally start using it -- run a test query
+select 1;
+
+##File -- /etc/my.cnf  -- safe the old file if any
+##File -- /etc/my.cnf  -- create a new file with these lines
+[mysqld]
+user=mysql
+socket='/wd3/zzz/p001/usr/mariadb/run/mariadb.socket'
+
+#Directories
+  basedir='/wd3/zzz/p001/usr/mariadb/'
+  datadir='/wd3/zzz/p001/usr/mariadb/data/'
+   logdir='/wd3/zzz/p001/usr/mariadb/var/log'
+
+#Log File
+  log-basename='conn_and_queries'
+
+#Log Settings
+  log-error=true
+  log-queries-not-using-indexes=true
+  log-slow-queries=true
+  log-warnings=true
+
+#Other Stuff
+  skip-networking
+  skip-ssl
+  key_buffer_size=8M
+
+
+# Disabling symbolic-links is recommended to prevent assorted security risks
+symbolic-links=0
+# Settings user and group are ignored when systemd is used.
+# If you need to run mysqld under a different user or group,
+# customize your systemd unit file for mariadb according to the
+# instructions in http://fedoraproject.org/wiki/Systemd
+
+[mysqld_safe]
+log-error=/wd3/zzz/p001/var/log/mariadb_error.log
+ pid-file=/wd3/zzz/p001/var/pid/mariadb.pid
+
+#
+# include all files from the config directory
+#
+!includedir /etc/my.cnf.d
+
+## end of file
+
+
+
+
+
+
