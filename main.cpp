@@ -262,6 +262,12 @@ bool directoryExists(const sstr& path)
     return result;
 }
 
+time_t get_Time()
+{
+    time_t rawtime;
+    time (&rawtime);
+    return rawtime;
+}
 
 template <typename T>
 sstr get_Time_Part(T timePart)
@@ -1049,7 +1055,6 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& usrPath, boo
 
     sstr theDate = make_fileName_dateTime();
     vec.emplace_back("eval \"cd /etc; cp my.cnf my.cnf.old_" + theDate + "\"");
-    file_write_vector_to_file(notes_file, vec);
     do_command(buildFileName, vec, bScriptOnly);
 
     //Now we have to create the new /etc/my.cnf file
@@ -1064,23 +1069,18 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& usrPath, boo
     vec.emplace_back("[mysqld]");
     vec.emplace_back("user=mysql");
     vec.emplace_back("socket='" + usrPath + "run/mariadb.socket'");
+    vec.emplace_back("bind-address=127.0.0.1");
+    vec.emplace_back("port=3306");
     vec.emplace_back(" ");
     vec.emplace_back("#Directories");
     vec.emplace_back("  basedir='" + usrPath + "'");
     vec.emplace_back("  datadir='" + usrPath + "data/'");
-    vec.emplace_back("   logdir='" + usrPath + "var/log/'");
     vec.emplace_back(" ");
     vec.emplace_back("#Log File");
-    vec.emplace_back("  log-basename='conn_and_queries'");
-    vec.emplace_back(" ");
-    vec.emplace_back("#Log Settings");
-    vec.emplace_back("  log-error=true");
-    vec.emplace_back("  log-queries-not-using-indexes=true");
-    vec.emplace_back("  log-slow-queries=true");
-    vec.emplace_back("  log-warnings=true");
+    vec.emplace_back("  log-basename='MariaDB_Logs'");
     vec.emplace_back(" ");
     vec.emplace_back("#Other Stuff");
-    vec.emplace_back("  skip-networking");
+    vec.emplace_back("#skip-networking");
     vec.emplace_back("  skip-ssl");
     vec.emplace_back("  key_buffer_size=32M");
     vec.emplace_back(" ");
@@ -1210,141 +1210,98 @@ int basicInstall(sstr& buildFileName, sstr& notes_file, sstr& ProperName, sstr& 
         if (ProperName == "Mariadb") {
 
             vec2.clear();
-            vec2.emplace_back("#-->The following command should be run automatically.");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
+            vec2.emplace_back("#--> You have to run all these commands manually to secure and start mariadb.");
+            //vec2.emplace_back("userdel -f mysql ");
+            //vec2.emplace_back("groupdel   mysql ");
+            //file_write_vector_to_file(notes_file, vec2, false);
 
-
-            vec2.clear();
-            vec2.emplace_back("eval \"userdel -f mysql \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \"groupdel   mysql \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \"groupadd   mysql \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \"useradd -g mysql mysql \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
             vec2.emplace_back("# ");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \" mkdir -p " + usrPath + "run; \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "run; touch mariadb.socket \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "run; touch pid \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \" mkdir -p " + usrPath + "var/log; \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            //set permissions for mariadb directory
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "../; chown -R root:mysql mariadb \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "../; chmod -R 770        mariadb \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            //set permissions for mariadb/data directory
-
-            vec2.clear();
-            vec2.emplace_back("eval \" mkdir -p " + usrPath + "data/temp; \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "; chown -R mysql:mysql data \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "; chmod -R 770         data \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            //set permissions for mariadb/run directory
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "; chown -R mysql:mysql run \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "; chmod -R 770         run \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            //set permissions for mariadb var directory
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "; chown -R mysql:mysql var \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-            vec2.clear();
-            vec2.emplace_back("eval \" cd "       + usrPath + "; chmod -R 770         var \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("eval \"cd " + usrPath + "; ./scripts/mysql_install_db --user=mysql "
-                          + "  --basedir="   + usrPath
-                          + "  --datadir="   + usrPath + "data "
-                          + "   --tmpdir="   + usrPath + "data/temp "
-                          + "   --socket='"  + usrPath + "run/mariadb.socket' \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
+            vec2.emplace_back("groupadd   mysql ");
+            vec2.emplace_back("useradd -g mysql mysql ");
+            //Create required directories if needed
+            vec2.emplace_back("# ");
+            vec2.emplace_back("mkdir -p " + usrPath + "data/temp");
+            vec2.emplace_back("mkdir -p " + usrPath + "run");
+            vec2.emplace_back("mkdir -p " + usrPath + "var/log");
+            // Add required run files
+            vec2.emplace_back("# ");
+            vec2.emplace_back("cd "       + usrPath + "run");
+            vec2.emplace_back("touch mariadb.socket ");
+            vec2.emplace_back("touch pid ");
+            //set permissions for mariadb directory recursively
+            vec2.emplace_back("# ");
+            vec2.emplace_back("cd " + usrPath + "../ ");
+            vec2.emplace_back("chown -R root:mysql mariadb ");
+            vec2.emplace_back("chmod -R 770        mariadb ");
+            //Over ride permissions as required
+            vec2.emplace_back("# ");
+            vec2.emplace_back("cd " + usrPath);
+            vec2.emplace_back("chown -R mysql:mysql data ");
+            vec2.emplace_back("chmod -R 770         data ");
+            vec2.emplace_back("chown -R mysql:mysql run  ");
+            vec2.emplace_back("chmod -R 770         run  ");
+            vec2.emplace_back("chown -R mysql:mysql var  ");
+            vec2.emplace_back("chmod -R 770         var  ");
+            file_write_vector_to_file(notes_file, vec2, false);
 
             create_my_cnf_File(buildFileName, notes_file, usrPath, bScriptOnly);
 
             vec2.clear();
-            vec2.emplace_back("eval \"cd " + usrPath + "; ./bin/mysqld "
-                              + "  --datadir="   + usrPath + "data "
-                              + "   --socket='"  + usrPath + "run/mariadb.socket' & \"");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("#Starting Here-->You must run these commands manually:");
-            vec2.emplace_back("#Secure the installation by running the following commands:");
-            vec2.emplace_back("#-->  " + usrPath +"bin/mysql_secure_installation");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("#After securing mariadb you can start the client console:");
-            vec2.emplace_back("#-->  ." + usrPath + "bin/mysql --socket='/wd3/zzz/p001/usr/mariadb/run/mariadb.socket' -u root -p ");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-            vec2.clear();
+            vec2.emplace_back("cd " + usrPath);
+            vec2.emplace_back("#");
+            vec2.emplace_back("# script the initial database");
+            sstr command = "./scripts/mysql_install_db --user=mysql ";
+            command.append(" --basedir='");
+            command.append(usrPath);
+            command.append("' --datadir='");
+            command.append(usrPath);
+            command.append("data' ");
+            command.append(" --tmpdir='");
+            command.append(usrPath);
+            command.append("data/temp' ");
+            command.append("  --socket='");
+            command.append(usrPath);
+            command.append("run/mariadb.socket' ");
+            vec2.emplace_back(command);
+            vec2.emplace_back("#");
+            vec2.emplace_back("# start the database ");
+            vec2.emplace_back("cd " + usrPath);
+            command.clear();
+            command.append("./bin/mysqld_safe ");
+            command.append(" --datadir='");
+            command.append(usrPath);
+            command.append("data' ");
+            command.append(" --socket='");
+            command.append(usrPath);
+            command.append("run/mariadb.socket' & ");
+            vec2.emplace_back(command);
+            vec2.emplace_back("#");
+            vec2.emplace_back("#Secure the installation by running:");
+            vec2.emplace_back("cd " + usrPath);
+            command.clear();
+            command = "./bin/mysql_secure_installation ";
+            command.append(" --socket='");
+            command.append(usrPath);
+            command.append("run/mariadb.socket'");
+            vec2.emplace_back(command);
+            vec2.emplace_back("#");
+            vec2.emplace_back("#After securing mariadb start the client console:");
+            command.clear();
+            command = "./bin/mysql ";
+            command.append(" --socket='");
+            command.append(usrPath);
+            command.append("run/mariadb.socket' -u root -p ");
+            vec2.emplace_back(command);
             vec2.emplace_back("# ");
-            file_write_vector_to_file(notes_file, vec2);
-            do_command(buildFileName, vec2, bScriptOnly);
-
-
+            vec2.emplace_back("# ");
+            vec2.emplace_back("# When you want to shutdown run this:");
+            vec2.emplace_back("cd " + usrPath);
+            vec2.emplace_back("./bin/mysqladmin -u root -p shutdown ");
+            file_write_vector_to_file(notes_file, vec2, false);
 
             vec1.clear();
+            vec1.emplace_back("#");
+            vec1.emplace_back("# See the Installation_Notes file to learn how to setup and start mariadb.");
             vec1.emplace_back("eval \"cd " + rtnPath + "\"");
             result += do_command(buildFileName, vec1, bScriptOnly);
         }
@@ -2507,7 +2464,7 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     return result;
 }
 
-int reportResults(sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, sstr& version, int step, int installResult)
+int reportResults(time_t startTime, sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, sstr& version, int step, int installResult)
 {
     int result = 0;
     programName = getProperNameFromString(programName);
@@ -2549,7 +2506,8 @@ int logFinalSettings(sstr& fileNameBuilds, std::map<sstr, sstr>& settings, sstr&
     return 0;
 }
 
-int process_section(sstr& fileNameResult,
+int process_section(time_t startTime,
+                    sstr& fileNameResult,
                     sstr& fileName_Build,
                     sstr& fileName_Notes,
                     std::map<sstr, sstr>& settings,
@@ -2574,7 +2532,7 @@ int process_section(sstr& fileNameResult,
         appendNewLogSection(fileName_Build);
         logFinalSettings(fileName_Build, settings, programName);
         result = pfunc(settings, protectMode);
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
+        reportResults( startTime, fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
     {
@@ -2628,6 +2586,8 @@ int main()
     sstr prefix;
     sstr protectModeText;
     bool bProtectMode;
+    time_t startTime;
+    time_t stop_Time;
 
     sstr theDateTime = make_fileName_dateTime();
 
@@ -2752,7 +2712,7 @@ int main()
         if (thisOS == OS_type::MaxOSX) {
             install_mac_required_dependencies(mpm);
         }
-        reportResults(fileName_Build, fileNameResult, programName, version, step, result);
+        reportResults(startTime, fileName_Build, fileNameResult, programName, version, step, result);
     }
     else
     {
@@ -2764,63 +2724,70 @@ int main()
 
     //perl(5) setup
     programName = "perl";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_perl5;
-    result = process_section(fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
+
     // mariadb setup
     programName = "mariadb";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_mariadb;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     //perl6 setup
     programName = "perl6";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_perl6;
-    result = process_section(fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     //ruby setup
     programName = "ruby";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_ruby;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     //tcl setup
     programName = "tcl";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     settings[programName + "->This_OS"]     = theOStext;
     step = -1;
     funptr = &install_tcl;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     //tk setup
     programName = "tk";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     settings[programName + "->This_OS"]     = theOStext;
     settings[programName + "->OLD_Path"]    = settings["tcl->SRC_Path"];
     step = -1;
     funptr = &install_tk;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
@@ -2831,98 +2798,109 @@ int main()
                            company, basePath, srcPath, usrPath, tstPath);
     step = 1;
     funptr = &install_apache_step_01;
-    result = process_section(fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // apr-util setup
     programName = "apr-util";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = 2;
     funptr = &install_apache_step_02;
-    result = process_section(fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // apr-iconv
     programName = "apr-iconv";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = 3;
     funptr = &install_apache_step_03;
-    result = process_section(fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // pcre setup
     programName = "pcre";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = 4;
     funptr = &install_apache_step_04;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // pcre2 setup
     programName = "pcre2";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = 5;
     funptr = &install_apache_step_05;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // apache setup
     programName = "apache";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_apache;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // php setup
     programName = "php";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_php;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // poco setup
     programName = "poco";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_poco;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // python setup
     programName = "python";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     step = -1;
     funptr = &install_python;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
     // postfix setup
     programName = "postfix";
+    startTime = get_Time();
     version = set_settings(settings, programName, fileName_Build, fileName_Notes,
                            company, basePath, srcPath, usrPath, tstPath);
     funptr = &install_postfix;
-    result = process_section(fileNameResult, fileName_Build, fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
+
+
 
     if (anyInstalled) {
         sstr end = "End of Program";
