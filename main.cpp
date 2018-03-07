@@ -1281,6 +1281,14 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
             vec2.emplace_back("cd " + usrPath);
             vec2.emplace_back("#");
             vec2.emplace_back("# script the initial database");
+            vec2.emplace_back("#   Note 1: If you see a lot of permission errors and the script fails...");
+            vec2.emplace_back("#           It probably means you need to run chmod o+x on all the directories");
+            vec2.emplace_back("#            up to the usr/mariadb directory. Once permissions are set up to ");
+            vec2.emplace_back("#            the mariadb directory, the rest of the permissions should be ok. ");
+            vec2.emplace_back("#            Don't use chmod -R o+x because that would set all the files as well");
+            vec2.emplace_back("#              and we only need the directories.");
+            vec2.emplace_back("#   Note 2:  Note 1 may not be secure enough for you, In that case you must use");
+            vec2.emplace_back("#               Access Control Lists, and that is too complicated to detail here.");
             sstr command = "./scripts/mysql_install_db --user=mysql ";
             command.append(" --basedir='");
             command.append(usrPath);
@@ -1327,7 +1335,17 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
             vec2.emplace_back("# ");
             vec2.emplace_back("# When you want to shutdown run this:");
             vec2.emplace_back("cd " + usrPath);
-            vec2.emplace_back("./bin/mysqladmin -u root -p shutdown ");
+
+            command.clear();
+            command ="./bin/mysqladmin -u root -p shutdown ";
+            command.append(" --socket='");
+            command.append(usrPath);
+            command.append("run/mariadb.socket' & ");
+            vec2.emplace_back(command);
+
+
+
+
             file_write_vector_to_file(notes_file, vec2, false);
 
             vec1.clear();
