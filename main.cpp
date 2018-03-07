@@ -1060,7 +1060,7 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     removeDirectory(buildFileName, tstPath, vec);
     removeDirectory(buildFileName, usrPath, vec);
     vec.emplace_back("# ");
-    vec.emplace_back("# Install " + ProperName + ".");
+    vec.emplace_back("# Ensure " + ProperName + " directories exist.");
     vec.emplace_back("eval \"mkdir -p " + bldPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + srcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + tstPath + "\"");
@@ -1159,7 +1159,7 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
         std::vector<sstr> vec2;
         vec1.emplace_back("# ");
         vec1.emplace_back("# Configure...");
-        vec1.emplace_back("# Piping results to the \"" + bldPath + "\" folder.");
+        vec1.emplace_back("# Piping results to " + bldPath + ".");
         // We are ending the command we started here with \"
         //   This was started in the configureStr.
         configureStr.append(" > " + bldPath + "configure_results.txt 2>&1 \"");
@@ -1395,7 +1395,7 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
         std::vector<sstr> vec2;
         vec1.emplace_back("# ");
         vec1.emplace_back("# Configure...");
-        vec1.emplace_back("# Piping results to the \"" + bldPath + "\" folder.");
+        vec1.emplace_back("# Piping results to the \"" + bldPath + "\" directory.");
         // We are ending the command we started here with \"
         //   This was started in the configureStr.
         configureStr.append(" > " + bldPath + "configure_results.txt 2>&1 \"");
@@ -2788,10 +2788,8 @@ sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileNa
     return version;
 }
 
-
 /*
  * Main Starts Here
- *
  *
  */
 
@@ -2920,206 +2918,83 @@ int main() {
     //function pointer declaration
     int (*funptr)(std::map<sstr, sstr> &settings, bool bProtectMode);
 
-    //perl(5) setup
-    programName = "perl";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_perl5;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
+    struct programs
+    {
+        sstr progName;
+        int  step;
+        int (*funptr)(std::map<sstr, sstr> &settings, bool bProtectMode);
+    };
+
+    std::vector<programs> progVector;
+
+    programs program;
+    program.progName = "perl";
+    program.step     = -1;
+    program.funptr = &install_perl5;
+    progVector.emplace_back(program);
+
+    program.progName = "mariadb";    program.step     = -1;    program.funptr   = &install_mariadb;
+    progVector.emplace_back(program);
+
+    program.progName = "apr";        program.step     =  1;    program.funptr   = &install_apache_step_01;
+    progVector.emplace_back(program);
+
+    program.progName = "apr-util";   program.step     =  2;    program.funptr   = &install_apache_step_02;
+    progVector.emplace_back(program);
+
+    program.progName = "apr-iconv";  program.step     =  3;    program.funptr   = &install_apache_step_03;
+    progVector.emplace_back(program);
+
+    program.progName = "pcre";       program.step     =  4;    program.funptr   = &install_apache_step_04;
+    progVector.emplace_back(program);
+
+    program.progName = "pcre2";      program.step     =  5;    program.funptr   = &install_apache_step_05;
+    progVector.emplace_back(program);
+
+    program.progName = "apache";     program.step     =  -1;   program.funptr   = &install_apache;
+    progVector.emplace_back(program);
+
+    program.progName = "perl6";      program.step     = -1;    program.funptr   = &install_perl6;
+    progVector.emplace_back(program);
+
+    program.progName = "php";        program.step     = -1;    program.funptr   = &install_php;
+    progVector.emplace_back(program);
+
+    program.progName = "poco";      program.step     =  -1;    program.funptr   = &install_poco;
+    progVector.emplace_back(program);
+
+    program.progName = "postfix";   program.step     =  -1;    program.funptr   = &install_postfix;
+    progVector.emplace_back(program);
+
+    program.progName = "python";    program.step     =  -1;    program.funptr   = &install_python;
+    progVector.emplace_back(program);
+
+    program.progName = "ruby";      program.step     = -1;     program.funptr   = &install_ruby;
+    progVector.emplace_back(program);
+
+    program.progName = "tcl";       program.step     =  1;     program.funptr   = &install_tcl;
+    progVector.emplace_back(program);
+
+    program.progName = "tk";        program.step     =  2;     program.funptr   = &install_tk;
+    progVector.emplace_back(program);
+
+    for( const auto& it: progVector )
+    {
+        programName = it.progName;
+        startTime = get_Time();
+        version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
+        if (version != skip_value) {
+            step = it.step;
+            funptr = (it.funptr);
+            result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
+                                     settings, programName, version, funptr, step, bProtectMode);
+            if (result > -1) { anyInstalled = true; }
+        }
     }
-
-    // mariadb setup
-    programName = "mariadb";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_mariadb;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    //perl6 setup
-    programName = "perl6";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_perl6;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    //ruby setup
-    programName = "ruby";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_ruby;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    //Get and Build Apache Dependencies
-    // apr setup
-    programName = "apr";
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = 1;
-        funptr = &install_apache_step_01;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // apr-util setup
-    programName = "apr-util";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = 2;
-        funptr = &install_apache_step_02;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // apr-iconv
-    programName = "apr-iconv";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = 3;
-        funptr = &install_apache_step_03;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-
-
-    // pcre setup
-    programName = "pcre";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = 4;
-        funptr = &install_apache_step_04;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // pcre2 setup
-    programName = "pcre2";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = 5;
-        funptr = &install_apache_step_05;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // apache setup
-    programName = "apache";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_apache;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // php setup
-    programName = "php";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_php;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // poco setup
-    programName = "poco";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_poco;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // python setup
-    programName = "python";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        step = -1;
-        funptr = &install_python;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    // postfix setup
-    programName = "postfix";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        funptr = &install_postfix;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    //tcl setup
-    programName = "tcl";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        settings[programName + "->This_OS"] = theOStext;
-        step = -1;
-        funptr = &install_tcl;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
-    //tk setup
-    programName = "tk";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    if (version != skip_value) {
-        settings[programName + "->This_OS"] = theOStext;
-        step = -1;
-        funptr = &install_tk;
-        result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                                 settings, programName, version, funptr, step, bProtectMode);
-        if (result > -1) { anyInstalled = true; }
-    }
-
     if (anyInstalled) {
         sstr end = "End of Program";
         file_append_line(fileName_Build, end);
         file_append_line(fileNameResult, end);
     }
-
     return 0;
 }
