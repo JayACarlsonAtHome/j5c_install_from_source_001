@@ -1025,9 +1025,10 @@ void stageSourceCodeIfNeeded(sstr& buildFileName,
 
 sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
 {
+
     if (replacement.length() == 3) {
-        sstr newPath{xxxPath};
-        newPath.replace(newPath.find_last_of("xxx")-2, 3, replacement, 0,3);
+        sstr newPath = xxxPath;
+        newPath.replace(newPath.rfind("xxx"), 3, replacement, 0,3);
         return newPath;
     }
     return "Err in get_xxx_Path()...Replacement Path Length is != 3.";
@@ -1144,8 +1145,6 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
     sstr tmpPath = get_xxx_Path(xxxPath, "src");
     sstr srcPath = joinPathParts(tmpPath, progVersion);
 
-
-
     if (!bDebug) {
         std::vector<sstr> vec1;
         std::vector<sstr> vec2;
@@ -1159,6 +1158,7 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
 
         if (bDoTests) {
 
+
             if (ProperName == "Php") {
                 // do nothing..
                 // until I can get "expect" to read the input and "send" n
@@ -1169,10 +1169,10 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
             }
             if (ProperName == "Perl6")
             {
-                sstr suffix1 = "_make_test_results.txt";
-                sstr suffix2 = "_rakudo_test_results.txt";
-                sstr suffix3 = "_rakudo_specTest_results.txt";
-                sstr suffix4 = "_modules_test_results.txt";
+                sstr suffix1 = "make_test_results.txt";
+                sstr suffix2 = "rakudo_test_results.txt";
+                sstr suffix3 = "rakudo_specTest_results.txt";
+                sstr suffix4 = "modules_test_results.txt";
 
                 sstr testPathAndFileName1 = joinPathWithFile(bldPath, suffix1);
                 sstr testPathAndFileName2 = joinPathWithFile(bldPath, suffix2);
@@ -1200,28 +1200,11 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
             if (ProperName == "Mariadb") {
 
                 sstr testPathAndFileName = bldPath;
-                sstr testPathAndFileName1, testPathAndFileName2;
-                sstr suffix1 = "_test_results_01.txt";
-                sstr suffix2 = "_test_results_02.txt";
-
-                auto len = usrPath.find_first_of("usr");
-                sstr perlPath;
-                perlPath.append(usrPath.substr(0, len - 1));
-                perlPath.append("/usr/perl/bin/perl");
+                sstr suffix = "test_results_01.txt";
 
                 vec2.clear();
-                testPathAndFileName1 = joinPathWithFile(testPathAndFileName, suffix1);
-                vec2.emplace_back("# !!! Warning this may take a while...get some coffee...or something...");
-                vec2.emplace_back("  eval \"cd " + srcPath + "; make test 2>&1> " + testPathAndFileName1 + "\"");
-                do_command(buildFileName, vec2, bScriptOnly);
-
-                vec2.clear();
-                testPathAndFileName2 = joinPathWithFile(testPathAndFileName, suffix2);
-                vec2.emplace_back(
-                        "# !!! Warning this may take a few HOURS...play fooshball, get coffee...or something...");
-                vec2.emplace_back(
-                        "# eval \"cd " + srcPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " +
-                        testPathAndFileName2 + "\"");
+                testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
+                vec2.emplace_back("  eval \"cd " + srcPath + "; make test 2>&1> " + testPathAndFileName + "\"");
                 do_command(buildFileName, vec2, bScriptOnly);
 
                 // We don't want to run the normal tests...
@@ -1244,13 +1227,26 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
         result += do_command(buildFileName, vec1, bScriptOnly);
         if (ProperName == "Mariadb") {
 
+            sstr testPathAndFileName = bldPath;
+            sstr suffix = "test_results_02.txt";
+
+            auto len = usrPath.find_first_of("usr");
+            sstr perlPath;
+            perlPath.append(usrPath.substr(0, len - 1));
+            perlPath.append("/usr/perl/bin/perl");
+
+            vec2.clear();
+            testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
+            vec2.emplace_back(
+                    "# !!! if you desire you can run these (long) tests after installation...");
+            vec2.emplace_back(
+                    "# eval \"cd " + srcPath + "mysql-test; " + perlPath + " mysql-test-run.pl 2>&1> " +
+                    testPathAndFileName + "\"");
+            do_command(buildFileName, vec2, bScriptOnly);
+
+
             vec2.clear();
             vec2.emplace_back("#--> You have to run all these commands manually to secure and start mariadb.");
-            //vec2.emplace_back("userdel -f mysql ");
-            //vec2.emplace_back("groupdel   mysql ");
-            //file_write_vector_to_file(notes_file, vec2, false);
-
-            vec2.emplace_back("# ");
             vec2.emplace_back("groupadd   mysql ");
             vec2.emplace_back("useradd -g mysql mysql ");
             //Create required directories if needed
@@ -1343,6 +1339,52 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
     }
     return result;
 }
+
+int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr& configureStr,
+                 sstr& srcPath, sstr& xxxPath, sstr& progVersion, sstr& rtnPath,
+                 bool bDebug, bool bDoTests, bool bScriptOnly)
+{
+    int result = -1;
+    bool skipTests = false;
+
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    // one of these things is not like the others...on purpose...
+    //sstr tmpPath = get_xxx_Path(xxxPath, "src");
+
+    if (!bDebug) {
+        std::vector<sstr> vec1;
+        std::vector<sstr> vec2;
+        vec1.emplace_back("# We are running configure and make, and piping to the \"" + bldPath + "\" folder.");
+        // We are ending the command we started here with \"
+        //   This was started in the configureStr.
+        configureStr.append(" 2>&1> " + bldPath + "configure_results.txt \"");
+        vec1.emplace_back(configureStr);
+        vec1.emplace_back("eval \"cd " + srcPath + "; make 2>&1> " + bldPath + "make_results.txt \"");
+        result = do_command(buildFileName, vec1, bScriptOnly);
+
+        if (bDoTests) {
+
+            if (!skipTests) {
+                sstr testPathAndFileName = bldPath;
+                sstr suffix = "test_results.txt";
+                testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
+
+                vec2.emplace_back("# make test 2>&1> " + testPathAndFileName);
+                vec2.emplace_back("# !!! Warning this may take a while...get some coffee...or something...");
+                vec2.emplace_back("eval \"cd " + srcPath + "; make test 2>&1> " + testPathAndFileName + "\"");
+                do_command(buildFileName, vec2, bScriptOnly);
+            }
+        }
+        vec1.clear();
+        vec1.emplace_back("eval \"cd " + srcPath + "; make install 2>&1>" + bldPath + "install_results.txt \"");
+        vec1.emplace_back("# ");
+        result += do_command(buildFileName, vec1, bScriptOnly);
+    }
+    return result;
+}
+
 
 bool programNotProtected(std::map<sstr, sstr> settings,
                         sstr& buildFileName, sstr& ProperName, sstr& protectedFileName,
@@ -1439,6 +1481,7 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
     sstr tmpPath = get_xxx_Path(xxxPath, "src");
     sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -1452,7 +1495,7 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + srcPath + "; ./Configure -Dprefix=" + srcPath + " -d -e ";
+        sstr configureStr = "eval \"cd " + srcPath + "; ./Configure -Dprefix=" + usrPath + " -d -e ";
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
                                xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
 
@@ -1513,6 +1556,9 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
                                          stgPath, xxxPath, bScriptOnly);
 
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
         sstr configureStr = "eval \"cd " + srcPath + "; ./BUILD/autorun.sh; "
                             + " cd " + srcPath + "; " + "./configure --prefix=" + usrPath + " " + "\\\n"
                             + "--enable-assembler                  "  + "\\\n"
@@ -1544,9 +1590,6 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     return result;
 }
 
-
-
-/*
 int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
@@ -1573,13 +1616,9 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr notes_file    = settings[programName + "->Notes_File"];
     sstr fileName      = settings[programName + "->FileName"];
     sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
     sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
     sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
     sstr version       = settings[programName + "->Version"];
     sstr compression   = settings[programName + "->Compression"];
     sstr scriptOnly    = settings[programName + "->Script_Only"];
@@ -1600,27 +1639,32 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    fileName                =  fileName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
+    sstr progVersion        =  fileName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                   workingPath,   usrPath,    bScriptOnly);
+                                   srcPath,   xxxPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath, bScriptOnly);
+                                         stgPath, xxxPath, bScriptOnly);
 
-        sstr configureStr = "eval \"cd " + workingPath + "; " + usrPathPerl5Executable + "perl Configure.pl "
-                              + " --backend=moar --gen-moar --prefix=" + usrPath + "\"";
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; " + usrPathPerl5Executable + "perl Configure.pl "
+                              + " --backend=moar --gen-moar --prefix=" + usrPath + "";
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
 
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                      bProtectMode,  bScriptOnly );
     }
     return result;
@@ -1643,10 +1687,8 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr getPath       = settings[programName + "->WGET"];
     sstr bldPath       = settings[programName + "->BLD_Path"];
     sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
     sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
     sstr version       = settings[programName + "->Version"];
     sstr compression   = settings[programName + "->Compression"];
     sstr scriptOnly    = settings[programName + "->Script_Only"];
@@ -1663,36 +1705,752 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
 
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
+                                   srcPath,   xxxPath,    bScriptOnly);
 
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
+                                         stgPath, xxxPath, bScriptOnly);
 
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " ";
+
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
 
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                      bProtectMode,  bScriptOnly );
 
     }
     return result;
 }
 
-int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "apr";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd "     + srcPath + "; ./configure --prefix=" + usrPath + " ";
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+    }
+    return result;
+}
+
+int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "apr-util";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix="
+                            + usrPath + "  --with-apr="
+                            + usrPath.substr(0, (usrPath.length()-10)) + "/apr/bin ";
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+    }
+    return result;
+}
+
+int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "apr-iconv";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                                  srcPath,   xxxPath,    bScriptOnly);
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix="
+                            + usrPath    + "  --with-apr="
+                            + usrPath.substr(0,(usrPath.length()-11)) + "/apr/bin ";
+
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+    }
+    return result;
+}
+
+int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "pcre";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " ";
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+    }
+    return result;
+}
+
+int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "pcre2";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " ";
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
+    }
+    return result;
+}
+
+int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "apache";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  "httpd-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; "  +
+                              " ./configure --prefix=" + usrPath + " "
+                            + " --with-apr="       + usrPath.substr(0, (usrPath.length()-8)) + "/apr        "
+                            + " --with-apr-util="  + usrPath.substr(0, (usrPath.length()-8)) + "/apr-util   "
+                            + " --with-apr-iconv=" + usrPath.substr(0, (usrPath.length()-8)) + "/apr-iconv  "
+                            + " --with-pcre="      + usrPath.substr(0, (usrPath.length()-8)) + "/pcre " + " ";
+
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
+    }
+    return result;
+}
+
+int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "php";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName  = settings[programName + "->Build_Name"];
+    sstr notes_file     = settings[programName + "->Notes_File"];
+    sstr getPath        = settings[programName + "->WGET"];
+    sstr stgPath        = settings[programName + "->STG_Path"];
+    sstr rtnPath        = settings[programName + "->RTN_Path"];
+    sstr xxxPath        = settings[programName + "->XXX_Path"];
+    sstr version        = settings[programName + "->Version"];
+    sstr compression    = settings[programName + "->Compression"];
+    sstr scriptOnly     = settings[programName + "->Script_Only"];
+    sstr doTests        = settings[programName + "->Do_Tests"];
+    sstr debugOnly      = settings[programName + "->Debug_Only"];
+    sstr thisOS         = settings[programName + "->This_OS"];
+    sstr Install_Xdebug = settings[programName + "->Install_Xdebug"]= "true";
+
+    bool bScriptOnly     = getBoolFromString(scriptOnly);
+    bool bDoTests        = getBoolFromString(doTests);
+    bool bDebug          = getBoolFromString(debugOnly);
+    bool bInstall_Xdebug = getBoolFromString(Install_Xdebug);
+    bool bInstall        = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    // This section is special to the PHP install.
+    // Do not remove and replace with the like section of
+    //   other programs. It will not work.
+    if (!(isFileSizeGtZero(stagedFileName))) {
+        // this will download the file with the fileName of mirror
+        vec.emplace_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
+        // copy to the compressedFileName
+        vec.emplace_back("eval \"cd " + stgPath + "; cp "    + "mirror " + compressedFileName + "\"");
+        // remove the mirror file
+        vec.emplace_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " ";
+
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+        vec.clear();
+        if (bInstall_Xdebug)
+        {
+            vec.emplace_back("eval \"cd " + usrPath + "bin; ./pecl install xdebug\"");
+        } else
+        {
+            vec.emplace_back("# Xdebug not installed.");
+        }
+        result += do_command(buildFileName, vec, bScriptOnly);
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
+    }
+    return result;
+}
+
+int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "poco";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version + "-all";
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " ";
+
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+    }
+    return result;
+}
+
+int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "python";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  ProperName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " ";
+
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
+    }
+    return result;
+}
+
+int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "postfix";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    //bool bDoTests    = getBoolFromString(doTests);
+    //bool bDebug      = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         stgPath, xxxPath, bScriptOnly);
+
+        /*
+         * Currently Installation of this is not supported...
+         *   Maybe later when I know more about it.
+         *
+         *
+         *  // Note: Don't end the command with \" to close the command here.
+         *  //   We are going to append more to the command in the function
+         *  //     and end the command with \" there.
+         *
+         * sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + " ";
+         *
+         * result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+         *                      xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+         *
+         *
+         * createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+         *                            bProtectMode,  bScriptOnly );
+         */
+    }
+    return result;
+}
+
+ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr installOS;
@@ -1708,12 +2466,9 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr buildFileName = settings[programName + "->Build_Name"];
     sstr notes_file    = settings[programName + "->Notes_File"];
     sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
     sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
     sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
     sstr version       = settings[programName + "->Version"];
     sstr compression   = settings[programName + "->Compression"];
     sstr scriptOnly    = settings[programName + "->Script_Only"];
@@ -1735,31 +2490,41 @@ int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName           =  "tcl" + version;
-    sstr compressedFileName =  fileName + "-src" + compression;
+    sstr progVersion        =  programName + version + "-src";
+    sstr compressedFileName =  progVersion + compression;
+         progVersion        =  programName + version;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-    workingPath             =  joinPathParts(workingPath, installOS);
+
+    sstr suffix = "tcl_tk";
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+         srcPath = joinPathParts(srcPath, installOS);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+    usrPath = usrPath.substr(0,usrPath.length()-4);
+    usrPath.append(suffix);
 
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
+                                   srcPath,   xxxPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
+                                         stgPath, xxxPath, bScriptOnly);
 
-        sstr configureStr = "eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
-        + " --enable-threads --enable-shared --enable-symbols --enable-64bit;\"";
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
 
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath
+        + " --enable-threads --enable-shared --enable-symbols --enable-64bit; ";
 
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+        result += basicInstall_tcl(buildFileName, notes_file, ProperName, configureStr, srcPath,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                      bProtectMode,  bScriptOnly );
 
     }
@@ -1785,11 +2550,8 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr getPath       = settings[programName + "->WGET"];
     sstr bldPath       = settings[programName + "->BLD_Path"];
     sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr oldPath       = settings[programName + "->OLD_Path"];
     sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
     sstr version       = settings[programName + "->Version"];
     sstr compression   = settings[programName + "->Compression"];
     sstr scriptOnly    = settings[programName + "->Script_Only"];
@@ -1811,799 +2573,54 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr fileName           =  "tk" + version;
-    sstr compressedFileName =  fileName + "-src" + compression;
+    sstr progVersion        =  programName + version + "-src";
+    sstr compressedFileName =  progVersion + compression;
+    progVersion             =  programName + version;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-    workingPath             =  joinPathParts(workingPath, installOS);
 
+
+    sstr suffix = "tcl_tk";
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    srcPath = joinPathParts(srcPath, installOS);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+    usrPath = usrPath.substr(0, usrPath.length()-3);
+    usrPath.append(suffix);
+
+    sstr tclXxxPath = settings["tcl->XXX_Path"];
+    sstr tclSrcPath = get_xxx_Path(tclXxxPath, "src");
+    sstr tclVersion = settings["tcl->Version"];
+    sstr tclProgVersion = "tcl";
+    tclProgVersion.append(tclVersion);
+    sstr tclPath = joinPathParts(tclSrcPath, tclProgVersion);
+    tclPath = joinPathParts(tclPath, installOS);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-
+                                   srcPath,   xxxPath,    bScriptOnly);
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
+                                         stgPath, xxxPath, bScriptOnly);
 
-        sstr configureStr = "eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath
-        + " --with-tcl=" + oldPath + "tcl" + version +"/" + installOS
-        + " --enable-threads --enable-shared --enable-symbols --enable-64bit\"";
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
 
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
+        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath
+        + " --with-tcl=" + tclPath +
+        + " --enable-threads --enable-shared --enable-symbols --enable-64bit ";
 
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
+        result += basicInstall_tcl(buildFileName, notes_file, ProperName, configureStr,
+                               srcPath, xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                      bProtectMode,  bScriptOnly );
     }
     return result;
 }
-
-int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "apr";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd "     + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "apr-util";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix="
-                            + usrPath + "  --with-apr="
-                            + usrPath.substr(0, (usrPath.length()-10)) + "/apr/bin \"";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "apr-iconv";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix="
-                            + usrPath    + "  --with-apr="
-                            + usrPath.substr(0,(usrPath.length()-11)) + "/apr/bin \"";
-
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "pcre";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "pcre2";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "apache";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  "httpd-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; "  +
-                              " ./configure --prefix=" + usrPath + " "
-                            + " --with-apr="       + usrPath.substr(0, (usrPath.length()-8)) + "/apr        "
-                            + " --with-apr-util="  + usrPath.substr(0, (usrPath.length()-8)) + "/apr-util   "
-                            + " --with-apr-iconv=" + usrPath.substr(0, (usrPath.length()-8)) + "/apr-iconv  "
-                            + " --with-pcre="      + usrPath.substr(0, (usrPath.length()-8)) + "/pcre " + "\"";
-
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-
-    }
-    return result;
-}
-
-int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "mariadb";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./BUILD/autorun.sh; "
-         + " cd " + workingPath + "; " + "./configure --prefix=" + usrPath + " " + "\\\n"
-                  + "--enable-assembler                  "  + "\\\n"
-                  + "--jemalloc_static_library=/usr/lib64"  + "\\\n"
-                  + "--with-extra-charsets=complex       "  + "\\\n"
-                  + "--enable-thread-safe-client         "  + "\\\n"
-                  + "--with-big-tables                   "  + "\\\n"
-                  + "--with-plugin-maria                 "  + "\\\n"
-                  + "--with-aria-tmp-tables              "  + "\\\n"
-                  + "--without-plugin-innodb_plugin      "  + "\\\n"
-                  + "--with-mysqld-ldflags=-static       "  + "\\\n"
-                  + "--with-client-ldflags=-static       "  + "\\\n"
-                  + "--with-readline                     "  + "\\\n"
-                  + "--with-ssl                          "  + "\\\n"
-                  + "--with-embedded-server              "  + "\\\n"
-                  + "--with-libevent                     "  + "\\\n"
-                  + "--with-mysqld-ldflags=-all-static   "  + "\\\n"
-                  + "--with-client-ldflags=-all-static   "  + "\\\n"
-                  + "--with-zlib-dir=bundled             "  + "\\\n"
-                  + "--enable-local-infile\"";
-
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "php";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName  = settings[programName + "->Build_Name"];
-    sstr notes_file     = settings[programName + "->Notes_File"];
-    sstr getPath        = settings[programName + "->WGET"];
-    sstr bldPath        = settings[programName + "->BLD_Path"];
-    sstr stgPath        = settings[programName + "->STG_Path"];
-    sstr srcPath        = settings[programName + "->SRC_Path"];
-    sstr usrPath        = settings[programName + "->USR_Path"];
-    sstr tstPath        = settings[programName + "->TST_Path"];
-    sstr rtnPath        = settings[programName + "->RTN_Path"];
-    sstr version        = settings[programName + "->Version"];
-    sstr compression    = settings[programName + "->Compression"];
-    sstr scriptOnly     = settings[programName + "->Script_Only"];
-    sstr doTests        = settings[programName + "->Do_Tests"];
-    sstr debugOnly      = settings[programName + "->Debug_Only"];
-    sstr thisOS         = settings[programName + "->This_OS"];
-    sstr Install_Xdebug = settings[programName + "->Install_Xdebug"]= "true";
-
-    bool bScriptOnly     = getBoolFromString(scriptOnly);
-    bool bDoTests        = getBoolFromString(doTests);
-    bool bDebug          = getBoolFromString(debugOnly);
-    bool bInstall_Xdebug = getBoolFromString(Install_Xdebug);
-    bool bInstall        = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    // This section is special to the PHP install.
-    // Do not remove and replace with the like section of
-    //   other programs. It will not work.
-    if (!(isFileSizeGtZero(stagedFileName))) {
-        // this will download the file with the fileName of mirror
-        vec.emplace_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
-        // copy to the compressedFileName
-        vec.emplace_back("eval \"cd " + stgPath + "; cp "    + "mirror " + compressedFileName + "\"");
-        // remove the mirror file
-        vec.emplace_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
-        do_command(buildFileName, vec, bScriptOnly);
-    }
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-        vec.clear();
-        if (bInstall_Xdebug)
-        {
-            vec.emplace_back("eval \"cd " + usrPath + "bin; ./pecl install xdebug\"");
-        } else
-        {
-            vec.emplace_back("# Xdebug not installed.");
-        }
-        result += do_command(buildFileName, vec, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-
-int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "poco";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName1           =  programName + "-"  + version;
-    sstr fileName2           =  fileName1 + "-all";
-    sstr compressedFileName =  fileName2 + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName2);
-
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "python";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    bool bDoTests      = getBoolFromString(doTests);
-    bool bDebug        = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  ProperName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-
-int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
-{
-    int result = -1;
-    sstr programName       = "postfix";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
-
-    //unpack the map to make the code easier to read
-    sstr buildFileName = settings[programName + "->Build_Name"];
-    sstr notes_file    = settings[programName + "->Notes_File"];
-    sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
-    sstr stgPath       = settings[programName + "->STG_Path"];
-    sstr srcPath       = settings[programName + "->SRC_Path"];
-    sstr usrPath       = settings[programName + "->USR_Path"];
-    sstr tstPath       = settings[programName + "->TST_Path"];
-    sstr rtnPath       = settings[programName + "->RTN_Path"];
-    sstr version       = settings[programName + "->Version"];
-    sstr compression   = settings[programName + "->Compression"];
-    sstr scriptOnly    = settings[programName + "->Script_Only"];
-    sstr doTests       = settings[programName + "->Do_Tests"];
-    sstr debugOnly     = settings[programName + "->Debug_Only"];
-    sstr thisOS        = settings[programName + "->This_OS"];
-
-    bool bScriptOnly   = getBoolFromString(scriptOnly);
-    //bool bDoTests    = getBoolFromString(doTests);
-    //bool bDebug      = getBoolFromString(debugOnly);
-    bool bInstall      = false;
-
-
-    sstr command;
-    std::vector<sstr> vec;
-    appendNewLogSection(buildFileName);
-
-    sstr fileName           =  programName + "-" + version;
-    sstr compressedFileName =  fileName + compression;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
-    sstr workingPath        =  joinPathParts(srcPath, fileName);
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
-
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                                  workingPath,   usrPath,    bScriptOnly);
-    if (bInstall)
-    {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, srcPath, tstPath, usrPath,
-                                         bScriptOnly);
-
-        /*
-         * Currently Installation of this is not supported...
-         *   Maybe later when I know more about it.
-         *
-        sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + "\"";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               workingPath, tstPath, usrPath, rtnPath,
-                               bDebug, bDoTests, bScriptOnly);
-
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, workingPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-    }
-    return result;
-}
-*/
 
 int reportResults(time_t startTime, sstr& fileNameBuilds, sstr& fileNameResult, sstr& programName, sstr& version, int step, int installResult)
 {
@@ -2720,6 +2737,7 @@ sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileNa
 
 int main()
 {
+
     OS_type thisOS;
     Mac_PM  mpm;
     sstr prefix;
@@ -2876,7 +2894,6 @@ int main()
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
-    /*
     //perl6 setup
     programName = "perl6";
     startTime = get_Time();
@@ -2897,36 +2914,13 @@ int main()
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
-    //tcl setup
-    programName = "tcl";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    settings[programName + "->This_OS"]     = theOStext;
-    step = -1;
-    funptr = &install_tcl;
-    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                             settings, programName, version, funptr, step, bProtectMode);
-    if (result > -1) {  anyInstalled = true;  }
-
-    //tk setup
-    programName = "tk";
-    startTime = get_Time();
-    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
-    settings[programName + "->This_OS"]     = theOStext;
-    settings[programName + "->OLD_Path"]    = settings["tcl->SRC_Path"];
-    step = -1;
-    funptr = &install_tk;
-    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
-                             settings, programName, version, funptr, step, bProtectMode);
-    if (result > -1) {  anyInstalled = true;  }
-
     //Get and Build Apache Dependencies
     // apr setup
     programName = "apr";
     version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
     step = 1;
     funptr = &install_apache_step_01;
-    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
@@ -2936,7 +2930,7 @@ int main()
     version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
     step = 2;
     funptr = &install_apache_step_02;
-    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
 
@@ -2946,9 +2940,10 @@ int main()
     version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
     step = 3;
     funptr = &install_apache_step_03;
-    result = process_section(startTime, fileNameResult, fileName_Build,  fileName_Notes,
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                              settings, programName, version, funptr, step, bProtectMode);
     if (result > -1) {  anyInstalled = true;  }
+
 
     // pcre setup
     programName = "pcre";
@@ -3020,7 +3015,29 @@ int main()
     if (result > -1) {  anyInstalled = true;  }
 
 
-    */
+    //tcl setup
+    programName = "tcl";
+    startTime = get_Time();
+    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
+    settings[programName + "->This_OS"]     = theOStext;
+    step = -1;
+    funptr = &install_tcl;
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
+                             settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
+
+    //tk setup
+    programName = "tk";
+    startTime = get_Time();
+    version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
+    settings[programName + "->This_OS"] = theOStext;
+    step = -1;
+    funptr = &install_tk;
+    result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
+                             settings, programName, version, funptr, step, bProtectMode);
+    if (result > -1) {  anyInstalled = true;  }
+
+
     if (anyInstalled) {
         sstr end = "End of Program";
         file_append_line(fileName_Build, end);
