@@ -1040,32 +1040,46 @@ sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
     return "Err in get_xxx_Path()...Replacement Path Length is != 3.";
 }
 
-
-int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compressedFileName,
-                            sstr& stgPath, const sstr& xxxPath, bool bScriptOnly)
+int removeWorkingDirectories(sstr& buildFileName, sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath, std::vector<sstr> vec)
 {
+    removeDirectory(buildFileName, bldPath, vec);
+    removeDirectory(buildFileName, etcPath, vec);
+    removeDirectory(buildFileName, srcPath, vec);
+    removeDirectory(buildFileName, usrPath, vec);
+    return 0;
+}
 
+int ensureStgDirExists(sstr& ProperName, sstr& buildFileName, sstr& stgPath, bool bScriptOnly)
+{
     std::vector<sstr> vec;
     vec.emplace_back("# ");
-    vec.emplace_back("# Remove unfinished " + ProperName + " install (if any).");
+    vec.emplace_back("# Ensure " + ProperName + " directories exist.");
+    vec.emplace_back("eval \"mkdir -p " + stgPath + "\"");
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    return result;
+}
 
-    sstr bldPath = get_xxx_Path(xxxPath, "bld");
-    sstr srcPath = get_xxx_Path(xxxPath, "src");
-    sstr tstPath = get_xxx_Path(xxxPath, "tst");
-    sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-
-    removeDirectory(buildFileName, bldPath, vec);
-    removeDirectory(buildFileName, srcPath, vec);
-    removeDirectory(buildFileName, tstPath, vec);
-    removeDirectory(buildFileName, usrPath, vec);
+int ensureWrkDirExist(sstr& buildFileName, sstr& ProperName,
+                                  sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& tlsPath, sstr& usrPath,
+                                  bool bScriptOnly)
+{
+    std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure " + ProperName + " directories exist.");
     vec.emplace_back("eval \"mkdir -p " + bldPath + "\"");
+    vec.emplace_back("eval \"mkdir -p " + etcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + srcPath + "\"");
-    vec.emplace_back("eval \"mkdir -p " + tstPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + usrPath + "\"");
+    vec.emplace_back("eval \"mkdir -p " + tlsPath + "\"");
 
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    return result;
+}
+
+int createTargetFromStage(sstr& buildFileName, sstr& ProperName, sstr& stgPath, sstr& srcPath, sstr& compressedFileName, bool bScriptOnly)
+{
+    std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Copy, decompress, and remove compressed file.");
     vec.emplace_back("eval \"cd " + stgPath + "; cp ./"   + compressedFileName + " " + srcPath + "\"");
@@ -1075,27 +1089,69 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     return result;
 }
 
+int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compressedFileName,
+                            sstr& rtnPath, sstr& stgPath, const sstr& xxxPath, bool bScriptOnly)
+{
+    std::vector<sstr> vec;
+    vec.emplace_back("# ");
+    vec.emplace_back("# Remove unfinished " + ProperName + " install (if any).");
 
-int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& usrPath, bool bScriptOnly)
+    sstr bldPath = get_xxx_Path( xxxPath, "bld");
+    sstr etcPath = get_xxx_Path( xxxPath, "etc");
+    sstr srcPath = get_xxx_Path( xxxPath, "src");
+    sstr tmpPath = "tls";
+    sstr tlsPath = joinPathParts(rtnPath, tmpPath);
+    sstr usrPath = get_xxx_Path( xxxPath, "usr");
+
+
+    removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, vec);
+    int result =  ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, tlsPath, usrPath, bScriptOnly);
+    result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
+    return result;
+}
+
+int setupInstallDirectories_tcl(sstr& buildFileName, sstr& ProperName, sstr& compressedFileName,
+                            sstr& stgPath, sstr& rtnPath, const sstr& xxxPath, bool bScriptOnly)
+{
+
+    std::vector<sstr> vec;
+    vec.emplace_back("# ");
+    vec.emplace_back("# Remove unfinished " + ProperName + " install (if any).");
+
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr etcPath = get_xxx_Path(xxxPath, "etc");
+    sstr srcPath = get_xxx_Path(xxxPath, "src");
+    sstr tlsPath = get_xxx_Path(rtnPath, "tls");
+    sstr tmpPath = "usr/Tcl_Tk";
+    sstr usrPath = joinPathParts(rtnPath, tmpPath);
+
+    removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, vec);
+    int result =  ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, tlsPath, usrPath, bScriptOnly);
+    result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
+    return result;
+}
+
+
+int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sstr& usrPath, bool bScriptOnly)
 {
     std::vector<sstr> vec;
     vec.clear();
-    vec.emplace_back("#We have to save the original my.cnf file if any");
+    vec.emplace_back("#Save the original my.cnf file if any, to have as a guide.");
 
     //lets add the date_time to the my.cnf.old in case we run this multiple times
     //  in a day we will still have the original file somewhere.
 
     sstr theDate = make_fileName_dateTime();
-    vec.emplace_back("eval \"cd /etc; cp my.cnf my.cnf.old_" + theDate + "\"");
+    vec.emplace_back("eval \"cd /etc; cp my.cnf" + etcPath + "my.cnf.old_" + theDate + "\"");
     do_command(buildFileName, vec, bScriptOnly);
 
-    //Now we have to create the new /etc/my.cnf file
+    //Now we have to create the new my.cnf file
     vec.clear();
-    vec.emplace_back("#Create new file /etc/my.cnf ");
-    vec.emplace_back("eval \"cd /etc; echo ' ' > my.cnf \"");
+    vec.emplace_back("#Create new file " + etcPath + "my.cnf ");
+    vec.emplace_back("eval \"cd /etc; echo ' ' >" + etcPath + "my.cnf \"");
     do_command(buildFileName, vec, bScriptOnly);
 
-    sstr my_cnf_File = "/etc/my.cnf";
+    sstr my_cnf_File = etcPath + "my.cnf";
     //Now we add the content to the /etc/my.cnf file
     vec.clear();
     vec.emplace_back("[mysqld]");
@@ -1149,6 +1205,7 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
 
     sstr bldPath = get_xxx_Path(xxxPath, "bld");
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
+    sstr etcPath = get_xxx_Path(xxxPath, "etc");
 
     // one of these things is not like the others...on purpose...
     sstr tmpPath = get_xxx_Path(xxxPath, "src");
@@ -1268,6 +1325,12 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
 
 
             vec2.clear();
+            vec2.emplace_back("#################################################################################");
+            vec2.emplace_back("# ");
+            vec2.emplace_back("# MariaDB Note Section");
+            vec2.emplace_back("# ");
+            vec2.emplace_back("#################################################################################");
+            vec2.emplace_back("# ");
             vec2.emplace_back("#--> Run these commands to secure and start mariadb.");
             vec2.emplace_back("groupadd   mysql ");
             vec2.emplace_back("useradd -g mysql mysql ");
@@ -1297,7 +1360,7 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
             vec2.emplace_back("chmod -R 770         var  ");
             file_write_vector_to_file(notes_file, vec2, false);
 
-            create_my_cnf_File(buildFileName, notes_file, usrPath, bScriptOnly);
+            create_my_cnf_File(buildFileName, notes_file, etcPath, usrPath, bScriptOnly);
 
             vec2.clear();
             vec2.emplace_back("cd " + usrPath);
@@ -1385,25 +1448,33 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
     bool skipTests = false;
 
     sstr bldPath = get_xxx_Path(xxxPath, "bld");
-    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+    sstr tmpPath = "usr/Tcl_Tk";
+    sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
-    // one of these things is not like the others...on purpose...
-    //sstr tmpPath = get_xxx_Path(xxxPath, "src");
 
     if (!bDebug) {
         std::vector<sstr> vec1;
         std::vector<sstr> vec2;
+        vec1.clear();
         vec1.emplace_back("# ");
         vec1.emplace_back("# Configure...");
         vec1.emplace_back("# Piping results to the \"" + bldPath + "\" directory.");
-        // We are ending the command we started here with \"
-        //   This was started in the configureStr.
+
+        // We are ending the command we started with \"
+        //   This was started in the configureStr in the calling function.
         configureStr.append(" > " + bldPath + "configure_results.txt 2>&1 \"");
         vec1.emplace_back(configureStr);
         vec1.emplace_back("# ");
         vec1.emplace_back("# make");
-        vec1.emplace_back("eval \"cd " + srcPath + "; make > " + bldPath + "make_results.txt >2&1 \"");
+
+        sstr makePathAndFileName = bldPath;
+        sstr suffix = "make_results.txt";
+        makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
+        vec1.emplace_back("eval \"cd " + srcPath + "; make -j  > " + makePathAndFileName + " 2>&1 \"");
         result = do_command(buildFileName, vec1, bScriptOnly);
+
+
+
 
         if (bDoTests) {
 
@@ -1412,8 +1483,8 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
                 sstr suffix = "test_results.txt";
                 testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
 
-                vec1.emplace_back("# ");
-                vec1.emplace_back("# make test");
+                vec2.emplace_back("# ");
+                vec2.emplace_back("# make test");
                 vec2.emplace_back("# !!! Warning this may take a while...");
                 vec2.emplace_back("eval \"cd " + srcPath + "; make test > " + testPathAndFileName + " 2>&1 \"");
                 do_command(buildFileName, vec2, bScriptOnly);
@@ -1425,6 +1496,43 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
         vec1.emplace_back("eval \"cd " + srcPath + "; make install > " + bldPath + "install_results.txt 2>&1 \"");
         vec1.emplace_back("# ");
         result += do_command(buildFileName, vec1, bScriptOnly);
+
+        vec2.clear();
+        vec2.emplace_back("# ");
+        vec2.emplace_back("# ");
+        vec2.emplace_back("#################################################################################");
+        vec2.emplace_back("# ");
+        vec2.emplace_back("# Tcl/Tk Note Section");
+        vec2.emplace_back("# ");
+        vec2.emplace_back("#################################################################################");
+        vec2.emplace_back("# ");
+        vec2.emplace_back("# ");
+        vec2.emplace_back("# To use tcl cd to this directory: ");
+
+        sstr command = "cd ";
+        command.append(usrPath);
+        command.append("bin/");
+        vec2.emplace_back(command);
+        vec2.emplace_back("ls -al");
+        command.clear();
+        command = "# Then run tcl with ./tcl [tab complete] then [enter]";
+        vec2.emplace_back(command);
+        vec2.emplace_back("# At this point you should see a prompt like % ");
+        vec2.emplace_back("# type after prompt--> % info tclversion ");
+        vec2.emplace_back("#   and you should see the version you installed. ");
+        vec2.emplace_back("#   add the path to your PATH variable to run this version from any directory.");
+        vec2.emplace_back("# type after prompt--> % wish ");
+        vec2.emplace_back("#   and you should see a small new window open up. ");
+        vec2.emplace_back("#   depending on how you installed this you may have change permissions.");
+        vec2.emplace_back("#   chmod o+rx in the directory tree as appropriate.");
+        vec2.emplace_back("#  Some reference material ");
+        vec2.emplace_back("#    1. The Tcl and TK programming for the Absolute Beginner by Kurt Wall");
+        vec2.emplace_back("#    2. The TCL Programming Language by Ashok P. Nadkarni");
+        vec2.emplace_back("#    3. The TCL and the Tk Toolkit by John K. Outsterhout and Ken Jones");
+        vec2.emplace_back("#    4. The TCL/Tk A Developers Guide by Clif Flynt");
+        vec2.emplace_back("# ");
+        file_write_vector_to_file(notes_file, vec2, false);
+
     }
     return result;
 }
@@ -1534,7 +1642,7 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                        stgPath, xxxPath, bScriptOnly);
+                        rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -1601,7 +1709,7 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -1701,7 +1809,7 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -1768,7 +1876,7 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -1838,7 +1946,7 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -1903,7 +2011,7 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -1970,7 +2078,7 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -2038,7 +2146,7 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -2104,7 +2212,7 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -2172,7 +2280,7 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -2183,6 +2291,7 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                             + " --with-apr-util="  + usrPath.substr(0, (usrPath.length()-8)) + "/apr-util   "
                             + " --with-apr-iconv=" + usrPath.substr(0, (usrPath.length()-8)) + "/apr-iconv  "
                             + " --with-pcre="      + usrPath.substr(0, (usrPath.length()-8)) + "/pcre " + " ";
+                            + " --enable-so ";
 
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
                                xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
@@ -2236,36 +2345,72 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr compressedFileName =  progVersion + compression;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
 
+    sstr etcPath = get_xxx_Path(xxxPath, "etc");
     sstr tmpPath = get_xxx_Path(xxxPath, "src");
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    // This section is special to the PHP install.
-    // Do not remove and replace with the like section of
-    //   other programs. It will not work.
-    if (!(isFileSizeGtZero(stagedFileName))) {
-        // this will download the file with the fileName of mirror
-        vec.emplace_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
-        // copy to the compressedFileName
-        vec.emplace_back("eval \"cd " + stgPath + "; cp "    + "mirror " + compressedFileName + "\"");
-        // remove the mirror file
-        vec.emplace_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
-        do_command(buildFileName, vec, bScriptOnly);
-    }
+         tmpPath = "usr/apache/bin";
+    sstr apePath = joinPathParts(rtnPath, tmpPath);
+
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
 
     if (bInstall)
     {
+
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
+
+        // This section is special to the PHP install.
+        // Do not remove and replace with the like section of
+        //   other programs. It will not work.
+
+        vec.clear();
+        vec.emplace_back("eval \"cd " + apePath + "; ./apachectl start \"");
+        do_command(buildFileName, vec, bScriptOnly);
+
+        if (!(isFileSizeGtZero(stagedFileName))) {
+
+            vec.clear();
+            // this will download the file with the fileName of mirror
+            vec.emplace_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
+
+            // copy to the compressedFileName
+            vec.emplace_back("eval \"cd " + stgPath + "; cp " + "mirror " + compressedFileName + "\"");
+
+            // remove the mirror file
+            vec.emplace_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
+
+            // We need to start apache for this to work...
+            vec.emplace_back("eval \"cd " + apePath + "; ./apachectl start \"");
+            do_command(buildFileName, vec, bScriptOnly);
+        }
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " "
-                                    + " --with-pod-mysql=" + usr_mariadb + " ";
+        sstr configureStr = "eval \"cd ";
+        configureStr.append(srcPath);
+        configureStr.append("; ./configure" );
+        configureStr.append("  --prefix=");
+        configureStr.append(usrPath);
+        tmpPath = "usr/apache/bin/apxs ";
+        sstr apxPath=joinPathParts(rtnPath, tmpPath);
+        configureStr.append("  --with-apxs=");
+        configureStr.append(apxPath);
+        configureStr.append("  --enable-mysqlnd ");
+        tmpPath = "usr/mariadb/";
+        sstr mdbPath=joinPathParts(rtnPath, tmpPath);
+        configureStr.append("  --with-pdo-mysql=");
+        configureStr.append(mdbPath);
+        configureStr.append("  --with-config-file-path=");
+        configureStr.append(etcPath);
+        configureStr.append("  --disable-cgi ");
+        configureStr.append("  --disable-short-tags ");
+        configureStr.append("  --enable-bcmath ");
+
 
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
                                xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
@@ -2337,7 +2482,7 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -2405,7 +2550,7 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
@@ -2475,7 +2620,7 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         /*
          * Currently Installation of this is not supported...
@@ -2544,14 +2689,11 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
          progVersion        =  programName + version;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
 
-    sstr suffix = "tcl_tk";
     sstr tmpPath = get_xxx_Path(xxxPath, "src");
-    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr srcPath = joinPathParts(tmpPath,  progVersion);
          srcPath = joinPathParts(srcPath, installOS);
-    sstr usrPath = get_xxx_Path(xxxPath, "usr");
-    usrPath = usrPath.substr(0,usrPath.length()-4);
-    usrPath.append(suffix);
-
+         tmpPath = "usr/Tcl_Tk";
+    sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -2559,19 +2701,24 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                    srcPath,   xxxPath,    bScriptOnly);
     if (bInstall)
     {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+        result = setupInstallDirectories_tcl(buildFileName, ProperName, compressedFileName,
+                                             stgPath, rtnPath, xxxPath, bScriptOnly);
+
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-
-        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath
-        + " --enable-threads --enable-shared --enable-symbols --enable-64bit; ";
-
+        sstr configureStr = "eval \"cd ";
+        configureStr.append(srcPath);
+        configureStr.append("; ");
+        configureStr.append(" ./configure --prefix=");
+        configureStr.append(usrPath);
+        configureStr.append(" --enable-threads");
+        configureStr.append(" --enable-shared ");
+        configureStr.append(" --enable-symbols");
+        configureStr.append(" --enable-64bit ");
         result += basicInstall_tcl(buildFileName, notes_file, ProperName, configureStr, srcPath,
                                xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
-
 
         createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                      bProtectMode,  bScriptOnly );
@@ -2594,10 +2741,15 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr ProperName = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
+
+    //Need tcl install values for tk install
+    sstr tclxxxPath    = settings["tcl->XXX_Path"];
+    sstr tclVersion    = settings["tcl->Version"];
+
+    //Need for tk install
     sstr buildFileName = settings[programName + "->Build_Name"];
     sstr notes_file    = settings[programName + "->Notes_File"];
     sstr getPath       = settings[programName + "->WGET"];
-    sstr bldPath       = settings[programName + "->BLD_Path"];
     sstr stgPath       = settings[programName + "->STG_Path"];
     sstr rtnPath       = settings[programName + "->RTN_Path"];
     sstr xxxPath       = settings[programName + "->XXX_Path"];
@@ -2622,27 +2774,23 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
 
-    sstr progVersion        =  programName + version + "-src";
-    sstr compressedFileName =  progVersion + compression;
-    progVersion             =  programName + version;
-    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tclPath            = get_xxx_Path(tclxxxPath, "src");
+    sstr tclProgVersion     = "tcl" + tclVersion;
+    sstr tclConfigPath      = joinPathWithFile(tclPath,  tclProgVersion );
+         tclConfigPath      = joinPathWithFile(tclConfigPath, installOS );
 
 
-    sstr suffix = "tcl_tk";
+    sstr progVersion        = programName + version + "-src";
+    sstr compressedFileName = progVersion + compression;
+    progVersion             = programName + version;
+    sstr stagedFileName     = joinPathWithFile(stgPath, compressedFileName);
+
     sstr tmpPath = get_xxx_Path(xxxPath, "src");
-    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr srcPath = joinPathParts(tmpPath,  progVersion);
     srcPath = joinPathParts(srcPath, installOS);
-    sstr usrPath = get_xxx_Path(xxxPath, "usr");
-    usrPath = usrPath.substr(0, usrPath.length()-3);
-    usrPath.append(suffix);
-
-    sstr tclXxxPath = settings["tcl->XXX_Path"];
-    sstr tclSrcPath = get_xxx_Path(tclXxxPath, "src");
-    sstr tclVersion = settings["tcl->Version"];
-    sstr tclProgVersion = "tcl";
-    tclProgVersion.append(tclVersion);
-    sstr tclPath = joinPathParts(tclSrcPath, tclProgVersion);
-    tclPath = joinPathParts(tclPath, installOS);
+    tmpPath = "usr/Tcl_Tk";
+    sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
     stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
@@ -2650,20 +2798,25 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                    srcPath,   xxxPath,    bScriptOnly);
     if (bInstall)
     {
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         stgPath, xxxPath, bScriptOnly);
+        result = setupInstallDirectories_tcl(buildFileName, ProperName, compressedFileName,
+                                             stgPath, rtnPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-
-        sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath
-        + " --with-tcl=" + tclPath +
-        + " --enable-threads --enable-shared --enable-symbols --enable-64bit ";
-
-        result += basicInstall_tcl(buildFileName, notes_file, ProperName, configureStr,
-                               srcPath, xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
-
+        sstr configureStr = "eval \"cd ";
+        configureStr.append(srcPath);
+        configureStr.append("; ");
+        configureStr.append(" ./configure --prefix=");
+        configureStr.append(usrPath);
+        configureStr.append(" --with-tcl=");
+        configureStr.append(tclConfigPath);
+        configureStr.append(" --enable-threads");
+        configureStr.append(" --enable-shared ");
+        configureStr.append(" --enable-symbols");
+        configureStr.append(" --enable-64bit ");
+        result += basicInstall_tcl(buildFileName, notes_file, ProperName, configureStr, srcPath,
+                                   xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
 
         createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                      bProtectMode,  bScriptOnly );
@@ -2726,13 +2879,16 @@ int process_section(time_t startTime,
 {
     int result = -1;
     sstr searchStr;
+
     programName = lowerCaseString(programName);
+
     if (programName != "dependencies") {
         searchStr = getProperNameFromString(programName);
         searchStr = searchStr + "-" + version;
     } else {
         searchStr = "Dependencies";
     }
+
     bool sectionLoaded = prior_Results(fileNameResult, searchStr);
     if (!sectionLoaded)
     {
@@ -2923,69 +3079,74 @@ int main() {
         sstr progName;
         int  step;
         int (*funptr)(std::map<sstr, sstr> &settings, bool bProtectMode);
-    };
+    } program;
 
     std::vector<programs> progVector;
-
-    programs program;
-    program.progName = "perl";
-    program.step     = -1;
-    program.funptr = &install_perl5;
+    /*
+    program.progName = "perl";       program.step     = -1;    program.funptr = &install_perl5;
     progVector.emplace_back(program);
 
-    program.progName = "mariadb";    program.step     = -1;    program.funptr   = &install_mariadb;
+    program.progName = "mariadb";    program.step     = -1;    program.funptr = &install_mariadb;
     progVector.emplace_back(program);
 
-    program.progName = "apr";        program.step     =  1;    program.funptr   = &install_apache_step_01;
+    program.progName = "apr";        program.step     =  1;    program.funptr = &install_apache_step_01;
     progVector.emplace_back(program);
 
-    program.progName = "apr-util";   program.step     =  2;    program.funptr   = &install_apache_step_02;
+    program.progName = "apr-util";   program.step     =  2;    program.funptr = &install_apache_step_02;
     progVector.emplace_back(program);
 
-    program.progName = "apr-iconv";  program.step     =  3;    program.funptr   = &install_apache_step_03;
+    program.progName = "apr-iconv";  program.step     =  3;    program.funptr = &install_apache_step_03;
     progVector.emplace_back(program);
 
-    program.progName = "pcre";       program.step     =  4;    program.funptr   = &install_apache_step_04;
+    program.progName = "pcre";       program.step     =  4;    program.funptr = &install_apache_step_04;
     progVector.emplace_back(program);
 
-    program.progName = "pcre2";      program.step     =  5;    program.funptr   = &install_apache_step_05;
+    program.progName = "pcre2";      program.step     =  5;    program.funptr = &install_apache_step_05;
+    progVector.emplace_back(program);
+    */
+
+    program.progName = "apache";     program.step     =  -1;   program.funptr = &install_apache;
     progVector.emplace_back(program);
 
-    program.progName = "apache";     program.step     =  -1;   program.funptr   = &install_apache;
+    /*
+    program.progName = "perl6";      program.step     = -1;    program.funptr = &install_perl6;
+    progVector.emplace_back(program);
+    */
+
+    program.progName = "php";        program.step     = -1;    program.funptr = &install_php;
     progVector.emplace_back(program);
 
-    program.progName = "perl6";      program.step     = -1;    program.funptr   = &install_perl6;
+    /*
+    program.progName = "poco";      program.step     =  -1;    program.funptr = &install_poco;
     progVector.emplace_back(program);
 
-    program.progName = "php";        program.step     = -1;    program.funptr   = &install_php;
+    program.progName = "postfix";   program.step     =  -1;    program.funptr = &install_postfix;
     progVector.emplace_back(program);
 
-    program.progName = "poco";      program.step     =  -1;    program.funptr   = &install_poco;
+    program.progName = "python";    program.step     =  -1;    program.funptr = &install_python;
     progVector.emplace_back(program);
 
-    program.progName = "postfix";   program.step     =  -1;    program.funptr   = &install_postfix;
+    program.progName = "ruby";      program.step     = -1;     program.funptr = &install_ruby;
     progVector.emplace_back(program);
 
-    program.progName = "python";    program.step     =  -1;    program.funptr   = &install_python;
+    program.progName = "tcl";       program.step     =  1;     program.funptr = &install_tcl;
     progVector.emplace_back(program);
 
-    program.progName = "ruby";      program.step     = -1;     program.funptr   = &install_ruby;
+    program.progName = "tk";        program.step     =  2;     program.funptr = &install_tk;
     progVector.emplace_back(program);
-
-    program.progName = "tcl";       program.step     =  1;     program.funptr   = &install_tcl;
-    progVector.emplace_back(program);
-
-    program.progName = "tk";        program.step     =  2;     program.funptr   = &install_tk;
-    progVector.emplace_back(program);
+    */
 
     for( const auto& it: progVector )
     {
         programName = it.progName;
         startTime = get_Time();
+
         version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
+
         if (version != skip_value) {
             step = it.step;
             funptr = (it.funptr);
+            settings[programName + "->This_OS"] = theOStext;
             result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                                      settings, programName, version, funptr, step, bProtectMode);
             if (result > -1) { anyInstalled = true; }
