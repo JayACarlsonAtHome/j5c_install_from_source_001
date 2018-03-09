@@ -1222,6 +1222,9 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
         configureStr.append(" > " + bldPath + "configure_results.txt 2>&1 \"");
         vec1.emplace_back(configureStr);
         vec1.emplace_back("# ");
+        vec1.emplace_back("# make clean");
+        vec1.emplace_back("eval \"cd " + srcPath + "; make clean > " + bldPath + "make_clean_results.txt 2>&1 \"");
+        vec1.emplace_back("# ");
         vec1.emplace_back("# make ");
         vec1.emplace_back("eval \"cd " + srcPath + "; make > " + bldPath + "make_results.txt 2>&1 \"");
         result = do_command(buildFileName, vec1, bScriptOnly);
@@ -2360,6 +2363,13 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     if (bInstall)
     {
 
+        // PHP install is special in so many ways...
+        // We need to install a minimal php first.
+        // Then we need to pecl install ext (zip, xdebug, and more)
+        // Then we need to re-configure php to use all the installed extentions.
+
+
+
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
                                          rtnPath, stgPath, xxxPath, bScriptOnly);
 
@@ -2368,7 +2378,9 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         //   other programs. It will not work.
 
         vec.clear();
-        vec.emplace_back("eval \"cd " + apePath + "; ./apachectl start \"");
+        vec.emplace_back("# ");
+        vec.emplace_back("# Restart Apache to ensure it is running.");
+        vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -k restart \"");
         do_command(buildFileName, vec, bScriptOnly);
 
         if (!(isFileSizeGtZero(stagedFileName))) {
@@ -2376,41 +2388,66 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
             vec.clear();
             // this will download the file with the fileName of mirror
             vec.emplace_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
-
             // copy to the compressedFileName
             vec.emplace_back("eval \"cd " + stgPath + "; cp " + "mirror " + compressedFileName + "\"");
-
             // remove the mirror file
             vec.emplace_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
-
             // We need to start apache for this to work...
-            vec.emplace_back("eval \"cd " + apePath + "; ./apachectl start \"");
             do_command(buildFileName, vec, bScriptOnly);
         }
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd ";
+        sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig; ";
+        configureStr.append("cd ");
         configureStr.append(srcPath);
         configureStr.append("; ./configure" );
         configureStr.append("  --prefix=");
         configureStr.append(usrPath);
-        tmpPath = "usr/apache/bin/apxs ";
-        sstr apxPath=joinPathParts(rtnPath, tmpPath);
-        configureStr.append("  --with-apxs=");
-        configureStr.append(apxPath);
+             tmpPath = "usr/apache/bin/";
+        sstr apxPathFile=joinPathParts(rtnPath, tmpPath);
+        sstr tmpFile = "apxs";
+             apxPathFile=joinPathWithFile(apePath, tmpFile);
+        configureStr.append("  --with-apxs2=");
+        configureStr.append(apxPathFile);
         configureStr.append("  --enable-mysqlnd ");
-        tmpPath = "usr/mariadb/";
+             tmpPath = "usr/mariadb/";
         sstr mdbPath=joinPathParts(rtnPath, tmpPath);
         configureStr.append("  --with-pdo-mysql=");
         configureStr.append(mdbPath);
+        sstr pcePath = "/usr/pcre";
+        pcePath = joinPathParts(rtnPath,pcePath);
+        configureStr.append("  --with-pcre-regex=");
+        configureStr.append(pcePath);
         configureStr.append("  --with-config-file-path=");
+             tmpPath = "lib";
+        sstr libPath = joinPathParts(usrPath, tmpPath);
+        configureStr.append(libPath);
+        configureStr.append("  --with-config-file-scan-dir=");
         configureStr.append(etcPath);
+        sstr crlPath = "/usr/bin";
+        configureStr.append("  --with-curl=");
+        configureStr.append(crlPath);
+        configureStr.append("  --with-mysql-sock=");
+             tmpPath = "usr/mariadb/run/";
+        sstr sckPathFile = joinPathParts(rtnPath, tmpPath);
+             tmpFile = "mariadb.socket";
+        sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
+        configureStr.append("  --enable-embedded-mysqli");
         configureStr.append("  --disable-cgi ");
         configureStr.append("  --disable-short-tags ");
         configureStr.append("  --enable-bcmath ");
-
+        configureStr.append("  --with-pcre-jit " );
+        configureStr.append("  --enable-sigchild ");
+        configureStr.append("  --enable-libgcc ");
+        configureStr.append("  --enable-calendar ");
+        configureStr.append("  --enable-dba=shared");
+        configureStr.append("  --enable-ftp");
+        configureStr.append("  --enable-intl");
+        configureStr.append("  --enable-mbstring");
+        configureStr.append("  --enable-zip");
+        configureStr.append("  --enable-zend-test");
 
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
                                xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
