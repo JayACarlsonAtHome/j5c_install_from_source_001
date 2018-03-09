@@ -2454,7 +2454,8 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         vec.clear();
         if (bInstall_Xdebug)
         {
-            vec.emplace_back("eval \"cd " + usrPath + "bin; ./pecl install xdebug\"");
+            vec.emplace_back("eval \"cd " + usrPath + "bin; ./pecl channel-update pecl.php.net \"");
+            vec.emplace_back("eval \"cd " + usrPath + "bin; ./pecl install Xdebug\"");
         } else
         {
             vec.emplace_back("# Xdebug not installed.");
@@ -3119,7 +3120,7 @@ int main() {
     } program;
 
     std::vector<programs> progVector;
-    /*
+
     program.progName = "perl";       program.step     = -1;    program.funptr = &install_perl5;
     progVector.emplace_back(program);
 
@@ -3140,20 +3141,16 @@ int main() {
 
     program.progName = "pcre2";      program.step     =  5;    program.funptr = &install_apache_step_05;
     progVector.emplace_back(program);
-    */
 
     program.progName = "apache";     program.step     =  -1;   program.funptr = &install_apache;
     progVector.emplace_back(program);
 
-    /*
     program.progName = "perl6";      program.step     = -1;    program.funptr = &install_perl6;
     progVector.emplace_back(program);
-    */
 
     program.progName = "php";        program.step     = -1;    program.funptr = &install_php;
     progVector.emplace_back(program);
 
-    /*
     program.progName = "poco";      program.step     =  -1;    program.funptr = &install_poco;
     progVector.emplace_back(program);
 
@@ -3171,7 +3168,7 @@ int main() {
 
     program.progName = "tk";        program.step     =  2;     program.funptr = &install_tk;
     progVector.emplace_back(program);
-    */
+
 
     for( const auto& it: progVector )
     {
