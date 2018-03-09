@@ -1040,12 +1040,14 @@ sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
     return "Err in get_xxx_Path()...Replacement Path Length is != 3.";
 }
 
-int removeWorkingDirectories(sstr& buildFileName, sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath, std::vector<sstr> vec)
+int removeWorkingDirectories(sstr& buildFileName, sstr& ProperName, sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath, std::vector<sstr> vec)
 {
     removeDirectory(buildFileName, bldPath, vec);
     removeDirectory(buildFileName, etcPath, vec);
     removeDirectory(buildFileName, srcPath, vec);
-    removeDirectory(buildFileName, usrPath, vec);
+    if (ProperName != "Tk") {
+        removeDirectory(buildFileName, usrPath, vec);
+    }
     return 0;
 }
 
@@ -1104,7 +1106,7 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     sstr usrPath = get_xxx_Path( xxxPath, "usr");
 
 
-    removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, vec);
+    removeWorkingDirectories(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, vec);
     int result =  ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, tlsPath, usrPath, bScriptOnly);
     result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
@@ -1125,7 +1127,7 @@ int setupInstallDirectories_tcl(sstr& buildFileName, sstr& ProperName, sstr& com
     sstr tmpPath = "usr/Tcl_Tk";
     sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
-    removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, vec);
+    removeWorkingDirectories(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, vec);
     int result =  ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, tlsPath, usrPath, bScriptOnly);
     result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
