@@ -2319,26 +2319,36 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr ProperName = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
-    sstr buildFileName  = settings[programName + "->Build_Name"];
-    sstr notes_file     = settings[programName + "->Notes_File"];
-    sstr getPath        = settings[programName + "->WGET"];
-    sstr usr_mariadb    = settings[programName + "->MDB_Path"];
-    sstr stgPath        = settings[programName + "->STG_Path"];
-    sstr rtnPath        = settings[programName + "->RTN_Path"];
-    sstr xxxPath        = settings[programName + "->XXX_Path"];
-    sstr version        = settings[programName + "->Version"];
-    sstr compression    = settings[programName + "->Compression"];
-    sstr scriptOnly     = settings[programName + "->Script_Only"];
-    sstr doTests        = settings[programName + "->Do_Tests"];
-    sstr debugOnly      = settings[programName + "->Debug_Only"];
-    sstr thisOS         = settings[programName + "->This_OS"];
-    sstr Install_Xdebug = settings[programName + "->Install_Xdebug"]= "true";
+    sstr buildFileName      = settings[programName + "->Build_Name"];
+    sstr notes_file         = settings[programName + "->Notes_File"];
+    sstr getPath            = settings[programName + "->WGET"];
+    sstr usr_mariadb        = settings[programName + "->MDB_Path"];
+    sstr stgPath            = settings[programName + "->STG_Path"];
+    sstr rtnPath            = settings[programName + "->RTN_Path"];
+    sstr xxxPath            = settings[programName + "->XXX_Path"];
+    sstr version            = settings[programName + "->Version"];
+    sstr compression        = settings[programName + "->Compression"];
+    sstr scriptOnly         = settings[programName + "->Script_Only"];
+    sstr doTests            = settings[programName + "->Do_Tests"];
+    sstr debugOnly          = settings[programName + "->Debug_Only"];
+    sstr compile_for_debug  = settings[programName + "->Compile_For_Debug"];
+    sstr thisOS             = settings[programName + "->This_OS"];
 
-    bool bScriptOnly     = getBoolFromString(scriptOnly);
-    bool bDoTests        = getBoolFromString(doTests);
-    bool bDebug          = getBoolFromString(debugOnly);
-    bool bInstall_Xdebug = getBoolFromString(Install_Xdebug);
-    bool bInstall        = false;
+    sstr xdebug_install     = settings[programName + "->Xdebug_Install"];
+    sstr xdebug_name        = settings[programName + "->Xdebug_Name"];
+    sstr xdebug_version     = settings[programName + "->Xdebug_Version"];
+    sstr xdebug_compression = settings[programName + "->Xdebug_Compression"];
+    sstr xdebug_wget        = settings[programName + "->Xdebug_WGET"];
+    sstr xdebug_tar_options = settings[programName + "->Xdebug_Tar_Options"];
+
+    sstr zts_version        = settings[programName + "->zts_version"];
+
+    bool bScriptOnly        = getBoolFromString(scriptOnly);
+    bool bDoTests           = getBoolFromString(doTests);
+    bool bDebug             = getBoolFromString(debugOnly);
+    bool bCompile_For_Debug = getBoolFromString(compile_for_debug);
+    bool bInstall_Xdebug    = getBoolFromString(xdebug_install);
+    bool bInstall           = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -2348,10 +2358,14 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr compressedFileName =  progVersion + compression;
     sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
 
+    sstr xDebugProgVersion        =  xdebug_name + "-" + xdebug_version;
+    sstr xDebugCompressedFileName =  xDebugProgVersion + xdebug_compression;
+
     sstr etcPath = get_xxx_Path(xxxPath, "etc");
     sstr tmpPath = get_xxx_Path(xxxPath, "src");
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
 
          tmpPath = "usr/apache/bin";
     sstr apePath = joinPathParts(rtnPath, tmpPath);
@@ -2364,11 +2378,6 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     {
 
         // PHP install is special in so many ways...
-        // We need to install a minimal php first.
-        // Then we need to pecl install ext (zip, xdebug, and more)
-        // Then we need to re-configure php to use all the installed extentions.
-
-
 
         result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
                                          rtnPath, stgPath, xxxPath, bScriptOnly);
@@ -2376,7 +2385,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         // This section is special to the PHP install.
         // Do not remove and replace with the like section of
         //   other programs. It will not work.
-
+        // -- section begin
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# Restart Apache to ensure it is running.");
@@ -2395,7 +2404,11 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
             // We need to start apache for this to work...
             do_command(buildFileName, vec, bScriptOnly);
         }
+        //
+        // -- section end
+        //
 
+        //
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
@@ -2405,6 +2418,10 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         configureStr.append("; ./configure" );
         configureStr.append("  --prefix=");
         configureStr.append(usrPath);
+        configureStr.append("  --exec-prefix=");
+        configureStr.append(usrPath);
+        configureStr.append("  --srcdir=");
+        configureStr.append(srcPath);
              tmpPath = "usr/apache/bin/";
         sstr apxPathFile=joinPathParts(rtnPath, tmpPath);
         sstr tmpFile = "apxs";
@@ -2448,15 +2465,65 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         configureStr.append("  --enable-mbstring");
         configureStr.append("  --enable-zip");
         configureStr.append("  --enable-zend-test");
+        if (bCompile_For_Debug)
+        {
+            configureStr.append("  --enable-debug");
+        }
 
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
                                xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        vec.clear();
+        vec.emplace_back("eval \"libtool --finish " + srcPath + "libs \"");
+        vec.emplace_back("eval \"chmod 755 " + rtnPath + "usr/apache/modules/libphp7.so \"");
+        result += do_command(buildFileName, vec, bScriptOnly);
+
+
+        sstr xdebugProgVersionCompression = xdebug_version + xdebug_compression;
+
         vec.clear();
         if (bInstall_Xdebug)
         {
-            vec.emplace_back("eval \"cd " + usrPath + "bin; ./pecl channel-update pecl.php.net \"");
-            vec.emplace_back("eval \"cd " + usrPath + "bin; ./pecl install Xdebug\"");
-        } else
+            vec.emplace_back("eval \"cd " + usrPath + "; wget " + xdebug_wget              + xDebugCompressedFileName + " \"");
+            vec.emplace_back("eval \"cd " + usrPath + "; tar "  + xdebug_tar_options + " " + xDebugCompressedFileName + " \"");
+            vec.emplace_back("eval \"cd " + usrPath + "; cd "   + xDebugProgVersion  + "; ../bin/phpize > "
+                                          + bldPath +"phpize.txt \"");
+            vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; ./configure --with-php-config="
+                             + usrPath + "bin/php-config > "    + bldPath + "xdebug-configure.txt \"");
+            vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; make > "
+                                          + bldPath + "xdebug-make.txt \"");
+
+            if (bCompile_For_Debug)
+            {
+                vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; cp modules/xdebug.so "
+                                 + usrPath + "lib/php/extensions/debug-zts-" + zts_version + " \"");
+                vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version + "/xdebug.so");
+            }
+            else
+            {
+                vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; cp modules/xdebug.so "
+                                 + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + " \"");
+                vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version + "/xdebug.so");
+            }
+
+            vec.emplace_back("# ");
+            vec.emplace_back("# Create: " + usrPath + "lib/php.ini");
+
+
+            if (bCompile_For_Debug)
+            {
+                vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
+                                 + usrPath + "lib/php/extensions/debug-zts-" + zts_version + "/xdebug.so > php.ini \"" );
+            }
+            else
+            {
+                vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
+                                 + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + "/xdebug.so > php.ini \"" );
+
+            }
+        }
+        else
         {
             vec.emplace_back("# Xdebug not installed.");
         }
@@ -2637,7 +2704,6 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     //bool bDebug      = getBoolFromString(debugOnly);
     bool bInstall      = false;
 
-
     sstr command;
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
@@ -2664,7 +2730,6 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
          * Currently Installation of this is not supported...
          *   Maybe later when I know more about it.
          *
-         *
          *  // Note: Don't end the command with \" to close the command here.
          *  //   We are going to append more to the command in the function
          *  //     and end the command with \" there.
@@ -2673,7 +2738,6 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
          *
          * result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
          *                      xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
-         *
          *
          * createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
          *                            bProtectMode,  bScriptOnly );
