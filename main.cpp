@@ -1045,22 +1045,24 @@ sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
             //   rest of the program will handle the
             //   failure instead of crashing the program.
             //   And it won't cause deleting the entire partition.
-            newPath = "zzzzzzzzzzzzzzzzzzzzzzzzzzz";
+            newPath = "Err in get_xxx_Path()...xxx was not found.";
         }
         return newPath;
     }
     return "Err in get_xxx_Path()...Replacement Path Length is != 3.";
 }
 
-int removeWorkingDirectories(sstr& buildFileName, sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath, bool bScriptOnly)
+
+int removeWorkingDirectories(sstr& buildFileName, sstr& ProperName, sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath, bool bScriptOnly)
 {
     std::vector<sstr> vec;
     removeDirectory(buildFileName, bldPath, vec);
     removeDirectory(buildFileName, etcPath, vec);
     removeDirectory(buildFileName, srcPath, vec);
-    removeDirectory(buildFileName, usrPath, vec);
+    if (ProperName != "Tk") {
+        removeDirectory(buildFileName, usrPath, vec);
+    }
     int result = do_command(buildFileName, vec, bScriptOnly);
-    return result;
 }
 
 int ensureStgDirExists(sstr& ProperName, sstr& buildFileName, sstr& stgPath, bool bScriptOnly)
@@ -1115,7 +1117,7 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     sstr srcPath = get_xxx_Path( xxxPath, "src");
     sstr usrPath = get_xxx_Path( xxxPath, "usr");
 
-    result += removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
+    result += removeWorkingDirectories(buildFileName, ProperName,  bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
@@ -1136,7 +1138,7 @@ int setupInstallDirectories_tcl(sstr& buildFileName, sstr& ProperName, sstr& com
     sstr tmpPath = "usr/Tcl_Tk";
     sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
-    result += removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
+    result += removeWorkingDirectories(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
