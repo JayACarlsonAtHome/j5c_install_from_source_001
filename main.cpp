@@ -1034,19 +1034,33 @@ sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
 
     if (replacement.length() == 3) {
         sstr newPath = xxxPath;
-        newPath.replace(newPath.rfind("xxx"), 3, replacement, 0,3);
+        auto start = newPath.rfind("xxx");
+        if (start != -1) {
+            newPath.replace(start, 3, replacement, 0, 3);
+        }
+        else
+        {
+            // this will most likely cause the program
+            //   to not do what is desired, but the
+            //   rest of the program will handle the
+            //   failure instead of crashing the program.
+            //   And it won't cause deleting the entire partition.
+            newPath = "zzzzzzzzzzzzzzzzzzzzzzzzzzz";
+        }
         return newPath;
     }
     return "Err in get_xxx_Path()...Replacement Path Length is != 3.";
 }
 
-int removeWorkingDirectories(sstr& buildFileName, sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath, std::vector<sstr> vec)
+int removeWorkingDirectories(sstr& buildFileName, sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath, bool bScriptOnly)
 {
+    std::vector<sstr> vec;
     removeDirectory(buildFileName, bldPath, vec);
     removeDirectory(buildFileName, etcPath, vec);
     removeDirectory(buildFileName, srcPath, vec);
     removeDirectory(buildFileName, usrPath, vec);
-    return 0;
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    return result;
 }
 
 int ensureStgDirExists(sstr& ProperName, sstr& buildFileName, sstr& stgPath, bool bScriptOnly)
@@ -1061,7 +1075,7 @@ int ensureStgDirExists(sstr& ProperName, sstr& buildFileName, sstr& stgPath, boo
 
 
 int ensureWrkDirExist(sstr& buildFileName, sstr& ProperName,
-                                  sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& tlsPath, sstr& usrPath,
+                                  sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath,
                                   bool bScriptOnly)
 {
     std::vector<sstr> vec;
@@ -1071,7 +1085,6 @@ int ensureWrkDirExist(sstr& buildFileName, sstr& ProperName,
     vec.emplace_back("eval \"mkdir -p " + etcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + srcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + usrPath + "\"");
-    vec.emplace_back("eval \"mkdir -p " + tlsPath + "\"");
 
     int result = do_command(buildFileName, vec, bScriptOnly);
     return result;
@@ -1095,17 +1108,15 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Remove unfinished " + ProperName + " install (if any).");
+    int result = do_command(buildFileName, vec, bScriptOnly);
 
     sstr bldPath = get_xxx_Path( xxxPath, "bld");
     sstr etcPath = get_xxx_Path( xxxPath, "etc");
     sstr srcPath = get_xxx_Path( xxxPath, "src");
-    sstr tmpPath = "tls";
-    sstr tlsPath = joinPathParts(rtnPath, tmpPath);
     sstr usrPath = get_xxx_Path( xxxPath, "usr");
 
-
-    removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, vec);
-    int result =  ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, tlsPath, usrPath, bScriptOnly);
+    result += removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
+    result += ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
 }
@@ -1117,16 +1128,16 @@ int setupInstallDirectories_tcl(sstr& buildFileName, sstr& ProperName, sstr& com
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Remove unfinished " + ProperName + " install (if any).");
+    int result = do_command(buildFileName, vec, bScriptOnly);
 
     sstr bldPath = get_xxx_Path(xxxPath, "bld");
     sstr etcPath = get_xxx_Path(xxxPath, "etc");
     sstr srcPath = get_xxx_Path(xxxPath, "src");
-    sstr tlsPath = get_xxx_Path(rtnPath, "tls");
     sstr tmpPath = "usr/Tcl_Tk";
     sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
-    removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, vec);
-    int result =  ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, tlsPath, usrPath, bScriptOnly);
+    result += removeWorkingDirectories(buildFileName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
+    result += ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
 }
@@ -1221,9 +1232,11 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
         //   This was started in the configureStr.
         configureStr.append(" > " + bldPath + "configure_results.txt 2>&1 \"");
         vec1.emplace_back(configureStr);
-        vec1.emplace_back("# ");
-        vec1.emplace_back("# make clean");
-        vec1.emplace_back("eval \"cd " + srcPath + "; make clean > " + bldPath + "make_clean_results.txt 2>&1 \"");
+        if ((ProperName != "Perl") && (ProperName != "Perl6")) {
+            vec1.emplace_back("# ");
+            vec1.emplace_back("# make clean");
+            vec1.emplace_back("eval \"cd " + srcPath + "; make clean > " + bldPath + "make_clean_results.txt 2>&1 \"");
+        }
         vec1.emplace_back("# ");
         vec1.emplace_back("# make ");
         vec1.emplace_back("eval \"cd " + srcPath + "; make > " + bldPath + "make_results.txt 2>&1 \"");
@@ -3137,7 +3150,11 @@ int main() {
 
     std::vector<sstr> vec;
 
-    ensure_Directory_exists1(basePath);
+    sstr tlsPath = get_xxx_Path(xxxPath, "tls");
+    sstr wwwPath = get_xxx_Path(xxxPath, "www");
+    ensure_Directory_exists1(tlsPath);
+    ensure_Directory_exists1(wwwPath);
+
     create_file(fileName_Build);
     do_command(fileName_Build, vec, false);
 
