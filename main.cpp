@@ -1062,7 +1062,8 @@ int removeWorkingDirectories(sstr& buildFileName, sstr& ProperName, sstr& bldPat
     if (ProperName != "Tk") {
         removeDirectory(buildFileName, usrPath, vec);
     }
-    int result = do_command(buildFileName, vec, bScriptOnly);
+    do_command(buildFileName, vec, bScriptOnly);
+    return 0;
 }
 
 int ensureStgDirExists(sstr& ProperName, sstr& buildFileName, sstr& stgPath, bool bScriptOnly)
@@ -1071,8 +1072,8 @@ int ensureStgDirExists(sstr& ProperName, sstr& buildFileName, sstr& stgPath, boo
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure " + ProperName + " directories exist.");
     vec.emplace_back("eval \"mkdir -p " + stgPath + "\"");
-    int result = do_command(buildFileName, vec, bScriptOnly);
-    return result;
+    do_command(buildFileName, vec, bScriptOnly);
+    return 0;
 }
 
 
@@ -1087,9 +1088,8 @@ int ensureWrkDirExist(sstr& buildFileName, sstr& ProperName,
     vec.emplace_back("eval \"mkdir -p " + etcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + srcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + usrPath + "\"");
-
-    int result = do_command(buildFileName, vec, bScriptOnly);
-    return result;
+    do_command(buildFileName, vec, bScriptOnly);
+    return 0;
 }
 
 int createTargetFromStage(sstr& buildFileName, sstr& ProperName, sstr& stgPath, sstr& srcPath, sstr& compressedFileName, bool bScriptOnly)
