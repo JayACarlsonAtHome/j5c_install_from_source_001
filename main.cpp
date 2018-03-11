@@ -208,18 +208,16 @@ sstr joinPathWithFile(sstr& partA, sstr& fileName)
 bool isFileSizeGtZero(sstr &fileName, bool bShow = false)
 {
     bool result = false;
-    std::streampos fsize = 0;
-    std::ifstream file (fileName, std::ios::in | std::ios::binary);
-
-    fsize = file.tellg();
-    file.seekg(0, std::ios::end);
-    fsize = file.tellg() - fsize;
+    std::ifstream file(fileName, std::ios::in | std::ios::binary);
+    file.seekg (0, file.end);
+    auto worthless = file.tellg();
+    auto real_size = static_cast<long long>(worthless);
     file.close();
-
+    if (real_size > 0) { result = true; }
     if (bShow) {
-        if (fsize > 0) {
+        if (real_size > 0) {
+            std::cout << "Found file: " << fileName << " and size = " << real_size << std::endl;
             result = true;
-            std::cout << "Found file: " << fileName << " and size = " << fsize << std::endl;
         } else {
             std::cout << "File: " << fileName << " not found or size is 0" << std::endl;
         }
@@ -1184,33 +1182,18 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     sstr srcPath = get_xxx_Path( xxxPath, "src");
     sstr usrPath = get_xxx_Path( xxxPath, "usr");
 
+
+    if ((ProperName == "Tcl") || (ProperName == "Tk"))
+    {
+        sstr tmpPath = "usr/Tcl_Tk";
+        usrPath = joinPathParts(rtnPath, tmpPath);
+    }
+
     result += removeWorkingDirectories(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += ensureWrkDirExist       (buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += createTargetFromStage   (buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
 }
-
-int setupInstallDirectories_tcl(sstr& buildFileName, sstr& ProperName, sstr& compressedFileName,
-                            sstr& stgPath, sstr& rtnPath, const sstr& xxxPath, bool bScriptOnly)
-{
-
-    std::vector<sstr> vec;
-    vec.emplace_back("# ");
-    vec.emplace_back("# Remove unfinished " + ProperName + " install (if any).");
-    int result = do_command(buildFileName, vec, bScriptOnly);
-
-    sstr bldPath = get_xxx_Path(xxxPath, "bld");
-    sstr etcPath = get_xxx_Path(xxxPath, "etc");
-    sstr srcPath = get_xxx_Path(xxxPath, "src");
-    sstr tmpPath = "usr/Tcl_Tk";
-    sstr usrPath = joinPathParts(rtnPath, tmpPath);
-
-    result += removeWorkingDirectories(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
-    result += ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
-    result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
-    return result;
-}
-
 
 int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sstr& usrPath, bool bScriptOnly)
 {
@@ -1607,6 +1590,19 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
             result += mariadb_notes(buildFileName, notes_file, ProperName, progVersion, rtnPath, xxxPath, bScriptOnly);
         }
     }
+    if (result == 0 )
+    {
+        vec1.clear();
+        vec1.emplace_back("# Install was successful.");
+    }
+    else
+    {
+        vec1.clear();
+        vec1.emplace_back("# Install had some issues.");
+        vec1.emplace_back("# Look through the build logs in the '" + bldPath + "' directory.");
+    }
+    do_command(buildFileName, vec1, bScriptOnly);
+
     return result;
 }
 
@@ -1645,9 +1641,6 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
         makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
         vec1.emplace_back("eval \"cd " + srcPath + "; make -j  > " + makePathAndFileName + " 2>&1 \"");
         result = do_command(buildFileName, vec1, bScriptOnly);
-
-
-
 
         if (bDoTests) {
 
@@ -1709,13 +1702,11 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
     if (result == 0 )
     {
         vec1.clear();
-        vec1.emplace_back("# ");
         vec1.emplace_back("# Install was successful.");
     }
     else
     {
         vec1.clear();
-        vec1.emplace_back("# ");
         vec1.emplace_back("# Install had some issues.");
         vec1.emplace_back("# Look through the build logs in the '" + bldPath + "' directory.");
     }
@@ -2586,7 +2577,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         result += do_command(buildFileName, vec, bScriptOnly);
 
         // staging
-        result = EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+        result = EnsureStageDirectoryExists(buildFileName, ProperName, stgPath, bScriptOnly);
 
         if (result == 0)
         {
@@ -3026,8 +3017,8 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                    srcPath,   xxxPath,    bScriptOnly);
     if (bInstall)
     {
-        result = setupInstallDirectories_tcl(buildFileName, ProperName, compressedFileName,
-                                             stgPath, rtnPath, xxxPath, bScriptOnly);
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
 
         // Note: Don't end the command with \" to close the command here.
@@ -3125,8 +3116,8 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                    srcPath,   xxxPath,    bScriptOnly);
     if (bInstall)
     {
-        result = setupInstallDirectories_tcl(buildFileName, ProperName, compressedFileName,
-                                             stgPath, rtnPath, xxxPath, bScriptOnly);
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
 
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
