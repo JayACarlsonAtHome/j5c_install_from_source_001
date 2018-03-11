@@ -205,7 +205,7 @@ sstr joinPathWithFile(sstr& partA, sstr& fileName)
 }
 
 
-bool isFileSizeGtZero(sstr &fileName)
+bool isFileSizeGtZero(sstr &fileName, bool bShow = false)
 {
     bool result = false;
     std::streampos fsize = 0;
@@ -216,7 +216,14 @@ bool isFileSizeGtZero(sstr &fileName)
     fsize = file.tellg() - fsize;
     file.close();
 
-    if (fsize > 0) result = true;
+    if (bShow) {
+        if (fsize > 0) {
+            result = true;
+            std::cout << "Found file: " << fileName << " and size = " << fsize << std::endl;
+        } else {
+            std::cout << "File: " << fileName << " not found or size is 0" << std::endl;
+        }
+    }
     return result;
 }
 
@@ -982,7 +989,7 @@ void protectProgram_IfRequired(sstr &buildFileName,
                                bool bScriptOnly)
 {
     std::vector<sstr> vec;
-    if (!(isFileSizeGtZero(protectedFileName))) {
+    if (!(isFileSizeGtZero(protectedFileName, false))) {
         if (bProtectMode) {
             ensure_Directory_exists1(srcPath);
             vec.emplace_back("eval \"cd " + srcPath + "; echo 'protection = true' > " + protectedFileName + "\"");
@@ -998,7 +1005,7 @@ void howToRemoveFileProtection(sstr& buildFileName,
                            bool  bScriptOnly)
 {
     std::vector<sstr> vec;
-    if (!(isFileSizeGtZero(protectedFileName))) {
+    if (!(isFileSizeGtZero(protectedFileName, false))) {
 
         vec.emplace_back("# ");
         vec.emplace_back("# This " + ProperName + " install is currently protected:");
@@ -1018,12 +1025,18 @@ void stageSourceCodeIfNeeded(sstr& buildFileName,
                              bool bScriptOnly)
 {
     std::vector<sstr> vec;
-    vec.emplace_back("# ");
-    vec.emplace_back("# Ensure stg directory exists.");
-    vec.emplace_back("eval \"mkdir -p " + stgPath + "\"");
-    if (!(isFileSizeGtZero(stagedFileName)))
+    vec.emplace_back("#");
+    vec.emplace_back("# Stage source file if needed.");
+    do_command(buildFileName, vec, bScriptOnly);
+    vec.clear();
+    if (!(isFileSizeGtZero(stagedFileName, true)))
     {
+        vec.emplace_back("# Attempting to download file...");
         vec.emplace_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "\"");
+    }
+    else
+    {
+        vec.emplace_back("# Source code appears to be staged.");
     }
     do_command(buildFileName, vec, bScriptOnly);
 
@@ -1049,7 +1062,7 @@ sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
         }
         return newPath;
     }
-    return "Err in get_xxx_Path()...Replacement Path Length is != 3.";
+    return "Err in get_xxx_Path()...Replacement path length is != 3.";
 }
 
 
@@ -1062,20 +1075,22 @@ int removeWorkingDirectories(sstr& buildFileName, sstr& ProperName, sstr& bldPat
     if (ProperName != "Tk") {
         removeDirectory(buildFileName, usrPath, vec);
     }
-    do_command(buildFileName, vec, bScriptOnly);
-    return 0;
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    if (result == 0)
+    {
+        vec.clear();
+        vec.emplace_back("# Directories were deleted successfully.");
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    else
+    {
+        vec.clear();
+        vec.emplace_back("# Directories were not deleted successfully.");
+        vec.emplace_back("# Check for valid path and permissions.");
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    return result;
 }
-
-int ensureStgDirExists(sstr& ProperName, sstr& buildFileName, sstr& stgPath, bool bScriptOnly)
-{
-    std::vector<sstr> vec;
-    vec.emplace_back("# ");
-    vec.emplace_back("# Ensure " + ProperName + " directories exist.");
-    vec.emplace_back("eval \"mkdir -p " + stgPath + "\"");
-    do_command(buildFileName, vec, bScriptOnly);
-    return 0;
-}
-
 
 int ensureWrkDirExist(sstr& buildFileName, sstr& ProperName,
                                   sstr& bldPath, sstr& etcPath, sstr& srcPath, sstr& usrPath,
@@ -1083,13 +1098,28 @@ int ensureWrkDirExist(sstr& buildFileName, sstr& ProperName,
 {
     std::vector<sstr> vec;
     vec.emplace_back("# ");
-    vec.emplace_back("# Ensure " + ProperName + " directories exist.");
+    vec.emplace_back("# Ensure " + ProperName + " working "
+                                                        ""
+                                                        "directories exist.");
     vec.emplace_back("eval \"mkdir -p " + bldPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + etcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + srcPath + "\"");
     vec.emplace_back("eval \"mkdir -p " + usrPath + "\"");
-    do_command(buildFileName, vec, bScriptOnly);
-    return 0;
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    if (result == 0)
+    {
+        vec.clear();
+        vec.emplace_back("# Directories exist or were created.");
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    else
+    {
+        vec.clear();
+        vec.emplace_back("# Directories were not created successfully.");
+        vec.emplace_back("# Check for valid path and permissions.");
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    return result;
 }
 
 int createTargetFromStage(sstr& buildFileName, sstr& ProperName, sstr& stgPath, sstr& srcPath, sstr& compressedFileName, bool bScriptOnly)
@@ -1101,8 +1131,45 @@ int createTargetFromStage(sstr& buildFileName, sstr& ProperName, sstr& stgPath, 
     vec.emplace_back("eval \"cd " + srcPath + "; tar xf " + compressedFileName + "\"");
     vec.emplace_back("eval \"cd " + srcPath + "; rm -f "  + compressedFileName + "\"");
     int result = do_command(buildFileName, vec, bScriptOnly);
+    if (result == 0)
+    {
+        vec.clear();
+        vec.emplace_back("# Target created.");
+        do_command(buildFileName, vec, bScriptOnly);
+    }
+    else
+    {
+        vec.clear();
+        vec.emplace_back("# Target was not created successfully.");
+        vec.emplace_back("# Check for valid path and permissions.");
+        do_command(buildFileName, vec, bScriptOnly);
+    }
     return result;
 }
+
+int EnsureStageDirectoryExists(sstr& buildFileName, sstr& ProperName, sstr& stgPath, bool bScriptOnly)
+{
+    std::vector<sstr> vec;
+    vec.emplace_back("# ");
+    vec.emplace_back("# Ensure stage directory exists.");
+    vec.emplace_back("eval \"mkdir -p " + stgPath + "\"");
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    if (result == 0)
+    {
+        vec.clear();
+        vec.emplace_back("# Stage directory exists.");
+    }
+    else
+    {
+        vec.clear();
+        vec.emplace_back("# Stage directory does NOT exists.");
+        vec.emplace_back("# Check for valid path, and permissions.");
+    }
+    do_command(buildFileName, vec, bScriptOnly);
+    return result;
+}
+
+
 
 int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compressedFileName,
                             sstr& rtnPath, sstr& stgPath, const sstr& xxxPath, bool bScriptOnly)
@@ -1117,9 +1184,9 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     sstr srcPath = get_xxx_Path( xxxPath, "src");
     sstr usrPath = get_xxx_Path( xxxPath, "usr");
 
-    result += removeWorkingDirectories(buildFileName, ProperName,  bldPath, etcPath, srcPath, usrPath, bScriptOnly);
-    result += ensureWrkDirExist(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
-    result += createTargetFromStage(buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
+    result += removeWorkingDirectories(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
+    result += ensureWrkDirExist       (buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
+    result += createTargetFromStage   (buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
     return result;
 }
 
@@ -1207,23 +1274,9 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sst
     return 0;
 };
 
-
-
-int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr& configureStr,
-                 sstr& xxxPath,       sstr& progVersion, sstr& rtnPath,
-        bool bDebug, bool bDoTests, bool bScriptOnly)
+int configure(sstr& buildFileName, sstr& configureStr, sstr& xxxPath,  bool bDebug, bool bScriptOnly)
 {
-    int result = -1;
-    bool skipTests = false;
-
     sstr bldPath = get_xxx_Path(xxxPath, "bld");
-    sstr usrPath = get_xxx_Path(xxxPath, "usr");
-    sstr etcPath = get_xxx_Path(xxxPath, "etc");
-
-    // one of these things is not like the others...on purpose...
-    sstr tmpPath = get_xxx_Path(xxxPath, "src");
-    sstr srcPath = joinPathParts(tmpPath, progVersion);
-
     if (!bDebug) {
         std::vector<sstr> vec1;
         std::vector<sstr> vec2;
@@ -1234,229 +1287,330 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
         //   This was started in the configureStr.
         configureStr.append(" > " + bldPath + "configure_results.txt 2>&1 \"");
         vec1.emplace_back(configureStr);
-        if ((ProperName != "Perl") && (ProperName != "Perl6")) {
-            vec1.emplace_back("# ");
-            vec1.emplace_back("# make clean");
-            vec1.emplace_back("eval \"cd " + srcPath + "; make clean > " + bldPath + "make_clean_results.txt 2>&1 \"");
+        int result = do_command(buildFileName, vec1, bScriptOnly);
+        if (result == 0) {
+            vec2.clear();
+            vec2.emplace_back("# Configure completed successfully.");
+        } else {
+            vec2.clear();
+            vec2.emplace_back("# Configure had some problems.");
+            vec2.emplace_back("# Look through '" + bldPath + "configure_results.txt' to find the issue. ");
         }
+        do_command(buildFileName, vec2, bScriptOnly);
+        return result;
+    }
+}
+
+int make(sstr& buildFileName, sstr& ProperName, sstr& progVersion, sstr& xxxPath,  bool bDebug, bool bScriptOnly)
+{
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath, progVersion);
+
+    std::vector<sstr> vec1;
+    std::vector<sstr> vec2;
+    if ((ProperName != "Perl") && (ProperName != "Perl6")) {
         vec1.emplace_back("# ");
-        vec1.emplace_back("# make ");
-        vec1.emplace_back("eval \"cd " + srcPath + "; make > " + bldPath + "make_results.txt 2>&1 \"");
-        result = do_command(buildFileName, vec1, bScriptOnly);
+        vec1.emplace_back("# make clean");
+        vec1.emplace_back("eval \"cd " + srcPath + "; make clean > " + bldPath + "make_clean_results.txt 2>&1 \"");
+    }
+    vec1.emplace_back("# ");
+    vec1.emplace_back("# make ");
+    vec1.emplace_back("eval \"cd " + srcPath + "; make > " + bldPath + "make_results.txt 2>&1 \"");
+    int result = do_command(buildFileName, vec1, bScriptOnly);
+    if (result == 0) {
+        vec2.clear();
+        vec2.emplace_back("# Make completed successfully.");
+    } else {
+        vec2.clear();
+        vec2.emplace_back("# Make had some problems.");
+        vec2.emplace_back("# Look through '" + bldPath + "make_results.txt' to find the issue. ");
+    }
+    do_command(buildFileName, vec2, bScriptOnly);
+    return result;
+
+}
+
+int test_php(sstr& buildFileName, sstr& ProperName, bool bScriptOnly)
+{
+    std::vector<sstr> vec1;
+    if (ProperName == "Php") {
+        // do nothing..
+        // until I can get "expect" to read the input and "send" some data
+        // I don't want the tests to hold up the script.
+        vec1.emplace_back("# ");
+        vec1.emplace_back("# make test");
+        vec1.emplace_back("# The tests must be run manually.");
+        vec1.emplace_back("#   So you can answer the questions at the end of the tests.");
+        do_command(buildFileName, vec1, bScriptOnly);
+    }
+    return 0;
+}
+
+int test_perl6(sstr& buildFileName, sstr& ProperName, sstr& xxxPath, bool bScriptOnly)
+{
+    sstr suffix1 = "make_test_results.txt";
+    sstr suffix2 = "rakudo_test_results.txt";
+    sstr suffix3 = "rakudo_specTest_results.txt";
+    sstr suffix4 = "modules_test_results.txt";
+
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr srcPath = get_xxx_Path(xxxPath, "src");
+
+    sstr testPathAndFileName1 = joinPathWithFile(bldPath, suffix1);
+    sstr testPathAndFileName2 = joinPathWithFile(bldPath, suffix2);
+    sstr testPathAndFileName3 = joinPathWithFile(bldPath, suffix3);
+    sstr testPathAndFileName4 = joinPathWithFile(bldPath, suffix4);
+
+    std::vector<sstr> vec1;
+    vec1.clear();
+    vec1.emplace_back("# ");
+    vec1.emplace_back("# make test...");
+    vec1.emplace_back("# !!! Warning this may take a while...");
+    vec1.emplace_back("eval \"cd " + srcPath + "; make test > "            + testPathAndFileName1 + " 2>&1 \"");
+    do_command(buildFileName, vec1, bScriptOnly);
+    vec1.clear();
+    vec1.emplace_back("eval \"cd " + srcPath + "; make rakudo-test > "     + testPathAndFileName2 + " 2>&1 \"");
+    do_command(buildFileName, vec1, bScriptOnly);
+    vec1.clear();
+    vec1.emplace_back("eval \"cd " + srcPath + "; make rakudo-spectest > " + testPathAndFileName3 + " 2>&1 \"");
+    do_command(buildFileName, vec1, bScriptOnly);
+    vec1.clear();
+    vec1.emplace_back("eval \"cd " + srcPath + "; make modules-test > "    + testPathAndFileName4 + " 2>&1 \"");
+    do_command(buildFileName, vec1, bScriptOnly);
+}
+
+
+int mariadb_notes(sstr& buildFileName, sstr& notes_File, sstr& ProperName, sstr& progVersion, sstr& rtnPath, sstr& xxxPath, bool bScriptOnly)
+{
+    std::vector<sstr> vec;
+    if (ProperName == "Mariadb") {
+
+        sstr bldPath = get_xxx_Path(xxxPath, "bld");
+        sstr usrPath = get_xxx_Path(xxxPath, "usr");
+        sstr etcPath = get_xxx_Path(xxxPath, "etc");
+
+        // one of these things is not like the others...on purpose...
+        sstr tmpPath = get_xxx_Path(xxxPath, "src");
+        sstr srcPath = joinPathParts(tmpPath, progVersion);
+
+
+        sstr testPathAndFileName = bldPath;
+        sstr suffix = "test_results_02.txt";
+
+        auto len = usrPath.find_first_of("usr");
+        sstr perlPath;
+        perlPath.append(usrPath.substr(0, len - 1));
+        perlPath.append("/usr/perl/bin/perl");
+
+        vec.clear();
+        testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
+        vec.emplace_back("# ");
+        vec.emplace_back("# optional testing...(after installation and starting)...");
+        vec.emplace_back(
+                "# eval \"cd " + srcPath + "mysql-test; " + perlPath + " mysql-test-run.pl > " +
+                testPathAndFileName + " 2>&1 \"");
+        do_command(buildFileName, vec, bScriptOnly);
+
+
+        vec.clear();
+        vec.emplace_back("#################################################################################");
+        vec.emplace_back("# ");
+        vec.emplace_back("# MariaDB Note Section");
+        vec.emplace_back("# ");
+        vec.emplace_back("#################################################################################");
+        vec.emplace_back("# ");
+        vec.emplace_back("#--> Run these commands to secure and start mariadb.");
+        vec.emplace_back("groupadd   mysql ");
+        vec.emplace_back("useradd -g mysql mysql ");
+        //Create required directories if needed
+        vec.emplace_back("# ");
+        vec.emplace_back("mkdir -p " + usrPath + "data/temp");
+        vec.emplace_back("mkdir -p " + usrPath + "run");
+        vec.emplace_back("mkdir -p " + usrPath + "var/log");
+        // Add required run files
+        vec.emplace_back("# ");
+        vec.emplace_back("cd "       + usrPath + "run");
+        vec.emplace_back("touch mariadb.socket ");
+        vec.emplace_back("touch pid ");
+        //set permissions for mariadb directory recursively
+        vec.emplace_back("# ");
+        vec.emplace_back("cd " + usrPath + "../ ");
+        vec.emplace_back("chown -R root:mysql mariadb ");
+        vec.emplace_back("chmod -R 770        mariadb ");
+        //Over ride permissions as required
+        vec.emplace_back("# ");
+        vec.emplace_back("cd " + usrPath);
+        vec.emplace_back("chown -R mysql:mysql data ");
+        vec.emplace_back("chmod -R 770         data ");
+        vec.emplace_back("chown -R mysql:mysql run  ");
+        vec.emplace_back("chmod -R 770         run  ");
+        vec.emplace_back("chown -R mysql:mysql var  ");
+        vec.emplace_back("chmod -R 770         var  ");
+        file_write_vector_to_file(notes_File, vec, false);
+
+        create_my_cnf_File(buildFileName, notes_File, etcPath, usrPath, bScriptOnly);
+
+        vec.clear();
+        vec.emplace_back("cd " + usrPath);
+        vec.emplace_back("#");
+        vec.emplace_back("# script the initial database");
+        vec.emplace_back("#   Note 1: If you see a lot of permission errors and the script fails...");
+        vec.emplace_back("#           It probably means you need to run chmod o+x on all the directories");
+        vec.emplace_back("#            up to the usr/mariadb directory. Once permissions are set up to ");
+        vec.emplace_back("#            the mariadb directory, the rest of the permissions should be ok. ");
+        vec.emplace_back("#            Don't use chmod -R o+x because that would set all the files as well");
+        vec.emplace_back("#              and we only need the directories.");
+        vec.emplace_back("#   Note 2:  Note 1 may not be secure enough for you, In that case you must use");
+        vec.emplace_back("#               Access Control Lists, and there are too many different user options ");
+        vec.emplace_back("#               to create a detailed list here.");
+        sstr command = "./scripts/mysql_install_db --user=mysql ";
+        command.append(" --basedir='");
+        command.append(usrPath);
+        command.append("' --datadir='");
+        command.append(usrPath);
+        command.append("data' ");
+        command.append(" --tmpdir='");
+        command.append(usrPath);
+        command.append("data/temp' ");
+        command.append("  --socket='");
+        command.append(usrPath);
+        command.append("run/mariadb.socket' ");
+        vec.emplace_back(command);
+        vec.emplace_back("#");
+        vec.emplace_back("# start the database ");
+        vec.emplace_back("cd " + usrPath);
+        command.clear();
+        command.append("./bin/mysqld_safe ");
+        command.append(" --datadir='");
+        command.append(usrPath);
+        command.append("data' ");
+        command.append(" --socket='");
+        command.append(usrPath);
+        command.append("run/mariadb.socket' & ");
+        vec.emplace_back(command);
+        vec.emplace_back("#");
+        vec.emplace_back("#Secure the installation by running:");
+        vec.emplace_back("cd " + usrPath);
+        command.clear();
+        command = "./bin/mysql_secure_installation ";
+        command.append(" --socket='");
+        command.append(usrPath);
+        command.append("run/mariadb.socket'");
+        vec.emplace_back(command);
+        vec.emplace_back("#");
+        vec.emplace_back("#After securing mariadb start the client console:");
+        command.clear();
+        command = "./bin/mysql ";
+        command.append(" --socket='");
+        command.append(usrPath);
+        command.append("run/mariadb.socket' -u root -p ");
+        vec.emplace_back(command);
+        vec.emplace_back("# ");
+        vec.emplace_back("# ");
+        vec.emplace_back("# When you want to shutdown run this:");
+        vec.emplace_back("cd " + usrPath);
+
+        command.clear();
+        command ="./bin/mysqladmin -u root -p shutdown ";
+        command.append(" --socket='");
+        command.append(usrPath);
+        command.append("run/mariadb.socket' & ");
+        vec.emplace_back(command);
+        file_write_vector_to_file(notes_File, vec, false);
+
+        vec.clear();
+        vec.emplace_back("#");
+        vec.emplace_back("# See the Installation_Notes on how to setup and start mariadb.");
+        vec.emplace_back("eval \"cd " + rtnPath + "\"");
+        int result = do_command(buildFileName, vec, bScriptOnly);
+        return result;
+    }
+
+}
+
+int make_install(sstr& buildFileName, sstr& progVersion, sstr& xxxPath, bool bScriptOnly )
+{
+    std::vector<sstr> vec;
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath, progVersion);
+
+    vec.clear();
+    sstr makePathAndFileName = bldPath;
+    sstr suffix = "make_install_results.txt";
+    makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
+
+    vec.emplace_back("# ");
+    vec.emplace_back("# make install...");
+    vec.emplace_back("eval \"cd " + srcPath + "; make install > " + makePathAndFileName + " 2>&1 \"");
+    vec.emplace_back("# ");
+    int result = do_command(buildFileName, vec, bScriptOnly);
+    if (result == 0) {
+        vec.clear();
+        vec.emplace_back("# Make Install completed successfully.");
+    } else {
+        vec.clear();
+        vec.emplace_back("# Make Install had some problems.");
+        vec.emplace_back("# Look through '" + bldPath + "make_install_results.txt' to find the issue. ");
+    }
+    return result;
+}
+
+
+int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr& configureStr,
+                 sstr& xxxPath,       sstr& progVersion, sstr& rtnPath,
+                 bool bDebug,         bool bDoTests,     bool bScriptOnly)
+{
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath, progVersion);
+
+    int result = 0;
+    std::vector<sstr> vec1;
+    std::vector<sstr> vec2;
+    if (!bDebug) {
+        result = configure(buildFileName, configureStr, xxxPath,  bDebug, bScriptOnly);
+        if (result == 0) {
+            result += make(buildFileName, ProperName, progVersion, xxxPath, bDebug, bScriptOnly);
+        }
 
         if (bDoTests) {
-
-
-            if (ProperName == "Php") {
-                // do nothing..
-                // until I can get "expect" to read the input and "send" n
-                // I don't want the tests to hold up the script.
-                skipTests = true;
-                vec1.emplace_back("# ");
-                vec1.emplace_back("# make test");
-                vec1.emplace_back("# The tests must be run manually.");
-                vec1.emplace_back("#   So you can answer the questions at the end of the tests.");
+            if (ProperName == "Php")   {
+                result += test_php(buildFileName, ProperName, bScriptOnly);
             }
-            if (ProperName == "Perl6")
-            {
-                sstr suffix1 = "make_test_results.txt";
-                sstr suffix2 = "rakudo_test_results.txt";
-                sstr suffix3 = "rakudo_specTest_results.txt";
-                sstr suffix4 = "modules_test_results.txt";
-
-                sstr testPathAndFileName1 = joinPathWithFile(bldPath, suffix1);
-                sstr testPathAndFileName2 = joinPathWithFile(bldPath, suffix2);
-                sstr testPathAndFileName3 = joinPathWithFile(bldPath, suffix3);
-                sstr testPathAndFileName4 = joinPathWithFile(bldPath, suffix4);
-
-                vec2.clear();
-                vec2.emplace_back("# ");
-                vec2.emplace_back("# make test...");
-                vec2.emplace_back("# !!! Warning this may take a while...");
-                vec2.emplace_back("eval \"cd " + srcPath + "; make test > "            + testPathAndFileName1 + " 2>&1 \"");
-                do_command(buildFileName, vec2, bScriptOnly);
-                vec2.clear();
-                vec2.emplace_back("eval \"cd " + srcPath + "; make rakudo-test > "     + testPathAndFileName2 + " 2>&1 \"");
-                do_command(buildFileName, vec2, bScriptOnly);
-                vec2.clear();
-                vec2.emplace_back("eval \"cd " + srcPath + "; make rakudo-spectest > " + testPathAndFileName3 + " 2>&1 \"");
-                do_command(buildFileName, vec2, bScriptOnly);
-                vec2.clear();
-                vec2.emplace_back("eval \"cd " + srcPath + "; make modules-test > "    + testPathAndFileName4 + " 2>&1 \"");
-                do_command(buildFileName, vec2, bScriptOnly);
-
-                // We don't want to run the normal tests...
-                skipTests = true;
+            if (ProperName == "Perl6") {
+                test_perl6(buildFileName, ProperName, xxxPath, bScriptOnly);
             }
-
-            if (ProperName == "Mariadb") {
-
-                sstr testPathAndFileName = bldPath;
-                sstr suffix = "test_results_01.txt";
-
-                vec2.clear();
-                vec2.emplace_back("# ");
-                vec2.emplace_back("# make test...");
-                testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
-                vec2.emplace_back("  eval \"cd " + srcPath + "; make test > " + testPathAndFileName + " 2>&1 \"");
-                do_command(buildFileName, vec2, bScriptOnly);
-
-                // We don't want to run the normal tests...
-                skipTests = true;
-            }
-            if (!skipTests) {
-                sstr testPathAndFileName = bldPath;
-                sstr suffix = "test_results.txt";
-                testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
-
-                vec2.emplace_back("# ");
-                vec2.emplace_back("# make test...");
-                vec2.emplace_back("# !!! Warning this may take a while...");
-                vec2.emplace_back("eval \"cd " + srcPath + "; make test > " + testPathAndFileName + " 2>&1 \"");
-                do_command(buildFileName, vec2, bScriptOnly);
-            }
-        }
-        vec1.clear();
-        vec1.emplace_back("# ");
-        vec1.emplace_back("# make install...");
-        vec1.emplace_back("eval \"cd " + srcPath + "; make install > " + bldPath + "install_results.txt  2>&1 \"");
-        vec1.emplace_back("# ");
-        result += do_command(buildFileName, vec1, bScriptOnly);
-        if (ProperName == "Mariadb") {
-
             sstr testPathAndFileName = bldPath;
-            sstr suffix = "test_results_02.txt";
-
-            auto len = usrPath.find_first_of("usr");
-            sstr perlPath;
-            perlPath.append(usrPath.substr(0, len - 1));
-            perlPath.append("/usr/perl/bin/perl");
-
-            vec2.clear();
+            sstr suffix = "test_results.txt";
             testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
+
             vec2.emplace_back("# ");
-            vec2.emplace_back("# optional testing...(after installation and starting)...");
-            vec2.emplace_back(
-                    "# eval \"cd " + srcPath + "mysql-test; " + perlPath + " mysql-test-run.pl > " +
-                    testPathAndFileName + " 2>&1 \"");
+            vec2.emplace_back("# make test...");
+            vec2.emplace_back("# !!! Warning this may take a while...");
+            vec2.emplace_back("eval \"cd " + srcPath + "; make test > " + testPathAndFileName + " 2>&1 \"");
+
+            //Most tests have some failures, so we don't want to fail the install because of a test failure.
+            //So we don't record the result here.
             do_command(buildFileName, vec2, bScriptOnly);
+        }
 
-
-            vec2.clear();
-            vec2.emplace_back("#################################################################################");
-            vec2.emplace_back("# ");
-            vec2.emplace_back("# MariaDB Note Section");
-            vec2.emplace_back("# ");
-            vec2.emplace_back("#################################################################################");
-            vec2.emplace_back("# ");
-            vec2.emplace_back("#--> Run these commands to secure and start mariadb.");
-            vec2.emplace_back("groupadd   mysql ");
-            vec2.emplace_back("useradd -g mysql mysql ");
-            //Create required directories if needed
-            vec2.emplace_back("# ");
-            vec2.emplace_back("mkdir -p " + usrPath + "data/temp");
-            vec2.emplace_back("mkdir -p " + usrPath + "run");
-            vec2.emplace_back("mkdir -p " + usrPath + "var/log");
-            // Add required run files
-            vec2.emplace_back("# ");
-            vec2.emplace_back("cd "       + usrPath + "run");
-            vec2.emplace_back("touch mariadb.socket ");
-            vec2.emplace_back("touch pid ");
-            //set permissions for mariadb directory recursively
-            vec2.emplace_back("# ");
-            vec2.emplace_back("cd " + usrPath + "../ ");
-            vec2.emplace_back("chown -R root:mysql mariadb ");
-            vec2.emplace_back("chmod -R 770        mariadb ");
-            //Over ride permissions as required
-            vec2.emplace_back("# ");
-            vec2.emplace_back("cd " + usrPath);
-            vec2.emplace_back("chown -R mysql:mysql data ");
-            vec2.emplace_back("chmod -R 770         data ");
-            vec2.emplace_back("chown -R mysql:mysql run  ");
-            vec2.emplace_back("chmod -R 770         run  ");
-            vec2.emplace_back("chown -R mysql:mysql var  ");
-            vec2.emplace_back("chmod -R 770         var  ");
-            file_write_vector_to_file(notes_file, vec2, false);
-
-            create_my_cnf_File(buildFileName, notes_file, etcPath, usrPath, bScriptOnly);
-
-            vec2.clear();
-            vec2.emplace_back("cd " + usrPath);
-            vec2.emplace_back("#");
-            vec2.emplace_back("# script the initial database");
-            vec2.emplace_back("#   Note 1: If you see a lot of permission errors and the script fails...");
-            vec2.emplace_back("#           It probably means you need to run chmod o+x on all the directories");
-            vec2.emplace_back("#            up to the usr/mariadb directory. Once permissions are set up to ");
-            vec2.emplace_back("#            the mariadb directory, the rest of the permissions should be ok. ");
-            vec2.emplace_back("#            Don't use chmod -R o+x because that would set all the files as well");
-            vec2.emplace_back("#              and we only need the directories.");
-            vec2.emplace_back("#   Note 2:  Note 1 may not be secure enough for you, In that case you must use");
-            vec2.emplace_back("#               Access Control Lists, and there are too many different user options ");
-            vec2.emplace_back("#               to create a detailed list here.");
-            sstr command = "./scripts/mysql_install_db --user=mysql ";
-            command.append(" --basedir='");
-            command.append(usrPath);
-            command.append("' --datadir='");
-            command.append(usrPath);
-            command.append("data' ");
-            command.append(" --tmpdir='");
-            command.append(usrPath);
-            command.append("data/temp' ");
-            command.append("  --socket='");
-            command.append(usrPath);
-            command.append("run/mariadb.socket' ");
-            vec2.emplace_back(command);
-            vec2.emplace_back("#");
-            vec2.emplace_back("# start the database ");
-            vec2.emplace_back("cd " + usrPath);
-            command.clear();
-            command.append("./bin/mysqld_safe ");
-            command.append(" --datadir='");
-            command.append(usrPath);
-            command.append("data' ");
-            command.append(" --socket='");
-            command.append(usrPath);
-            command.append("run/mariadb.socket' & ");
-            vec2.emplace_back(command);
-            vec2.emplace_back("#");
-            vec2.emplace_back("#Secure the installation by running:");
-            vec2.emplace_back("cd " + usrPath);
-            command.clear();
-            command = "./bin/mysql_secure_installation ";
-            command.append(" --socket='");
-            command.append(usrPath);
-            command.append("run/mariadb.socket'");
-            vec2.emplace_back(command);
-            vec2.emplace_back("#");
-            vec2.emplace_back("#After securing mariadb start the client console:");
-            command.clear();
-            command = "./bin/mysql ";
-            command.append(" --socket='");
-            command.append(usrPath);
-            command.append("run/mariadb.socket' -u root -p ");
-            vec2.emplace_back(command);
-            vec2.emplace_back("# ");
-            vec2.emplace_back("# ");
-            vec2.emplace_back("# When you want to shutdown run this:");
-            vec2.emplace_back("cd " + usrPath);
-
-            command.clear();
-            command ="./bin/mysqladmin -u root -p shutdown ";
-            command.append(" --socket='");
-            command.append(usrPath);
-            command.append("run/mariadb.socket' & ");
-            vec2.emplace_back(command);
-            file_write_vector_to_file(notes_file, vec2, false);
-
-            vec1.clear();
-            vec1.emplace_back("#");
-            vec1.emplace_back("# See the Installation_Notes on how to setup and start mariadb.");
-            vec1.emplace_back("eval \"cd " + rtnPath + "\"");
-            result += do_command(buildFileName, vec1, bScriptOnly);
+        // make install starts here...
+        if (result == 0)
+        {
+            result = make_install(buildFileName, progVersion, xxxPath, bScriptOnly);
+        }
+        if ((result == 0) && (ProperName == "Mariadb")) {
+            result += mariadb_notes(buildFileName, notes_file, ProperName, progVersion, rtnPath, xxxPath, bScriptOnly);
         }
     }
     return result;
 }
+
+
 
 int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr& configureStr,
                  sstr& srcPath, sstr& xxxPath, sstr& progVersion, sstr& rtnPath,
@@ -1469,10 +1623,11 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
     sstr tmpPath = "usr/Tcl_Tk";
     sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
+    std::vector<sstr> vec1;
+    std::vector<sstr> vec2;
 
     if (!bDebug) {
-        std::vector<sstr> vec1;
-        std::vector<sstr> vec2;
+
         vec1.clear();
         vec1.emplace_back("# ");
         vec1.emplace_back("# Configure...");
@@ -1550,8 +1705,21 @@ int basicInstall_tcl(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, s
         vec2.emplace_back("#    4. The TCL/Tk A Developers Guide by Clif Flynt");
         vec2.emplace_back("# ");
         file_write_vector_to_file(notes_file, vec2, false);
-
     }
+    if (result == 0 )
+    {
+        vec1.clear();
+        vec1.emplace_back("# ");
+        vec1.emplace_back("# Install was successful.");
+    }
+    else
+    {
+        vec1.clear();
+        vec1.emplace_back("# ");
+        vec1.emplace_back("# Install had some issues.");
+        vec1.emplace_back("# Look through the build logs in the '" + bldPath + "' directory.");
+    }
+    do_command(buildFileName, vec1, bScriptOnly);
     return result;
 }
 
@@ -1571,7 +1739,7 @@ bool programNotProtected(std::map<sstr, sstr> settings,
 
     sstr protectionFileWithPath = srcPath + "/" + protectedFileName;
 
-    if (isFileSizeGtZero(protectionFileWithPath)) {
+    if (isFileSizeGtZero(protectionFileWithPath, false)) {
         bProtectMode = true;
         bInstall = false;
         howToRemoveFileProtection(buildFileName, ProperName, srcPath, protectedFileName, bScriptOnly);
@@ -1653,7 +1821,9 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   srcPath,   xxxPath,    bScriptOnly);
@@ -1665,12 +1835,16 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + srcPath + "; ./Configure -Dprefix=" + usrPath + " -d -e ";
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+        if (result == 0) {
+            sstr configureStr = "eval \"cd " + srcPath + "; ./Configure -Dprefix=" + usrPath + " -d -e ";
+            result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                                   xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+        }
 
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
-                                             bProtectMode,  bScriptOnly );
+        if (result == 0) {
+            createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                         bProtectMode, bScriptOnly);
+        }
     }
     return result;
 }
@@ -1720,7 +1894,9 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     // we will need this when installing PHP
     settings["php->MDB_Path"] = usrPath;
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -1820,7 +1996,9 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -1886,7 +2064,9 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -1954,9 +2134,9 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-
-
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   srcPath,   xxxPath,    bScriptOnly);
@@ -2022,7 +2202,9 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2089,7 +2271,9 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                                   srcPath,   xxxPath,    bScriptOnly);
@@ -2157,7 +2341,9 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2222,7 +2408,9 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2238,7 +2426,6 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
         sstr configureStr = "eval \"cd " + srcPath + "; ./configure --prefix=" + usrPath + " ";
         result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
                                xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
-
 
         createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                      bProtectMode,  bScriptOnly );
@@ -2290,7 +2477,9 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2385,169 +2574,179 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
          tmpPath = "usr/apache/bin";
     sstr apePath = joinPathParts(rtnPath, tmpPath);
 
+    sstr tmpFile = "apachectl";
+    sstr apacheController = joinPathWithFile(apePath, tmpFile);
 
-    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
-                                   srcPath,   xxxPath,    bScriptOnly);
+    if (isFileSizeGtZero(apacheController)) {
 
-    if (bInstall)
-    {
-
-        // PHP install is special in so many ways...
-
-        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
-                                         rtnPath, stgPath, xxxPath, bScriptOnly);
-
-        // This section is special to the PHP install.
-        // Do not remove and replace with the like section of
-        //   other programs. It will not work.
-        // -- section begin
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# Restart Apache to ensure it is running.");
         vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -k restart \"");
-        do_command(buildFileName, vec, bScriptOnly);
-
-        if (!(isFileSizeGtZero(stagedFileName))) {
-
-            vec.clear();
-            // this will download the file with the fileName of mirror
-            vec.emplace_back("eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
-            // copy to the compressedFileName
-            vec.emplace_back("eval \"cd " + stgPath + "; cp " + "mirror " + compressedFileName + "\"");
-            // remove the mirror file
-            vec.emplace_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
-            // We need to start apache for this to work...
-            do_command(buildFileName, vec, bScriptOnly);
-        }
-        //
-        // -- section end
-        //
-
-        //
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig; ";
-        configureStr.append("cd ");
-        configureStr.append(srcPath);
-        configureStr.append("; ./configure" );
-        configureStr.append("  --prefix=");
-        configureStr.append(usrPath);
-        configureStr.append("  --exec-prefix=");
-        configureStr.append(usrPath);
-        configureStr.append("  --srcdir=");
-        configureStr.append(srcPath);
-             tmpPath = "usr/apache/bin/";
-        sstr apxPathFile=joinPathParts(rtnPath, tmpPath);
-        sstr tmpFile = "apxs";
-             apxPathFile=joinPathWithFile(apePath, tmpFile);
-        configureStr.append("  --with-apxs2=");
-        configureStr.append(apxPathFile);
-        configureStr.append("  --enable-mysqlnd ");
-             tmpPath = "usr/mariadb/";
-        sstr mdbPath=joinPathParts(rtnPath, tmpPath);
-        configureStr.append("  --with-pdo-mysql=");
-        configureStr.append(mdbPath);
-        sstr pcePath = "/usr/pcre";
-        pcePath = joinPathParts(rtnPath,pcePath);
-        configureStr.append("  --with-pcre-regex=");
-        configureStr.append(pcePath);
-        configureStr.append("  --with-config-file-path=");
-             tmpPath = "lib";
-        sstr libPath = joinPathParts(usrPath, tmpPath);
-        configureStr.append(libPath);
-        configureStr.append("  --with-config-file-scan-dir=");
-        configureStr.append(etcPath);
-        sstr crlPath = "/usr/bin";
-        configureStr.append("  --with-curl=");
-        configureStr.append(crlPath);
-        configureStr.append("  --with-mysql-sock=");
-             tmpPath = "usr/mariadb/run/";
-        sstr sckPathFile = joinPathParts(rtnPath, tmpPath);
-             tmpFile = "mariadb.socket";
-        sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
-        configureStr.append("  --enable-embedded-mysqli");
-        configureStr.append("  --disable-cgi ");
-        configureStr.append("  --disable-short-tags ");
-        configureStr.append("  --enable-bcmath ");
-        configureStr.append("  --with-pcre-jit " );
-        configureStr.append("  --enable-sigchild ");
-        configureStr.append("  --enable-libgcc ");
-        configureStr.append("  --enable-calendar ");
-        configureStr.append("  --enable-dba=shared");
-        configureStr.append("  --enable-ftp");
-        configureStr.append("  --enable-intl");
-        configureStr.append("  --enable-mbstring");
-        configureStr.append("  --enable-zip");
-        configureStr.append("  --enable-zend-test");
-        if (bCompile_For_Debug)
-        {
-            configureStr.append("  --enable-debug");
-        }
-
-        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
-
-
-        vec.clear();
-        vec.emplace_back("eval \"libtool --finish " + srcPath + "libs \"");
-        vec.emplace_back("eval \"chmod 755 " + rtnPath + "usr/apache/modules/libphp7.so \"");
         result += do_command(buildFileName, vec, bScriptOnly);
 
+        // staging
+        result = EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
 
-        sstr xdebugProgVersionCompression = xdebug_version + xdebug_compression;
-
-        vec.clear();
-        if (bInstall_Xdebug)
+        if (result == 0)
         {
-            vec.emplace_back("eval \"cd " + usrPath + "; wget " + xdebug_wget              + xDebugCompressedFileName + " \"");
-            vec.emplace_back("eval \"cd " + usrPath + "; tar "  + xdebug_tar_options + " " + xDebugCompressedFileName + " \"");
-            vec.emplace_back("eval \"cd " + usrPath + "; cd "   + xDebugProgVersion  + "; ../bin/phpize > "
-                                          + bldPath +"phpize.txt \"");
-            vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; ./configure --with-php-config="
-                             + usrPath + "bin/php-config > "    + bldPath + "xdebug-configure.txt \"");
-            vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; make > "
-                                          + bldPath + "xdebug-make.txt \"");
-
-            if (bCompile_For_Debug)
-            {
-                vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; cp modules/xdebug.so "
-                                 + usrPath + "lib/php/extensions/debug-zts-" + zts_version + " \"");
-                vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version + "/xdebug.so");
-            }
-            else
-            {
-                vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion  + "; cp modules/xdebug.so "
-                                 + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + " \"");
-                vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version + "/xdebug.so");
-            }
-
-            vec.emplace_back("# ");
-            vec.emplace_back("# Create: " + usrPath + "lib/php.ini");
-
-
-            if (bCompile_For_Debug)
-            {
-                vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
-                                 + usrPath + "lib/php/extensions/debug-zts-" + zts_version + "/xdebug.so > php.ini \"" );
-            }
-            else
-            {
-                vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
-                                 + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + "/xdebug.so > php.ini \"" );
-
-            }
+            bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName, srcPath,   xxxPath,    bScriptOnly);
         }
-        else
-        {
-            vec.emplace_back("# Xdebug not installed.");
+
+        if (bInstall) {
+
+            // PHP install is special in so many ways...
+
+
+
+
+                if (!(isFileSizeGtZero(stagedFileName))) {
+
+                    vec.clear();
+                    // this will download the file with the fileName of mirror
+                    vec.emplace_back(
+                            "eval \"cd " + stgPath + "; wget " + getPath + compressedFileName + "/from/this/mirror\"");
+                    // copy to the compressedFileName
+                    vec.emplace_back("eval \"cd " + stgPath + "; cp " + "mirror " + compressedFileName + "\"");
+                    // remove the mirror file
+                    vec.emplace_back("eval \"cd " + stgPath + "; rm -f " + "mirror\"");
+                    // We need to start apache for this to work...
+                    do_command(buildFileName, vec, bScriptOnly);
+                }
+
+                result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                                 rtnPath, stgPath, xxxPath, bScriptOnly);
+
+
+                //
+                // Note: Don't end the command with \" to close the command here.
+                //   We are going to append more to the command in the function
+                //     and end the command with \" there.
+                sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig; ";
+                configureStr.append("cd ");
+                configureStr.append(srcPath);
+                configureStr.append("; ./configure");
+                configureStr.append("  --prefix=");
+                configureStr.append(usrPath);
+                configureStr.append("  --exec-prefix=");
+                configureStr.append(usrPath);
+                configureStr.append("  --srcdir=");
+                configureStr.append(srcPath);
+                tmpPath = "usr/apache/bin/";
+                sstr apxPathFile = joinPathParts(rtnPath, tmpPath);
+                sstr tmpFile = "apxs";
+                apxPathFile = joinPathWithFile(apePath, tmpFile);
+                configureStr.append("  --with-apxs2=");
+                configureStr.append(apxPathFile);
+                configureStr.append("  --enable-mysqlnd ");
+                tmpPath = "usr/mariadb/";
+                sstr mdbPath = joinPathParts(rtnPath, tmpPath);
+                configureStr.append("  --with-pdo-mysql=");
+                configureStr.append(mdbPath);
+                sstr pcePath = "/usr/pcre";
+                pcePath = joinPathParts(rtnPath, pcePath);
+                configureStr.append("  --with-pcre-regex=");
+                configureStr.append(pcePath);
+                configureStr.append("  --with-config-file-path=");
+                tmpPath = "lib";
+                sstr libPath = joinPathParts(usrPath, tmpPath);
+                configureStr.append(libPath);
+                configureStr.append("  --with-config-file-scan-dir=");
+                configureStr.append(etcPath);
+                sstr crlPath = "/usr/bin";
+                configureStr.append("  --with-curl=");
+                configureStr.append(crlPath);
+                configureStr.append("  --with-mysql-sock=");
+                tmpPath = "usr/mariadb/run/";
+                sstr sckPathFile = joinPathParts(rtnPath, tmpPath);
+                tmpFile = "mariadb.socket";
+                sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
+                configureStr.append("  --enable-embedded-mysqli");
+                configureStr.append("  --disable-cgi ");
+                configureStr.append("  --disable-short-tags ");
+                configureStr.append("  --enable-bcmath ");
+                configureStr.append("  --with-pcre-jit ");
+                configureStr.append("  --enable-sigchild ");
+                configureStr.append("  --enable-libgcc ");
+                configureStr.append("  --enable-calendar ");
+                configureStr.append("  --enable-dba=shared");
+                configureStr.append("  --enable-ftp");
+                configureStr.append("  --enable-intl");
+                configureStr.append("  --enable-mbstring");
+                configureStr.append("  --enable-zip");
+                configureStr.append("  --enable-zend-test");
+                if (bCompile_For_Debug) {
+                    configureStr.append("  --enable-debug");
+                }
+
+                result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                                       xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+                vec.clear();
+                vec.emplace_back("eval \"libtool --finish " + srcPath + "libs \"");
+                vec.emplace_back("eval \"chmod 755 " + rtnPath + "usr/apache/modules/libphp7.so \"");
+                result += do_command(buildFileName, vec, bScriptOnly);
+
+
+                sstr xdebugProgVersionCompression = xdebug_version + xdebug_compression;
+
+                vec.clear();
+                if (bInstall_Xdebug) {
+                    vec.emplace_back("eval \"cd " + usrPath + "; wget " + xdebug_wget + xDebugCompressedFileName + " \"");
+                    vec.emplace_back(
+                            "eval \"cd " + usrPath + "; tar " + xdebug_tar_options + " " + xDebugCompressedFileName +
+                            " \"");
+                    vec.emplace_back("eval \"cd " + usrPath + "; cd " + xDebugProgVersion + "; ../bin/phpize > "
+                                     + bldPath + "phpize.txt \"");
+                    vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; ./configure --with-php-config="
+                                     + usrPath + "bin/php-config > " + bldPath + "xdebug-configure.txt \"");
+                    vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; make > "
+                                     + bldPath + "xdebug-make.txt \"");
+
+                    if (bCompile_For_Debug) {
+                        vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; cp modules/xdebug.so "
+                                         + usrPath + "lib/php/extensions/debug-zts-" + zts_version + " \"");
+                        vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+                                         "/xdebug.so");
+                    } else {
+                        vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; cp modules/xdebug.so "
+                                         + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + " \"");
+                        vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+                                         "/xdebug.so");
+                    }
+
+                    vec.emplace_back("# ");
+                    vec.emplace_back("# Create: " + usrPath + "lib/php.ini");
+
+
+                    if (bCompile_For_Debug) {
+                        vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
+                                         + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+                                         "/xdebug.so > php.ini \"");
+                    } else {
+                        vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
+                                         + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version +
+                                         "/xdebug.so > php.ini \"");
+
+                    }
+                } else {
+                    vec.emplace_back("# Xdebug not installed.");
+                }
+                result += do_command(buildFileName, vec, bScriptOnly);
+
+                createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                             bProtectMode, bScriptOnly);
+
         }
-        result += do_command(buildFileName, vec, bScriptOnly);
-
-        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
-                                     bProtectMode,  bScriptOnly );
-
     }
+    else {
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("# Apache Web Server is required to be installed before PHP can be installed.");
+        result += do_command(buildFileName, vec, bScriptOnly);
+    }
+
     return result;
 }
 
@@ -2594,7 +2793,10 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2662,7 +2864,9 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2731,7 +2935,9 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2812,7 +3018,9 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
          tmpPath = "usr/Tcl_Tk";
     sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -2909,7 +3117,9 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     tmpPath = "usr/Tcl_Tk";
     sstr usrPath = joinPathParts(rtnPath, tmpPath);
 
-    stageSourceCodeIfNeeded(buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
 
     bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
                                    srcPath,   xxxPath,    bScriptOnly);
@@ -3023,7 +3233,7 @@ int process_section(time_t startTime,
 }
 
 sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileName_Build, sstr& fileName_Notes,
-                  sstr& company, sstr& basePath, sstr& xxxPath)
+                  sstr& company, sstr& basePath, sstr& stgPath,     sstr& xxxPath)
 {
     sstr skip  = settings[programName + "->Skip"];
     if (programName == "perl")
@@ -3036,14 +3246,11 @@ sstr set_settings(std::map<sstr,sstr>& settings, sstr& programName, sstr& fileNa
         return skip_value;
     }
 
-    sstr stg_name = STG_NAME;
-
-    sstr stgPath = joinPathParts(company,  stg_name);
-         stgPath = joinPathParts(stgPath,  programName);
+    sstr stgPathforProgram = joinPathParts(stgPath, programName);
 
     settings[programName + "->Build_Name"]  = fileName_Build;
     settings[programName + "->Notes_File"]  = fileName_Notes;
-    settings[programName + "->STG_Path"]    = stgPath;
+    settings[programName + "->STG_Path"]    = stgPathforProgram;
     settings[programName + "->RTN_Path"]    = basePath;
     settings[programName + "->XXX_Path"]    = joinPathParts(xxxPath,  programName);
     sstr version = settings[programName + "->Version"];
@@ -3129,10 +3336,17 @@ int main() {
     sstr temp = "p" + pVersion;
     sstr basePath = joinPathParts(company, temp);
     temp = STG_NAME;
-    sstr stgPath = joinPathParts(pricomy, temp);
+    sstr stgPath  = joinPathParts(company, temp);
     temp = "xxx";
-    sstr xxxPath = joinPathParts(basePath, temp);
+    sstr xxxPath  = joinPathParts(basePath, temp);
     sstr programName = "Dependencies";
+    sstr tlsPath = get_xxx_Path(xxxPath, "tls");
+    sstr wwwPath = get_xxx_Path(xxxPath, "www");
+
+    ensure_Directory_exists1(basePath);
+    ensure_Directory_exists1(stgPath);
+    ensure_Directory_exists1(tlsPath);
+    ensure_Directory_exists1(wwwPath);
 
     sstr getPath = "xxx";
     sstr buildVersion;
@@ -3151,11 +3365,6 @@ int main() {
     sstr fileNameResult = joinPathWithFile(basePath, temp);
 
     std::vector<sstr> vec;
-
-    sstr tlsPath = get_xxx_Path(xxxPath, "tls");
-    sstr wwwPath = get_xxx_Path(xxxPath, "www");
-    ensure_Directory_exists1(tlsPath);
-    ensure_Directory_exists1(wwwPath);
 
     create_file(fileName_Build);
     do_command(fileName_Build, vec, false);
@@ -3252,13 +3461,12 @@ int main() {
     program.progName = "tk";        program.step     =  2;     program.funptr = &install_tk;
     progVector.emplace_back(program);
 
-
     for( const auto& it: progVector )
     {
         programName = it.progName;
         startTime = get_Time();
 
-        version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, xxxPath);
+        version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, stgPath, xxxPath);
 
         if (version != skip_value) {
             step = it.step;
