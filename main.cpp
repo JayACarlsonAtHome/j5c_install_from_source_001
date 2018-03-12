@@ -1182,13 +1182,11 @@ int setupInstallDirectories(sstr& buildFileName, sstr& ProperName, sstr& compres
     sstr srcPath = get_xxx_Path( xxxPath, "src");
     sstr usrPath = get_xxx_Path( xxxPath, "usr");
 
-
     if ((ProperName == "Tcl") || (ProperName == "Tk"))
     {
         sstr tmpPath = "usr/Tcl_Tk";
         usrPath = joinPathParts(rtnPath, tmpPath);
     }
-
     result += removeWorkingDirectories(buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += ensureWrkDirExist       (buildFileName, ProperName, bldPath, etcPath, srcPath, usrPath, bScriptOnly);
     result += createTargetFromStage   (buildFileName, ProperName, stgPath, srcPath, compressedFileName, bScriptOnly);
@@ -1882,9 +1880,6 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr srcPath = joinPathParts(tmpPath,progVersion);
     sstr usrPath = get_xxx_Path(xxxPath, "usr");
 
-    // we will need this when installing PHP
-    settings["php->MDB_Path"] = usrPath;
-
     // staging
     EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
     stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
@@ -2517,7 +2512,6 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr buildFileName      = settings[programName + "->Build_Name"];
     sstr notes_file         = settings[programName + "->Notes_File"];
     sstr getPath            = settings[programName + "->WGET"];
-    sstr usr_mariadb        = settings[programName + "->MDB_Path"];
     sstr stgPath            = settings[programName + "->STG_Path"];
     sstr rtnPath            = settings[programName + "->RTN_Path"];
     sstr xxxPath            = settings[programName + "->XXX_Path"];
@@ -2566,15 +2560,24 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     sstr apePath = joinPathParts(rtnPath, tmpPath);
 
     sstr tmpFile = "apachectl";
-    sstr apacheController = joinPathWithFile(apePath, tmpFile);
+    sstr apacheController  = joinPathWithFile(apePath, tmpFile);
 
-    if (isFileSizeGtZero(apacheController)) {
+         tmpFile = "mysqld";
+    sstr mariadbPath = rtnPath + "usr/mariadb/bin";
+    sstr mariadbController = joinPathWithFile(mariadbPath, tmpFile);
+
+    if ((isFileSizeGtZero(apacheController)) && isFileSizeGtZero(mariadbController)) {
 
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("# Restart Apache to ensure it is running.");
+        vec.emplace_back("# Attempt to Start/Restart Apache if possible.");
         vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -k restart \"");
-        result += do_command(buildFileName, vec, bScriptOnly);
+        vec.emplace_back("# MariaDB Database Server files appear to be installed.");
+        vec.emplace_back("#   Not attempting to start mariadb. ");
+        vec.emplace_back("#   MariaDB requires more setup. Follow the instructions");
+        vec.emplace_back("#   in '" + bldPath + "Installation Notes/p???.txt' " );
+        vec.emplace_back("#   To start MariaDB." );
+        do_command(buildFileName, vec, bScriptOnly);
 
         // staging
         result = EnsureStageDirectoryExists(buildFileName, ProperName, stgPath, bScriptOnly);
@@ -2587,10 +2590,6 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         if (bInstall) {
 
             // PHP install is special in so many ways...
-
-
-
-
                 if (!(isFileSizeGtZero(stagedFileName))) {
 
                     vec.clear();
@@ -2607,7 +2606,6 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
                 result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
                                                  rtnPath, stgPath, xxxPath, bScriptOnly);
-
 
                 //
                 // Note: Don't end the command with \" to close the command here.
@@ -2674,8 +2672,13 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                                        xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
 
 
+                // for php only
                 vec.clear();
-                vec.emplace_back("eval \"libtool --finish " + srcPath + "libs \"");
+                vec.emplace_back("eval \"cd " + usrPath + "; mkdir -p libs \"");
+                result += do_command(buildFileName, vec, bScriptOnly);
+
+                vec.clear();
+                vec.emplace_back("eval \"cd " + usrPath + "; libtool --finish " + srcPath + "libs \"");
                 vec.emplace_back("eval \"chmod 755 " + rtnPath + "usr/apache/modules/libphp7.so \"");
                 result += do_command(buildFileName, vec, bScriptOnly);
 
@@ -2734,11 +2737,20 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     else {
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("# Apache Web Server is required to be installed before PHP can be installed.");
+        vec.emplace_back("# Apache Web Server and MariaDB is required ");
+        vec.emplace_back("# to be installed before PHP can be installed.");
         result += do_command(buildFileName, vec, bScriptOnly);
     }
 
-    return result;
+    if (bInstall)
+    {
+        return  result;
+    }
+    else
+    {
+        return -1;
+    }
+
 }
 
 int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
