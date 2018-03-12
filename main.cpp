@@ -2688,12 +2688,10 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                 vec.emplace_back("eval \"cd " + srcPath + "; cp *.ini* " + etcPath  + " \"");
                 vec.emplace_back("# ");
                 vec.emplace_back("# libtool --finish");
+                vec.emplace_back("eval \"cd " + srcPath + "; cp libs/* " + usrPath + "libs/. \"");
                 vec.emplace_back("eval \"cd " + srcPath + "; ./libtool --finish " + usrPath + "libs \"");
                 vec.emplace_back("# ");
-                vec.emplace_back("eval \"cd " + srcPath + "; cp libs/* " + usrPath + "libs/. \"");
-                vec.emplace_back("# ");
-
-            vec.emplace_back("# Change apache permissions");
+                vec.emplace_back("# Change apache permissions");
                 vec.emplace_back("eval \"chmod 755 " + rtnPath + "usr/apache/modules/libphp7.so \"");
 
 
