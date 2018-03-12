@@ -2678,7 +2678,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                 result += do_command(buildFileName, vec, bScriptOnly);
 
                 vec.clear();
-                vec.emplace_back("eval \"cd " + usrPath + "; libtool --finish " + srcPath + "libs \"");
+                vec.emplace_back("eval \"cd " + usrPath + "; libtool --finish " + usrPath + "libs \"");
                 vec.emplace_back("eval \"chmod 755 " + rtnPath + "usr/apache/modules/libphp7.so \"");
                 result += do_command(buildFileName, vec, bScriptOnly);
 
