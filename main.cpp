@@ -2571,7 +2571,12 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# Attempt to Start/Restart Apache if possible.");
+        vec.emplace_back("#   If you see an error: could not bind to address [::]:80");
+        vec.emplace_back("#   It most likely means Apache is already online.");
         vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -k restart \"");
+        do_command(buildFileName, vec, bScriptOnly);
+        vec.clear();
+        vec.emplace_back("# ");
         vec.emplace_back("# MariaDB Database Server files appear to be installed.");
         vec.emplace_back("#   Not attempting to start mariadb. ");
         vec.emplace_back("#   MariaDB requires more setup. Follow the instructions");
@@ -2678,8 +2683,18 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                 result += do_command(buildFileName, vec, bScriptOnly);
 
                 vec.clear();
+                vec.emplace_back("# ");
+                vec.emplace_back("# Copy Php.ini files to '" + etcPath + "'");
+                vec.emplace_back("eval \"cd " + srcPath + "; cp *.ini* " + etcPath  + " \"");
+                vec.emplace_back("# ");
+                vec.emplace_back("# libtool --finish");
                 vec.emplace_back("eval \"cd " + usrPath + "; libtool --finish " + usrPath + "libs \"");
+                vec.emplace_back("# ");
+                vec.emplace_back("# Change apache permissions");
                 vec.emplace_back("eval \"chmod 755 " + rtnPath + "usr/apache/modules/libphp7.so \"");
+
+
+
                 result += do_command(buildFileName, vec, bScriptOnly);
 
 
