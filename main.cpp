@@ -1247,7 +1247,7 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sst
     vec.emplace_back("#");
     vec.emplace_back("# include all files from the config directory");
     vec.emplace_back("#");
-    vec.emplace_back("!includedir /etc/my.cnf.d");
+    vec.emplace_back("!includedir etc/my.cnf.d");
     vec.emplace_back(" ");
     vec.emplace_back("## end of file");
     vec.emplace_back(" ");
@@ -2580,7 +2580,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         vec.emplace_back("# MariaDB Database Server files appear to be installed.");
         vec.emplace_back("#   Not attempting to start mariadb. ");
         vec.emplace_back("#   MariaDB requires more setup. Follow the instructions");
-        vec.emplace_back("#   in '" + bldPath + "Installation Notes/p???.txt' " );
+        vec.emplace_back("#   in '" + bldPath + "Installation_Notes/p???.txt' " );
         vec.emplace_back("#   To start MariaDB." );
         do_command(buildFileName, vec, bScriptOnly);
 
@@ -2700,44 +2700,61 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
                 sstr xdebugProgVersionCompression = xdebug_version + xdebug_compression;
 
-                vec.clear();
                 if (bInstall_Xdebug) {
+                    vec.clear();
+                    vec.emplace_back("# ");
+                    vec.emplace_back("# wget xdebug");
                     vec.emplace_back("eval \"cd " + usrPath + "; wget " + xdebug_wget + xDebugCompressedFileName + " \"");
                     vec.emplace_back(
                             "eval \"cd " + usrPath + "; tar " + xdebug_tar_options + " " + xDebugCompressedFileName +
                             " \"");
+                    vec.emplace_back("# ");
+                    vec.emplace_back("# phpize");
                     vec.emplace_back("eval \"cd " + usrPath + "; cd " + xDebugProgVersion + "; ../bin/phpize > "
                                      + bldPath + "phpize.txt \"");
+                    vec.emplace_back("# ");
+                    vec.emplace_back("# config");
                     vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; ./configure --with-php-config="
                                      + usrPath + "bin/php-config > " + bldPath + "xdebug-configure.txt \"");
+                    vec.emplace_back("# ");
+                    vec.emplace_back("# make");
                     vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; make > "
                                      + bldPath + "xdebug-make.txt \"");
+                    result += do_command(buildFileName, vec, bScriptOnly);
 
+                    vec.clear();
+                    vec.emplace_back("# ");
+                    vec.emplace_back("# cp modules/xdebug.so");
                     if (bCompile_For_Debug) {
                         vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; cp modules/xdebug.so "
                                          + usrPath + "lib/php/extensions/debug-zts-" + zts_version + " \"");
-                        vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
-                                         "/xdebug.so");
+
                     } else {
                         vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; cp modules/xdebug.so "
                                          + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + " \"");
-                        vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
-                                         "/xdebug.so");
+
                     }
+                    result += do_command(buildFileName, vec, bScriptOnly);
 
+                    vec.clear();
                     vec.emplace_back("# ");
-                    vec.emplace_back("# Create: " + usrPath + "lib/php.ini");
-
+                    vec.emplace_back("# Create: " + etcPath + "lib");
+                    vec.emplace_back("eval \"mkdir -p " + etcPath + "lib \"");
 
                     if (bCompile_For_Debug) {
-                        vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
+                        vec.emplace_back("# ");
+                        vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+                                         "/xdebug.so");
+                        vec.emplace_back("eval \"cd " + etcPath + "lib/; echo zend_extension = "
                                          + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
-                                         "/xdebug.so > php.ini \"");
+                                         "/xdebug.so > php_ext.ini \"");
                     } else {
-                        vec.emplace_back("eval \"cd " + usrPath + "lib/; echo zend_extension = "
+                        vec.emplace_back("# ");
+                        vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+                                         "/xdebug.so");
+                        vec.emplace_back("eval \"cd " + etcPath + "lib/; echo zend_extension = "
                                          + usrPath + "lib/php/extensions/no-debug-zts-" + zts_version +
-                                         "/xdebug.so > php.ini \"");
-
+                                         "/xdebug.so > php_ext.ini \"");
                     }
                 } else {
                     vec.emplace_back("# Xdebug not installed.");
