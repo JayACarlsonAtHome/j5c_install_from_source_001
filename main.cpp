@@ -1,8 +1,19 @@
-// Copyright J5C Marketing LLC
-// Jay A Carlson
-// jay.a.carlson@gmail.com
-// 360-649-6218
-
+//  j5c_install_from_source_001 -- build a LAMP+ system from source
+//  Copyright (C) 2018  Jay A Carlson of J5C Marketing LLC.
+//
+// This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3.
+//
+// This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 // This program can automatically install a LAMP system + other stuff
 // LAMP        := Linux, Apache Web Server, MariaDB, Php
 // Other stuff := Perl, Ruby, Tcl/Tk, POCO C++ Libraries
