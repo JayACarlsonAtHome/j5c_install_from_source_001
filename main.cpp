@@ -37,7 +37,8 @@ const sstr VAL_RUN_DEPENDCS = "false";
 const sstr KEY_PROTECT_MODE = "Section_a7_Enable_Protect_Mode";
 const sstr VAL_PROTECT_MODE = "true";
 
-enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, Linux_Mint = 1, CentOS = 2, RedHat = 3, MaxOSX = 4};
+
+enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, CentOS = 1, Fedora = 2, Linux_Mint = 3, RedHat = 4, MaxOSX = 5};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
 
 sstr lowerCaseString(sstr& some_value)
@@ -1760,6 +1761,27 @@ void createProtectionWhenRequired(int result, sstr& buildFileName, sstr& protect
     }
 }
 
+sstr get_InstallOS(sstr& thisOS )
+{
+    // from above...
+    // enum class OS_type
+    // { Selection_Not_Available = -1,
+    //   No_Selection_Made = 0,
+    //   CentOS = 1,
+    //   Fedora = 2,
+    //   Linux_Mint = 3,
+    //   RedHat = 4,
+    //   MaxOSX = 5};
+    sstr installOS = "unknown";
+    if (thisOS == "1")  { installOS = "unix";  }
+    if (thisOS == "2")  { installOS = "unix";  }
+    if (thisOS == "3")  { installOS = "unix";  }
+    if (thisOS == "4")  { installOS = "unix";  }
+    if (thisOS == "5")  { installOS = "macosx";}
+    return  installOS;
+}
+
+
 
 int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
@@ -3017,7 +3039,6 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
  int install_tcl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
-    sstr installOS;
     sstr programName       = "tcl";
     sstr protectedFileName = "protection";
     protectedFileName.append("-");
@@ -3045,10 +3066,7 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bDebug        = getBoolFromString(debugOnly);
     bool bInstall      = false;
 
-    if (thisOS == "CentOS")       installOS = "unix";
-    if (thisOS == "Linux Mint")   installOS = "unix";
-    if (thisOS == "Red Hat")      installOS = "unix";
-    if (thisOS == "Mac OSX")      installOS = "macosx";
+    sstr installOS = get_InstallOS(thisOS);
 
     sstr command;
     std::vector<sstr> vec;
@@ -3103,7 +3121,6 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
-    sstr installOS;
     sstr programName       = "tk";
     sstr protectedFileName = "protection";
     protectedFileName.append("-");
@@ -3137,21 +3154,15 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     bool bDebug        = getBoolFromString(debugOnly);
     bool bInstall      = false;
 
-    if (thisOS == "CentOS")       installOS = "unix";
-    if (thisOS == "Linux Mint")   installOS = "unix";
-    if (thisOS == "Red Hat")      installOS = "unix";
-    if (thisOS == "Mac OSX")      installOS = "macosx";
-
+    sstr installOS = get_InstallOS(thisOS);
     sstr command;
     std::vector<sstr> vec;
     appendNewLogSection(buildFileName);
-
 
     sstr tclPath            = get_xxx_Path(tclxxxPath, "src");
     sstr tclProgVersion     = "tcl" + tclVersion;
     sstr tclConfigPath      = joinPathWithFile(tclPath,  tclProgVersion );
          tclConfigPath      = joinPathWithFile(tclConfigPath, installOS );
-
 
     sstr progVersion        = programName + version + "-src";
     sstr compressedFileName = progVersion + compression;
@@ -3360,9 +3371,17 @@ int main() {
     thisOS = OS_type::RedHat;
     mpm = Mac_PM::No_Selection_Made;
     sstr theOStext = settings[KEY_AN_OS_SYSTEM];
-    if (theOStext == "Red Hat") thisOS = OS_type::RedHat;
-    if (theOStext == "CentOS") thisOS = OS_type::CentOS;
-    if (theOStext == "Linux Mint") thisOS = OS_type::Linux_Mint;
+    theOStext = lowerCaseString(theOStext);
+    if (theOStext == "cent os")    { thisOS = OS_type::CentOS;      }
+    if (theOStext == "cent_os")    { thisOS = OS_type::CentOS;      }
+    if (theOStext == "centos")     { thisOS = OS_type::CentOS;      }
+    if (theOStext == "fedora")     { thisOS = OS_type::Fedora;      }
+    if (theOStext == "linux mint") { thisOS = OS_type::Linux_Mint;  }
+    if (theOStext == "linux_mint") { thisOS = OS_type::Linux_Mint;  }
+    if (theOStext == "linuxmint")  { thisOS = OS_type::Linux_Mint;  }
+    if (theOStext == "red hat")    { thisOS = OS_type::RedHat;      }
+    if (theOStext == "red_hat")    { thisOS = OS_type::RedHat;      }
+    if (theOStext == "redhat")     { thisOS = OS_type::RedHat;      }
     if (theOStext == "OSX") {
         thisOS = OS_type::MaxOSX;
         // TODO add a setting for Homebrew or Mac Ports
@@ -3518,7 +3537,7 @@ int main() {
         if (version != skip_value) {
             step = it.step;
             funptr = (it.funptr);
-            settings[programName + "->This_OS"] = theOStext;
+            settings[programName + "->This_OS"] = std::to_string(static_cast<int>(thisOS));
             result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
                                      settings, programName, version, funptr, step, bProtectMode);
             if (result > -1) { anyInstalled = true; }
