@@ -2703,7 +2703,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
                 // When analyzing code, view this whole block together...
                 //    if we install Xdebug, are we installing for PHP (debug mode) or PHP (non debug mode)?
-                //    depending on the mode of PHP where need to change some text below...
+                //    depending on the mode of PHP we need to change some text below...
                 if (bInstall_Xdebug) {
                     vec.clear();
                     vec.emplace_back("# ");
@@ -2729,6 +2729,8 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                     vec.clear();
                     vec.emplace_back("# ");
                     vec.emplace_back("# cp modules/xdebug.so");
+
+                    // checking for the mode of PHP and adjusting accordingly
                     if (bCompile_For_Debug) {
                         vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; cp modules/xdebug.so "
                                          + usrPath + "lib/php/extensions/debug-zts-" + zts_version + " \"");
@@ -2748,6 +2750,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                     vec.emplace_back("eval \"mkdir -p " + etcPath + "lib \"");
                     // end of small section
 
+                    // checking for the mode of PHP and adjusting accordingly
                     if (bCompile_For_Debug) {
                         vec.emplace_back("# ");
                         vec.emplace_back("# zend_extension = " + usrPath + "lib/php/extensions/debug-zts-" + zts_version +
