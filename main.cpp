@@ -105,7 +105,7 @@ sstr getValid_pVersion(sstr& some_value)
     // input "843xc"    output "00843"
 
     // in essence pad leading zeros to max length of string
-    // only except digits in string
+    // only accept digits in string, except all letters.
     // prefer a length of 3 digits, but enable to grow to a max of 5 digits
 
     sstr result;
@@ -2701,6 +2701,9 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 
                 sstr xdebugProgVersionCompression = xdebug_version + xdebug_compression;
 
+                // When analyzing code, view this whole block together...
+                //    if we install Xdebug, are we installing for PHP (debug mode) or PHP (non debug mode)?
+                //    depending on the mode of PHP where need to change some text below...
                 if (bInstall_Xdebug) {
                     vec.clear();
                     vec.emplace_back("# ");
@@ -2737,10 +2740,13 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                     }
                     result += do_command(buildFileName, vec, bScriptOnly);
 
+                    // This small section is the same for PHP
+                    //   regardless of the debug / non-debug mode.
                     vec.clear();
                     vec.emplace_back("# ");
                     vec.emplace_back("# Create: " + etcPath + "lib");
                     vec.emplace_back("eval \"mkdir -p " + etcPath + "lib \"");
+                    // end of small section
 
                     if (bCompile_For_Debug) {
                         vec.emplace_back("# ");
@@ -2761,6 +2767,8 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                     vec.emplace_back("# Xdebug not installed.");
                 }
                 result += do_command(buildFileName, vec, bScriptOnly);
+                // end of code block
+
 
                 createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
                                              bProtectMode, bScriptOnly);
