@@ -59,7 +59,6 @@ const sstr VAL_RUN_DEPENDCS = "false";
 const sstr KEY_PROTECT_MODE = "Section_a7_Enable_Protect_Mode";
 const sstr VAL_PROTECT_MODE = "true";
 
-
 enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, CentOS = 1, Fedora = 2, Linux_Mint = 3, RedHat = 4, MaxOSX = 5};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
 
@@ -3682,6 +3681,7 @@ int main() {
         }
     }
     if (anyInstalled) {
+        programStop = get_Time();
         sstr end = "End of Program";
         file_append_line(fileName_Build, end, programStop, programStart);
         file_append_line(fileNameResult, end, programStop, programStart);
