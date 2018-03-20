@@ -1376,7 +1376,7 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sst
     vec.emplace_back(" ");
     vec.emplace_back("[mysqld_safe]");
     vec.emplace_back("log-error='" + usrPath + "var/log/mariadb'");
-    vec.emplace_back("pid-file='"  + usrPath + "run/mariadb_pid'");
+    vec.emplace_back(" pid-file='" + usrPath + "run/mariadb_pid'");
     vec.emplace_back(" ");
     vec.emplace_back("#");
     vec.emplace_back("# include all files from the config directory");
@@ -1549,7 +1549,7 @@ int mariadb_notes(sstr& buildFileName, sstr& notes_File, sstr& ProperName, sstr&
         vec.emplace_back("# ");
         vec.emplace_back("cd "       + usrPath + "run");
         vec.emplace_back("touch mariadb.socket ");
-        vec.emplace_back("touch pid ");
+        vec.emplace_back("touch mariadb_pid ");
         //set permissions for mariadb directory recursively
         vec.emplace_back("# ");
         vec.emplace_back("cd " + usrPath + "../ ");
@@ -1619,7 +1619,7 @@ int mariadb_notes(sstr& buildFileName, sstr& notes_File, sstr& ProperName, sstr&
         command = "./bin/mysql_secure_installation ";
         command.append(" --socket='");
         command.append(usrPath);
-        command.append("run/mariadb.socket' & ");
+        command.append("run/mariadb.socket' ");
         vec.emplace_back(command);
         vec.emplace_back("#");
         vec.emplace_back("#After securing mariadb start the client console:");
