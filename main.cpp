@@ -908,10 +908,11 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
     for (const auto& it : vec )
     {
         time_t start = get_Time();
+        sstr strStart = get_Time_as_String(start);
         result = 0;
         command = it;
 
-        std::cout << "Command: " << command << std::endl;
+        std::cout << " " << strStart << "Command: " << command << std::endl;
 
         if ((command.substr(0,1) != "#") && (command.substr(0,1) != ":")) {
             if (!createScriptOnly) {
