@@ -7,22 +7,39 @@ The current list of programs is:
 --Dependencies-- from package manager
 From source code:
 ===========================
+
 Perl-5.26.1
+
 Mariadb-10.3.5
+
 Apr-1.6.3
+
 Apr-util-1.6.1
+
 Apr-iconv-1.2.2
+
 Pcre-8.41
+
 Pcre2-10.30
+
 Apache-2.4.29
+
 Perl6-2018.01
+
 Php-7.2.2 (with optional xdebug)
+
 Poco-1.9.0
+
 Postfix-3.2.4
+
 Python-3.6.4
+
 Ruby-2.5.0
+
 Tcl-8.7a1
+
 Tk-8.7a1
+
 
 There is a settings file "Install_Settings.cfg" that must be in the same
 directory as the created executable.  The executable will load the details
@@ -63,23 +80,41 @@ The code may not be optimized to the level it could be, but examine this code fo
 a second...
 
 sstr upperCaseString(sstr& some_value)
+
 {
+
     sstr result;
+    
     int oneChar;
+    
     for (auto idx = 0ul; idx < some_value.length(); ++idx)
+    
     {
+    
         if (std::islower((*some_value.substr(idx,1).c_str())))
+        
         {
+        
             oneChar =  toupper(*some_value.substr(idx,1).c_str());
+            
         }
+        
         else
+        
         {
+        
             oneChar = (*some_value.substr(idx,1).c_str());
+            
         }
+        
         result.append({static_cast<char>(oneChar)});
+        
     }
+    
     return result;
+    
 }
+
 
 Lets just say that this code takes 30 milli seconds to run.
 But compiling MariaDB takes 40 minutes. Optimizing this code to take 
