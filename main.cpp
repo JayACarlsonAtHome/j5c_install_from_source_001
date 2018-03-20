@@ -18,6 +18,7 @@
 // LAMP        := Linux, Apache Web Server, MariaDB, Php
 // Other stuff := Perl, Ruby, Tcl/Tk, POCO C++ Libraries
 
+#include <math.h>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -30,6 +31,16 @@
 using namespace J5C_DSL_Code;
 using sstr = std::string;
 
+//constant expressions
+constexpr auto daysIn400Years = 146096l;
+constexpr auto seconds_in_minute = 60;
+constexpr auto seconds_in_hour   = 60 * seconds_in_minute;
+constexpr auto seconds_in_day    = 24 * seconds_in_hour;
+// the actual value is not constant, but we can average over 400 years to make it closer
+constexpr auto average_seconds_in_year = (daysIn400Years * seconds_in_day)/400.0;
+
+
+//constants
 const sstr skip_value = "Skip_This_Install";
 
 const sstr STG_NAME         = "stg";
@@ -150,6 +161,41 @@ sstr getValid_pVersion(sstr& some_value)
     }
     return result;
 }
+
+
+sstr padLeftZeros(int max_width, int number)
+{
+    bool validResult = false;
+    auto max = pow(10,max_width);
+    bool preConditionsMet = false;
+
+    //pre setup
+    sstr strNumber = std::to_string(number);
+    auto pad_length = max_width;
+
+    //check preConditions
+    if ((number > -1) && (number < max)) {
+        preConditionsMet = true;
+        pad_length = max_width - strNumber.length();
+    }
+
+    if (preConditionsMet) {
+        if (pad_length > 0) {
+            sstr pad_string = sstr(pad_length, '0');
+            sstr result = pad_string;
+            result.append(strNumber);
+            return result;
+        } else
+        {
+            return strNumber;
+        }
+    }
+    else
+    {
+        return "Error in padLeftZeros(int max_width, int number);";
+    }
+
+};
 
 
 sstr stripCharFromString(sstr& inString, const char c)
@@ -300,13 +346,14 @@ sstr get_Time_Part(T timePart)
     return strTimePart;
 }
 
-sstr get_Time_as_String()
+sstr get_Time_as_String(time_t theTime)
 {
-    time_t rawtime;
     struct tm * timeinfo;
-
-    time (&rawtime);
-    timeinfo = localtime (&rawtime);
+    if (theTime == 0)
+    {
+        time (&theTime);
+    }
+    timeinfo = localtime (&theTime);
 
     int hours   = timeinfo->tm_hour;
     int minutes = timeinfo->tm_min;
@@ -314,43 +361,24 @@ sstr get_Time_as_String()
     long gmt    = timeinfo->tm_gmtoff;
     long gmtHoursOffset = gmt / 3600;
 
-    sstr strGmtOff  = std::to_string(gmtHoursOffset);
     sstr strHours   = get_Time_Part<int>(hours);
     sstr strMinutes = get_Time_Part<int>(minutes);
     sstr strSeconds = get_Time_Part<int>(seconds);
 
-    sstr offset;
-    if (gmtHoursOffset > -1)
-    {
-        offset = get_Time_Part<long>(gmtHoursOffset);
-        if (gmtHoursOffset == 0)
-        {
-            strGmtOff = "( " + offset + ")";
-        } else
-        {
-            strGmtOff = "(+" + offset + ")";
-        }
-    }
-    else
-    {
-        gmtHoursOffset *= -1;
-        offset = get_Time_Part<long>(gmtHoursOffset);
-        strGmtOff = "(-" + offset + ")";
-    }
-    sstr time = strHours + ":" + strMinutes + ":" + strSeconds + " " + strGmtOff;
+    sstr time = strHours + ":" + strMinutes + ":" + strSeconds + " ";
 
     return time;
 }
 
-sstr make_fileName_dateTime()
+sstr make_fileName_dateTime(time_t theTime)
 {
-    sstr theTime = get_Time_as_String();
+    sstr thefileTime = get_Time_as_String(theTime);
     j5c_Date d1{};
     sstr theDate = d1.strDate();
     theDate = theDate.replace(4,1,"_");
     theDate = theDate.replace(7,1,"_");
     theDate.append("_at_");
-    theDate.append(theTime);
+    theDate.append(thefileTime);
     theDate = theDate.replace(16,1,"_");
     theDate = theDate.replace(19,1,"_");
     if (theDate.length() > 22)
@@ -361,15 +389,64 @@ sstr make_fileName_dateTime()
 }
 
 
-int startNewLogSection(std::ofstream& file)
+sstr getDuration(time_t stop, time_t start)
+{
+    // we are going to give a positive duration
+    //   even if the parameters get switched
+
+    long long secondsTotal = 0;
+    if (start > stop)
+    {
+        secondsTotal = start - stop;
+    }
+    else
+    {
+        secondsTotal = stop - start;
+    }
+
+    int years = secondsTotal / average_seconds_in_year;
+    long long remainingSeconds = secondsTotal - (years * average_seconds_in_year);
+    sstr strYears = padLeftZeros(3, years);
+
+    int days = remainingSeconds / seconds_in_day;
+    remainingSeconds = remainingSeconds - (days * seconds_in_day);
+    sstr strDays = padLeftZeros(3, days);
+
+    int hours = remainingSeconds / seconds_in_hour;
+    remainingSeconds = remainingSeconds - (hours * seconds_in_hour);
+    sstr strHours = padLeftZeros(2, hours);
+
+    int minutes = remainingSeconds / seconds_in_minute;
+    remainingSeconds = remainingSeconds - (minutes * seconds_in_minute);
+    sstr strMinutes = padLeftZeros(2, minutes);
+
+    int seconds = remainingSeconds;
+    sstr strSeconds = padLeftZeros(2, seconds);
+
+    sstr result = strYears;
+    result.append(":");
+    result.append(strDays);
+    result.append(":");
+    result.append(strHours);
+    result.append(":");
+    result.append(strMinutes);
+    result.append(":");
+    result.append(strSeconds);
+    return result;
+}
+
+
+int startNewLogSection(std::ofstream& file, sstr utc = "-7")
 {
     int result = 1;  // assume failure
     if ( (file.is_open()) && (file.good()) )
     {
         j5c_Date thisDate{};
         file << std::endl << std::endl;
-        file << " Status started on " << thisDate.strDate() << std::endl;
-        file << " 24-Hour  (UTC) : Command(s) / Comment(s)" << std::endl;
+        file << " Status started on " << thisDate.strDate() << "UTC = " << utc <<  std::endl;
+        file << " " << std::endl;
+        file << " Start    : Stop     : Duration         : Command / Comments" << std::endl;
+        file << " HH:MM:SS : HH:MM:SS : YYY:DDD:HH:MM:SS :" << std::endl;
         file << " ==============================================================================================" << std::endl;
         result = 0; // success
     }
@@ -452,13 +529,15 @@ int ensure_file(sstr &fileName)
     return result;
 }
 
-int write_file_entry(std::ofstream& file, const sstr& entry, bool includeTime = false)
+int write_file_entry(std::ofstream& file, const sstr& entry, time_t stop, time_t start, bool includeTime = false)
 {
     int result = 0;
     if (includeTime)
     {
-        sstr time = get_Time_as_String();
-        file << " " << time << " : " << entry << std::endl;
+        sstr strStart = get_Time_as_String(start);
+        sstr strStop  = get_Time_as_String(stop);
+        sstr strDuration = getDuration(stop, start);
+        file << " " << strStart << " : " << strStop << ":" << strDuration << ":" << entry << std::endl;
     }
     else
     {
@@ -477,13 +556,16 @@ int file_write_vector_to_file(sstr &fileName, std::vector <sstr> &vec_lines, boo
     {
         for (const auto& it: vec_lines)
         {
+            time_t start = get_Time();
+            time_t stop  = get_Time();
+
             if (it == "\n")
             {
-                result += write_file_entry(file, "\n", includeTime);
+                result += write_file_entry(file, "\n", stop, start, includeTime);
             }
             else
             {
-                result += write_file_entry(file, it, includeTime);
+                result += write_file_entry(file, it, stop, start, includeTime);
             }
         }
     }
@@ -495,7 +577,7 @@ int file_write_vector_to_file(sstr &fileName, std::vector <sstr> &vec_lines, boo
     return result;
 }
 
-int file_append_line(sstr &fileName, sstr &line)
+int file_append_line(sstr &fileName, sstr &line, time_t stop, time_t start)
 {
     std::ofstream file;
     int result = 1;
@@ -503,7 +585,7 @@ int file_append_line(sstr &fileName, sstr &line)
     file.open(fileName, std::ios::out | std::ios::app );
     if ( (file.is_open()) && (file.good()) )
     {
-        result = write_file_entry(file, line, withTime);
+        result = write_file_entry(file, line, stop, start, withTime);
     }
     else
     {
@@ -526,7 +608,7 @@ sstr getProperNameFromString(sstr& some_value)
     return result;
 }
 
-int file_append_results(sstr& fileName, sstr& programName, sstr& version, int step, int installResult)
+int file_append_results(sstr& fileName, sstr& programName, sstr& version, int step, int installResult, time_t stop, time_t start)
 {
     unsigned long width1 = 31;
     unsigned long width2 = 40;
@@ -583,7 +665,7 @@ int file_append_results(sstr& fileName, sstr& programName, sstr& version, int st
             line += " : What the heck?...";
         }
         if (found) {
-            result = write_file_entry(file, line, true);
+            result = write_file_entry(file, line, stop, start, true);
         }
     }
     else
@@ -790,12 +872,10 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
     }
     for (const auto& it : vec )
     {
+        time_t start = get_Time();
         result = 0;
         command = it;
 
-        if (outputToFile) {
-            file_append_line(fileName, command);
-        }
         std::cout << "Command: " << command << std::endl;
 
         if ((command.substr(0,1) != "#") && (command.substr(0,1) != ":")) {
@@ -809,6 +889,13 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
             std::cout << "!!!Error -- Process terminated for safety..." << std::endl;
             break;
         }
+
+        time_t stop = get_Time();
+
+        if (outputToFile) {
+            file_append_line(fileName, command, stop, start);
+        }
+
     }
     return result;
 }
@@ -1214,7 +1301,7 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sst
     //lets add the date_time to the my.cnf.old in case we run this multiple times
     //  in a day we will still have the original file somewhere.
 
-    sstr theDate = make_fileName_dateTime();
+    sstr theDate = make_fileName_dateTime(0);
     vec.emplace_back("eval \"cd /etc; cp my.cnf" + etcPath + "my.cnf.old_" + theDate + "\"");
     do_command(buildFileName, vec, bScriptOnly);
 
@@ -1230,7 +1317,7 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sst
     vec.emplace_back("[mysqld]");
     vec.emplace_back("user=mysql");
     vec.emplace_back("socket='" + usrPath + "run/mariadb.socket'");
-    vec.emplace_back("bind-address=127.0.0.1");
+    vec.emplace_back("bind-address=127.0.1.1");
     vec.emplace_back("port=3306");
     vec.emplace_back(" ");
     vec.emplace_back("#Directories");
@@ -1481,30 +1568,18 @@ int mariadb_notes(sstr& buildFileName, sstr& notes_File, sstr& ProperName, sstr&
         vec.emplace_back("# start the database ");
         vec.emplace_back("cd " + usrPath);
         command.clear();
-        command.append("./bin/mysqld_safe ");
-        command.append(" --datadir='");
-        command.append(usrPath);
-        command.append("data' ");
-        command.append(" --socket='");
-        command.append(usrPath);
-        command.append("run/mariadb.socket' & ");
+        command.append("./bin/mysqld_safe --hostname=mariadb & ");
         vec.emplace_back(command);
         vec.emplace_back("#");
         vec.emplace_back("#Secure the installation by running:");
         vec.emplace_back("cd " + usrPath);
         command.clear();
-        command = "./bin/mysql_secure_installation ";
-        command.append(" --socket='");
-        command.append(usrPath);
-        command.append("run/mariadb.socket'");
+        command = "./bin/mysql_secure_installation  --hostname=mariadb & ";
         vec.emplace_back(command);
         vec.emplace_back("#");
         vec.emplace_back("#After securing mariadb start the client console:");
         command.clear();
-        command = "./bin/mysql ";
-        command.append(" --socket='");
-        command.append(usrPath);
-        command.append("run/mariadb.socket' -u root -p ");
+        command = "./bin/mysql -h mariadb -u root -p ";
         vec.emplace_back(command);
         vec.emplace_back("# ");
         vec.emplace_back("# ");
@@ -3239,8 +3314,11 @@ int reportResults(time_t startTime, sstr& fileNameBuilds, sstr& fileNameResult, 
     {
         std::cout << "Install " << programName << "-" + version << " step " << std::setw(2) << std::setfill('0') << step <<  " : Result = " << installResult << std::endl;
     }
-    result += file_append_results(fileNameBuilds, programName, version, step, installResult);
-    result += file_append_results(fileNameResult, programName, version, step, installResult);
+
+    time_t stop = get_Time();
+
+    result += file_append_results(fileNameBuilds, programName, version, step, installResult, stop, startTime);
+    result += file_append_results(fileNameResult, programName, version, step, installResult, stop, startTime);
     print_blank_lines(2);
     return result;
 };
@@ -3356,10 +3434,14 @@ int main() {
     sstr prefix;
     sstr protectModeText;
     bool bProtectMode;
-    time_t startTime;
-    time_t stop_Time;
+    time_t programStart;
+    time_t programStop;
+    time_t itemStartTime;
+    time_t itemStop_Time;
 
-    sstr theDateTime = make_fileName_dateTime();
+    programStart = get_Time();
+
+    //sstr theDateTime = make_fileName_dateTime(0);
 
     // get settings from file
     std::map<sstr, sstr> settings;
@@ -3465,6 +3547,7 @@ int main() {
         ensure_file(fileNameResult);
     }
 
+    itemStartTime = get_Time();
     sectionLoaded = prior_Results(fileNameResult, programName);
     if (!sectionLoaded) {
         bool bScriptOnly = !runDependencies;
@@ -3480,7 +3563,7 @@ int main() {
         if (thisOS == OS_type::MaxOSX) {
             install_mac_required_dependencies(mpm);
         }
-        reportResults(startTime, fileName_Build, fileNameResult, programName, version, step, result);
+        reportResults(itemStartTime, fileName_Build, fileNameResult, programName, version, step, result);
     } else {
         section_already_loaded(programName, version);
     }
@@ -3545,10 +3628,11 @@ int main() {
     program.progName = "tk";        program.step     =  2;     program.funptr = &install_tk;
     progVector.emplace_back(program);
 
+
     for( const auto& it: progVector )
     {
         programName = it.progName;
-        startTime = get_Time();
+        itemStartTime = get_Time();
 
         version = set_settings(settings, programName, fileName_Build, fileName_Notes, company, basePath, stgPath, xxxPath);
 
@@ -3556,15 +3640,15 @@ int main() {
             step = it.step;
             funptr = (it.funptr);
             settings[programName + "->This_OS"] = std::to_string(static_cast<int>(thisOS));
-            result = process_section(startTime, fileNameResult, fileName_Build, fileName_Notes,
+            result = process_section(itemStartTime, fileNameResult, fileName_Build, fileName_Notes,
                                      settings, programName, version, funptr, step, bProtectMode);
             if (result > -1) { anyInstalled = true; }
         }
     }
     if (anyInstalled) {
         sstr end = "End of Program";
-        file_append_line(fileName_Build, end);
-        file_append_line(fileNameResult, end);
+        file_append_line(fileName_Build, end, programStop, programStart);
+        file_append_line(fileNameResult, end, programStop, programStart);
     }
     return 0;
 }
