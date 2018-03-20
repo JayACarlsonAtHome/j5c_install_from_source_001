@@ -346,6 +346,40 @@ sstr get_Time_Part(T timePart)
     return strTimePart;
 }
 
+sstr get_GmtOffset()
+{
+    time_t theTime;
+    struct tm * timeinfo;
+    time (&theTime);
+    timeinfo = localtime (&theTime);
+
+    long gmt    = timeinfo->tm_gmtoff;
+    long gmtHoursOffset = gmt / 3600;
+
+    sstr strGmtOff  = std::to_string(gmtHoursOffset);
+    sstr offset;
+    if (gmtHoursOffset > -1)
+    {
+        offset = get_Time_Part<long>(gmtHoursOffset);
+        if (gmtHoursOffset == 0)
+        {
+            strGmtOff = "( " + offset + ")";
+        } else
+        {
+            strGmtOff = "(+" + offset + ")";
+        }
+    }
+    else
+    {
+        gmtHoursOffset *= -1;
+        offset = get_Time_Part<long>(gmtHoursOffset);
+        strGmtOff = "(-" + offset + ")";
+    }
+    return strGmtOff;
+}
+
+
+
 sstr get_Time_as_String(time_t theTime)
 {
     struct tm * timeinfo;
@@ -432,6 +466,7 @@ sstr getDuration(time_t stop, time_t start)
     result.append(strMinutes);
     result.append(":");
     result.append(strSeconds);
+    result.append(" ");
     return result;
 }
 
@@ -443,11 +478,11 @@ int startNewLogSection(std::ofstream& file, sstr utc = "-7")
     {
         j5c_Date thisDate{};
         file << std::endl << std::endl;
-        file << " Status started on " << thisDate.strDate() << "UTC = " << utc <<  std::endl;
+        file << " Status started on " << thisDate.strDate() << "  UTC = " << utc <<  std::endl;
         file << " " << std::endl;
         file << " Start    : Stop     : Duration         : Command / Comments" << std::endl;
         file << " HH:MM:SS : HH:MM:SS : YYY:DDD:HH:MM:SS :" << std::endl;
-        file << " ==============================================================================================" << std::endl;
+        file << " =======================================================================================================================" << std::endl;
         result = 0; // success
     }
     else
@@ -464,7 +499,8 @@ int appendNewLogSection(sstr &fileName)
     int result = 0;
     file.open(fileName, std::ios::out | std::ios::app);
     if ((file.is_open()) && (file.good())) {
-        startNewLogSection(file);
+        sstr gmtOffset = get_GmtOffset();
+        startNewLogSection(file, gmtOffset);
     }
     file.close();
     return result;
@@ -537,7 +573,7 @@ int write_file_entry(std::ofstream& file, const sstr& entry, time_t stop, time_t
         sstr strStart = get_Time_as_String(start);
         sstr strStop  = get_Time_as_String(stop);
         sstr strDuration = getDuration(stop, start);
-        file << " " << strStart << " : " << strStop << ":" << strDuration << ":" << entry << std::endl;
+        file << " " << strStart << ": " << strStop << ": " << strDuration << ": " << entry << std::endl;
     }
     else
     {
