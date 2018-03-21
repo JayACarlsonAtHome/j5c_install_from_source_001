@@ -2006,6 +2006,79 @@ int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
     return result;
 }
 
+int install_openssl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "openssl";
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+
+    sstr ProperName = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./config --prefix=" + usrPath + " ";
+
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
+    }
+    return result;
+}
+
+
+
 int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
@@ -2741,8 +2814,32 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
         vec.emplace_back("# Attempt to Start/Restart Apache if possible.");
         vec.emplace_back("#   If you see an error: could not bind to address [::]:80");
         vec.emplace_back("#   It most likely means Apache is already online.");
+        // ./apachectl -f /wd3/j5c/p002/etc/apache/apache.conf -k start
         vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -k restart \"");
-        do_command(buildFileName, vec, bScriptOnly);
+        int temp = do_command(buildFileName, vec, bScriptOnly);
+        if (temp == 0)
+        {
+            vec.emplace_back("# ");
+            vec.emplace_back("# Restarting Apache Web Server was successful.");
+        }
+        else
+        {
+            // The first attempt failed because the server is already running,
+            //   But it is probably running under this config file name, so lets try again.
+            //   Even though we know it is running somewhere.
+            vec.clear();
+            vec.emplace_back("# ");
+            vec.emplace_back("# The server appears to be online, lets see if we can restart.");
+            vec.emplace_back("#     using the most likely configuration file...");
+            vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -f " + etcPath.substr(0,etcPath.length()-4)  + "apache/apache.conf -k restart \"");
+            temp = do_command(buildFileName, vec, bScriptOnly);
+            if (temp == 0)
+            {
+                vec.emplace_back("# ");
+                vec.emplace_back("# Restarting Apache Web Server was successful.");
+            }
+        }
+
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# MariaDB Database Server files appear to be installed.");
@@ -2794,6 +2891,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                 configureStr.append(usrPath);
                 configureStr.append("  --srcdir=");
                 configureStr.append(srcPath);
+                configureStr.append("  --with-openssl=" + usrPath.substr(0,usrPath.length()-4) + "openssl ");
                 tmpPath = "usr/apache/bin/";
                 sstr apxPathFile = joinPathParts(rtnPath, tmpPath);
                 sstr tmpFile = "apxs";
@@ -2823,6 +2921,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                 sstr sckPathFile = joinPathParts(rtnPath, tmpPath);
                 tmpFile = "mariadb.socket";
                 sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
+                configureStr.append(sckPathFile);
                 configureStr.append("  --enable-embedded-mysqli");
                 configureStr.append("  --disable-cgi ");
                 configureStr.append("  --disable-short-tags ");
@@ -2837,6 +2936,7 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                 configureStr.append("  --enable-mbstring");
                 configureStr.append("  --enable-zip");
                 configureStr.append("  --enable-zend-test");
+                configureStr.append("  --with-fpic ");
                 if (bCompile_For_Debug) {
                     configureStr.append("  --enable-debug");
                 }
@@ -2880,10 +2980,10 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                     vec.emplace_back(
                             "eval \"cd " + usrPath + "; tar " + xdebug_tar_options + " " + xDebugCompressedFileName +
                             " \"");
+
                     vec.emplace_back("# ");
                     vec.emplace_back("# phpize");
-                    vec.emplace_back("eval \"cd " + usrPath + "; cd " + xDebugProgVersion + "; ../bin/phpize > "
-                                     + bldPath + "phpize.txt \"");
+                    vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; ../bin/phpize > " + bldPath + "phpize.txt \"");
                     vec.emplace_back("# ");
                     vec.emplace_back("# config");
                     vec.emplace_back("eval \"cd " + usrPath + xDebugProgVersion + "; ./configure --with-php-config="
@@ -3634,6 +3734,9 @@ int main() {
     std::vector<programs> progVector;
 
     program.progName = "perl";       program.step     = -1;    program.funptr = &install_perl5;
+    progVector.emplace_back(program);
+
+    program.progName = "openssl";    program.step     = -1;    program.funptr = &install_openssl;
     progVector.emplace_back(program);
 
     program.progName = "mariadb";    program.step     = -1;    program.funptr = &install_mariadb;
