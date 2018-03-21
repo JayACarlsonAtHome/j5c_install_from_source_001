@@ -32,7 +32,7 @@ using namespace J5C_DSL_Code;
 using sstr = std::string;
 
 //constant expressions
-constexpr auto daysIn400Years = 146096l;
+constexpr auto daysIn400Years = 146097L;
 constexpr auto seconds_in_minute = 60;
 constexpr auto seconds_in_hour   = 60 * seconds_in_minute;
 constexpr auto seconds_in_day    = 24 * seconds_in_hour;
