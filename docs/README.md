@@ -11,6 +11,8 @@ From source code:
 
 Perl-5.26.1
 
+Openssl 1.1.0g
+
 Mariadb-10.3.5
 
 Apr-1.6.3
