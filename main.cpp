@@ -1393,25 +1393,36 @@ int create_my_cnf_File(sstr& buildFileName, sstr& notes_file, sstr& etcPath, sst
 
 int configure(sstr& buildFileName, sstr& configureStr, sstr& xxxPath,  bool bDebug, bool bScriptOnly)
 {
-    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr bldPath     = get_xxx_Path(xxxPath, "bld");
+    sstr outFileName1 = "pre_make_results.txt";
+    sstr outFileName2 = "pre_gmake_results.txt";
+
+    sstr outFileName = outFileName1;
+    if (configureStr.find("gmake") != -1)
+    {
+        outFileName = outFileName2;
+    }
+
     if (!bDebug) {
         std::vector<sstr> vec1;
         std::vector<sstr> vec2;
         vec1.emplace_back("# ");
-        vec1.emplace_back("# Configure...");
+        vec1.emplace_back("# Pre make commands -- usually configure, but not always...");
         vec1.emplace_back("# Piping results to " + bldPath + ".");
         // We are ending the command we started here with \"
         //   This was started in the configureStr.
-        configureStr.append(" > " + bldPath + "configure_results.txt 2>&1 \"");
+        configureStr.append(" > '" + bldPath + outFileName + "' 2>&1 \"");
+
+
         vec1.emplace_back(configureStr);
         int result = do_command(buildFileName, vec1, bScriptOnly);
         if (result == 0) {
             vec2.clear();
-            vec2.emplace_back("# Configure completed successfully.");
+            vec2.emplace_back("# Pre make commands completed successfully.");
         } else {
             vec2.clear();
-            vec2.emplace_back("# Configure had some problems.");
-            vec2.emplace_back("# Look through '" + bldPath + "configure_results.txt' to find the issue. ");
+            vec2.emplace_back("# Pre make commands had some problems.");
+            vec2.emplace_back("# Look through '" + bldPath + outFileName + "' to find the issue. ");
         }
         do_command(buildFileName, vec2, bScriptOnly);
         return result;
@@ -1420,33 +1431,73 @@ int configure(sstr& buildFileName, sstr& configureStr, sstr& xxxPath,  bool bDeb
 
 int make(sstr& buildFileName, sstr& ProperName, sstr& progVersion, sstr& xxxPath,  bool bDebug, bool bScriptOnly)
 {
-    sstr bldPath = get_xxx_Path(xxxPath, "bld");
-    sstr tmpPath = get_xxx_Path(xxxPath, "src");
-    sstr srcPath = joinPathParts(tmpPath, progVersion);
+    sstr bldPath     = get_xxx_Path(xxxPath, "bld");
+    sstr tmpPath     = get_xxx_Path(xxxPath, "src");
+    sstr srcPath     = joinPathParts(tmpPath, progVersion);
+    sstr clnFileName = "make_clean_results.txt";
+    sstr mkeFileName = "make_results.txt";
 
     std::vector<sstr> vec1;
     std::vector<sstr> vec2;
-    if ((ProperName != "Perl") && (ProperName != "Perl6")) {
+    if ((ProperName != "Perl") && (ProperName != "Perl6") && (ProperName != "Libzip") && (ProperName != "Cmake")) {
         vec1.emplace_back("# ");
         vec1.emplace_back("# make clean");
-        vec1.emplace_back("eval \"cd " + srcPath + "; make clean > " + bldPath + "make_clean_results.txt 2>&1 \"");
+        vec1.emplace_back("eval \"cd " + srcPath + "; make clean > '" + bldPath + clnFileName + "' 2>&1 \"");
+    }
+    if (ProperName == "Libzip") {
+        sstr tmpPath   = "build";
+        sstr buildPath = joinPathParts(srcPath, tmpPath);
+        srcPath = buildPath;
     }
     vec1.emplace_back("# ");
-    vec1.emplace_back("# make ");
-    vec1.emplace_back("eval \"cd " + srcPath + "; make > " + bldPath + "make_results.txt 2>&1 \"");
-    int result = do_command(buildFileName, vec1, bScriptOnly);
-    if (result == 0) {
-        vec2.clear();
-        vec2.emplace_back("# Make completed successfully.");
-    } else {
-        vec2.clear();
-        vec2.emplace_back("# Make had some problems.");
-        vec2.emplace_back("# Look through '" + bldPath + "make_results.txt' to find the issue. ");
+
+    sstr command = "make";
+
+    int result = 0;
+    if (ProperName == "Cmake")
+    {
+        // do nothing
     }
-    do_command(buildFileName, vec2, bScriptOnly);
+    else
+    {
+        vec1.emplace_back("# " + command);
+        vec1.emplace_back("eval \"cd " + srcPath + "; " + command + " > '" + bldPath + mkeFileName + "' 2>&1 \"");
+        result = do_command(buildFileName, vec1, bScriptOnly);
+        if (result == 0) {
+            vec2.clear();
+            vec2.emplace_back("# Make completed successfully.");
+        } else {
+            vec2.clear();
+            vec2.emplace_back("# Make had some problems.");
+            vec2.emplace_back("# Look through '" + bldPath + mkeFileName + "' to find the issue. ");
+        }
+        do_command(buildFileName, vec2, bScriptOnly);
+    }
+
     return result;
 
 }
+
+int test_libzip(sstr& buildFileName, sstr& ProperName, sstr& xxxPath, bool bScriptOnly)
+{
+
+    sstr bldPath = get_xxx_Path(xxxPath, "bld");
+    sstr srcPath = get_xxx_Path(xxxPath, "src");
+    sstr tmpPath   = "build";
+    sstr buildPath = joinPathParts(srcPath, tmpPath);
+    srcPath = buildPath;
+    sstr suffix = "make_test_results.txt";
+    sstr testPathAndFileName = joinPathWithFile(bldPath, suffix);
+    std::vector<sstr> vec;
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# make test...");
+    vec.emplace_back("# !!! Warning this may take a while...");
+    vec.emplace_back("eval \"cd " + srcPath + "; make test > "  + testPathAndFileName + " 2>&1 \"");
+    do_command(buildFileName, vec, bScriptOnly);
+    return 0;
+}
+
 
 int test_php(sstr& buildFileName, sstr& ProperName, bool bScriptOnly)
 {
@@ -1657,6 +1708,7 @@ int mariadb_notes(sstr& buildFileName, sstr& notes_File, sstr& ProperName, sstr&
 
 }
 
+
 int make_install(sstr& buildFileName, sstr& progVersion, sstr& xxxPath, bool bScriptOnly )
 {
     std::vector<sstr> vec;
@@ -1673,6 +1725,12 @@ int make_install(sstr& buildFileName, sstr& progVersion, sstr& xxxPath, bool bSc
 
     vec.emplace_back("# ");
     vec.emplace_back("# make install...");
+
+    if (progVersion.substr(0,6) == "libzip") {
+        sstr tmpPath   = "build";
+        sstr buildPath = joinPathParts(srcPath, tmpPath);
+        srcPath = buildPath;
+    }
     vec.emplace_back("eval \"cd " + srcPath + "; make install > " + makePathAndFileName + " 2>&1 \"");
     vec.emplace_back("# ");
     int result = do_command(buildFileName, vec, bScriptOnly);
@@ -1702,10 +1760,14 @@ int basicInstall(sstr& buildFileName, sstr& notes_file,  sstr& ProperName, sstr&
     if (!bDebug) {
         result = configure(buildFileName, configureStr, xxxPath,  bDebug, bScriptOnly);
         if (result == 0) {
+
             result += make(buildFileName, ProperName, progVersion, xxxPath, bDebug, bScriptOnly);
         }
 
         if (bDoTests) {
+            if (ProperName == "Libzip")   {
+                result += test_php(buildFileName, ProperName, bScriptOnly);
+            }
             if (ProperName == "Php")   {
                 result += test_php(buildFileName, ProperName, bScriptOnly);
             }
@@ -1927,18 +1989,180 @@ sstr get_InstallOS(sstr& thisOS )
     return  installOS;
 }
 
+sstr getProtectedFileName(sstr& programName)
+{
 
+    sstr protectedFileName = "protection";
+    protectedFileName.append("-");
+    protectedFileName.append(programName);
+    protectedFileName.append(".txt");
+    return protectedFileName;
+}
+
+int install_cmake(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "cmake";
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
+
+        // Unlike all the other install_xxx functions this time we have to call configure
+        //   two times, so the first time we call it individually with the bootstrap command.
+        //   The second time we pass gmake to the basicInstall function.
+
+        // Note: Don't end the command with \" to close the command here.
+        //   We are going to append more to the command in the function
+        //     and end the command with \" there.
+        sstr configureStr = "eval \"cd " + srcPath + "; ./bootstrap --prefix=" + usrPath + " ";
+        result += configure(buildFileName, configureStr, xxxPath,  bDebug, bScriptOnly);
+
+        configureStr = "eval \"cd " + srcPath + "; gmake ";
+        result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                               xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+        createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                     bProtectMode,  bScriptOnly );
+
+    }
+    return result;
+}
+
+
+
+int install_libzip(std::map<sstr, sstr>& settings, bool bProtectMode = true)
+{
+    int result = -1;
+    sstr programName       = "libzip";
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
+
+    //unpack the map to make the code easier to read
+    sstr buildFileName = settings[programName + "->Build_Name"];
+    sstr notes_file    = settings[programName + "->Notes_File"];
+    sstr getPath       = settings[programName + "->WGET"];
+    sstr bldPath       = settings[programName + "->BLD_Path"];
+    sstr stgPath       = settings[programName + "->STG_Path"];
+    sstr rtnPath       = settings[programName + "->RTN_Path"];
+    sstr xxxPath       = settings[programName + "->XXX_Path"];
+    sstr version       = settings[programName + "->Version"];
+    sstr compression   = settings[programName + "->Compression"];
+    sstr scriptOnly    = settings[programName + "->Script_Only"];
+    sstr doTests       = settings[programName + "->Do_Tests"];
+    sstr debugOnly     = settings[programName + "->Debug_Only"];
+    sstr thisOS        = settings[programName + "->This_OS"];
+
+    bool bScriptOnly   = getBoolFromString(scriptOnly);
+    bool bDoTests      = getBoolFromString(doTests);
+    bool bDebug        = getBoolFromString(debugOnly);
+    bool bInstall      = false;
+
+    sstr command;
+    std::vector<sstr> vec;
+    appendNewLogSection(buildFileName);
+
+    sstr progVersion        =  programName + "-" + version;
+    sstr compressedFileName =  progVersion + compression;
+    sstr stagedFileName     =  joinPathWithFile(stgPath, compressedFileName);
+
+    sstr tmpPath = get_xxx_Path(xxxPath, "src");
+    sstr srcPath = joinPathParts(tmpPath,progVersion);
+    sstr usrPath = get_xxx_Path(xxxPath, "usr");
+
+         tmpPath   = "build";
+    sstr buildPath = joinPathParts(srcPath,tmpPath);
+
+    // staging
+    EnsureStageDirectoryExists(buildFileName, ProperName,     stgPath, bScriptOnly);
+    stageSourceCodeIfNeeded(   buildFileName, stagedFileName, stgPath, getPath, compressedFileName, bScriptOnly);
+
+    bInstall = programNotProtected(settings, buildFileName, ProperName, protectedFileName,
+                                   srcPath,   xxxPath,    bScriptOnly);
+
+    if (bInstall)
+    {
+        result = setupInstallDirectories(buildFileName, ProperName, compressedFileName,
+                                         rtnPath, stgPath, xxxPath, bScriptOnly);
+
+        std::vector<sstr> vec;
+        vec.clear();
+        vec.emplace_back("#");
+        vec.emplace_back("# Special Instructions for libzip");
+        vec.emplace_back("eval \"mkdir -p " + buildPath + "\"");
+        vec.emplace_back("eval \"cd " + buildPath + "; " + rtnPath + "usr/cmake/bin/cmake .. -DCMAKE_INSTALL_PREFIX=" + usrPath +"\"");
+        result += do_command(buildFileName, vec, bScriptOnly);
+        if (result == 0) {
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "# No configuration command required.";
+
+            result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+                                   xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+
+
+            createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+                                         bProtectMode, bScriptOnly);
+        }
+        else
+        {
+
+        }
+
+    }
+    return result;
+}
 
 int install_perl5(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "perl";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
 
@@ -2010,12 +2234,8 @@ int install_openssl(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "openssl";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2083,12 +2303,8 @@ int install_mariadb(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "mariadb";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2170,13 +2386,8 @@ int install_perl6(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "perl6";
-    //sstr programName       = "rakudo-star";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
 
@@ -2252,12 +2463,8 @@ int install_ruby(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "ruby";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2323,12 +2530,8 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, bool bProtectMode = t
 {
     int result = -1;
     sstr programName       = "apr";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2390,12 +2593,8 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, bool bProtectMode = t
 {
     int result = -1;
     sstr programName       = "apr-util";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2459,12 +2658,9 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, bool bProtectMode = t
 {
     int result = -1;
     sstr programName       = "apr-iconv";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
-    sstr ProperName = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2529,12 +2725,8 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, bool bProtectMode = t
 {
     int result = -1;
     sstr programName       = "pcre";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2596,12 +2788,8 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, bool bProtectMode = t
 {
     int result = -1;
     sstr programName       = "pcre2";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2665,12 +2853,8 @@ int install_apache(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "apache";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -2742,12 +2926,8 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "php";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName      = settings[programName + "->Build_Name"];
@@ -3069,12 +3249,8 @@ int install_poco(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "poco";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -3141,12 +3317,8 @@ int install_python(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "python";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -3212,12 +3384,8 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "postfix";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -3286,12 +3454,8 @@ int install_postfix(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "tcl";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
     sstr buildFileName = settings[programName + "->Build_Name"];
@@ -3368,12 +3532,8 @@ int install_tk(std::map<sstr, sstr>& settings, bool bProtectMode = true)
 {
     int result = -1;
     sstr programName       = "tk";
-    sstr protectedFileName = "protection";
-    protectedFileName.append("-");
-    protectedFileName.append(programName);
-    protectedFileName.append(".txt");
-
-    sstr ProperName = getProperNameFromString(programName);
+    sstr protectedFileName = getProtectedFileName(programName);
+    sstr ProperName        = getProperNameFromString(programName);
 
     //unpack the map to make the code easier to read
 
@@ -3732,6 +3892,12 @@ int main() {
     } program;
 
     std::vector<programs> progVector;
+
+    program.progName = "cmake";      program.step     = -1;    program.funptr = &install_cmake;
+    progVector.emplace_back(program);
+
+    program.progName = "libzip";     program.step     = -1;    program.funptr = &install_libzip;
+    progVector.emplace_back(program);
 
     program.progName = "perl";       program.step     = -1;    program.funptr = &install_perl5;
     progVector.emplace_back(program);
