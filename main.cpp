@@ -3102,6 +3102,12 @@ int install_php(std::map<sstr, sstr>& settings, bool bProtectMode = true)
                 tmpFile = "mariadb.socket";
                 sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
                 configureStr.append(sckPathFile);
+                configureStr.append("  --with-libzip='");
+                     tmpPath = "/usr/libzip";
+                sstr libZipPath =  joinPathParts(rtnPath, tmpPath);
+                configureStr.append(libZipPath);
+                configureStr.append("' ");
+
                 configureStr.append("  --enable-embedded-mysqli");
                 configureStr.append("  --disable-cgi ");
                 configureStr.append("  --disable-short-tags ");
