@@ -2468,20 +2468,22 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.emplace_back("#   To start MariaDB." );
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
-        // If the source code was just downloaded the file name is mirror
-        // instead of anything useful, so we need to rename the rename the file
-        vec.clear();
-        vec.emplace_back("# ");
-        vec.emplace_back("# Change downloaded file name if needed.");
-        vec.emplace_back("eval \"cd " + itemValues.stgPath + "; mv -f mirror " + itemValues.fileName_Compressed + "\"");
-        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
         set_bInstall(itemValues);
         if (itemValues.bInstall)
         {
             appendNewLogSection(itemValues.fileName_Build);
             EnsureStageDirectoryExists(itemValues);
             stageSourceCodeIfNeeded(itemValues);
+
+            // If the source code was just downloaded the file name is mirror
+            // instead of anything useful, so we need to rename the rename the file
+            vec.clear();
+            vec.emplace_back("# ");
+            vec.emplace_back("# Change downloaded file name if needed.");
+            vec.emplace_back("eval \"cd " + itemValues.stgPath + "; mv -f mirror " + itemValues.fileName_Compressed + "\"");
+            do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+
             result = setupInstallDirectories(itemValues);
             itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3059,7 +3061,7 @@ int main() {
     time_t programStart;
     time_t programStop;
     programStart = get_Time();
-    
+
     // get settings from file
     std::map<sstr, sstr> settings;
     sstr fileSettings = "./Install_Settings.cfg";
