@@ -3192,7 +3192,6 @@ int main() {
     }
 
     std::vector<programs> progVector;
-
     program.itemValues.programName = "cmake";
     program.itemValues.step        = -1;
     program.funptr = &install_cmake;
@@ -3287,7 +3286,6 @@ int main() {
     program.itemValues.step        =  2;
     program.funptr = &install_tk;
     progVector.emplace_back(program);
-
     program.itemValues.thisOSType   = thisOSType;
 
     //function pointer declaration
@@ -3304,7 +3302,6 @@ int main() {
             result = process_section(settings, funptr, it.itemValues);
             if (result > -1) { anyInstalled = true; }
         }
-
     }
     if (anyInstalled) {
         programStop = get_Time();
