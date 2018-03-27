@@ -1325,38 +1325,8 @@ int ensureWrkDirExist(an_itemValues& itemValues)
     return result;
 }
 
-/*
-void get_ModifiedFileNameCompressed(sstr& cmpName, sstr& programName)
-{
-    if (programName == "apache") {
-        bool cont = true;
-        auto findPos = cmpName.find("apache");
-        if (findPos != -1) {
-            std::cout << "Doing Replacement" << std::endl;
-            cmpName = cmpName.replace(findPos, 6, "httpd");
-        }
-    }
-    if (programName == "perl6") {
-        bool cont = true;
-        auto findPos = cmpName.find("perl6");
-        if (findPos != -1) {
-            std::cout << "Doing Replacement" << std::endl;
-            cmpName = cmpName.replace(findPos, 5, "rakudo-star");
-        }
-    }
-    if (programName == "python") {
-        auto findPos = cmpName.find("python");
-        if (findPos != -1) {
-            std::cout << "Doing Replacement" << std::endl;
-            cmpName = cmpName.replace(findPos, 6, "Python");
-        }
-    }
-}
-*/
-
 int createTargetFromStage(an_itemValues& itemValues)
 {
-    //get_ModifiedFileNameCompressed(itemValues.fileName_Compressed, itemValues.programName);
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Copy, decompress, and remove compressed file.");
@@ -1401,8 +1371,6 @@ int EnsureStageDirectoryExists(an_itemValues& itemValues)
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     return result;
 }
-
-
 
 int setupInstallDirectories(an_itemValues& itemValues)
 {
@@ -1487,7 +1455,6 @@ int create_my_cnf_File(an_itemValues& itemValues)
 
 int configure(an_itemValues& itemValues,  sstr& configureStr)
 {
-
     sstr outFileName1 = "pre_make_results.txt";
     sstr outFileName2 = "gmake_results.txt";
 
@@ -1538,7 +1505,6 @@ int configure(an_itemValues& itemValues,  sstr& configureStr)
 
 int make(an_itemValues& itemValues)
 {
-
     sstr clnFileName = "make_clean_results.txt";
     sstr mkeFileName = "make_results.txt";
 
@@ -1576,9 +1542,7 @@ int make(an_itemValues& itemValues)
         }
         do_command(itemValues.fileName_Build, vec2, itemValues.bScriptOnly);
     }
-
     return result;
-
 }
 
 int test_php(an_itemValues& itemValues)
@@ -1649,7 +1613,6 @@ int mariadb_notes(an_itemValues& itemValues)
                 "# eval \"cd " + itemValues.srcPathPNV + "mysql-test; " + perlPath + " mysql-test-run.pl > " +
                 testPathAndFileName + " 2>&1 \"");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
 
         vec.clear();
         vec.emplace_back("#################################################################################");
@@ -1804,7 +1767,6 @@ int make_install(an_itemValues& itemValues)
 
 int basicInstall(an_itemValues& itemValues, sstr& configureStr)
 {
-
     int result = 0;
     std::vector<sstr> vec1;
     std::vector<sstr> vec2;
@@ -1971,11 +1933,7 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
 void set_bInstall(an_itemValues &itemValues)
 {
     std::vector<sstr> vec;
-
-    std::cout << "itemValues.srcPath = " << itemValues.srcPath << std::endl;
     sstr protectionFileWithPath = get_ProtectionFileWithPath(itemValues);
-    std::cout << "protectionFileWithPath = " << protectionFileWithPath << std::endl;
-    std::cout << "itemValues.bInstall    = " << itemValues.bInstall    << std::endl;
 
     bool bProtected = false;
 
@@ -1998,7 +1956,6 @@ void set_bInstall(an_itemValues &itemValues)
         itemValues.bProtectMode = true;
         itemValues.bInstall = false;
     }
-    std::cout << "itemValues.bInstall    = " << itemValues.bInstall    << std::endl;
 }
 
 void createProtectionWhenRequired(int result, an_itemValues& itemValues)
@@ -2448,7 +2405,6 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     sstr zts_version        = settings[itemValues.programName + "->zts_version"];
     bool bCompileForDebug   = getBoolFromString(compileForDebug);
     bool bInstall_Xdebug    = getBoolFromString(xdebug_install);
-    bool bInstall           = false;
 
     sstr command;
     std::vector<sstr> vec;
@@ -2511,10 +2467,6 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.emplace_back("#   To start MariaDB." );
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
-        // staging
-        result = EnsureStageDirectoryExists(itemValues);
-        stageSourceCodeIfNeeded(itemValues);
-
         // If the source code was just downloaded the file name is mirror
         // instead of anything useful, so we need to rename the rename the file
         vec.clear();
@@ -2526,8 +2478,11 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         set_bInstall(itemValues);
         if (itemValues.bInstall)
         {
+            appendNewLogSection(itemValues.fileName_Build);
+            EnsureStageDirectoryExists(itemValues);
+            stageSourceCodeIfNeeded(itemValues);
             result = setupInstallDirectories(itemValues);
-            itemValues.srcPath = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
+            itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
             //
             // Note: Don't end the command with \" to close the command here.
@@ -2535,15 +2490,15 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             //     and end the command with \" there.
             sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig; ";
             configureStr.append("cd ");
-            configureStr.append(itemValues.srcPath);
+            configureStr.append(itemValues.srcPathPNV);
             configureStr.append("; ./configure");
             configureStr.append("  --prefix=");
             configureStr.append(itemValues.usrPath);
             configureStr.append("  --exec-prefix=");
             configureStr.append(itemValues.usrPath);
             configureStr.append("  --srcdir=");
-            configureStr.append(itemValues.srcPath);
-            //configureStr.append("  --with-openssl=" + itemValues.usrPath.substr(0,itemValues.usrPath.length()-4) + "openssl ");
+            configureStr.append(itemValues.srcPathPNV);
+            configureStr.append("  --with-openssl=" + itemValues.usrPath.substr(0,itemValues.usrPath.length()-4) + "openssl ");
             tmpPath = "usr/apache/bin/";
             sstr apxPathFile = joinPathParts(itemValues.rtnPath, tmpPath);
             sstr tmpFile = "apxs";
@@ -2592,7 +2547,6 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             configureStr.append("  --enable-ftp");
             configureStr.append("  --enable-intl");
             configureStr.append("  --enable-mbstring");
-            configureStr.append("  --enable-zip");
             configureStr.append("  --enable-zend-test");
             if (bCompileForDebug) {
                 configureStr.append("  --enable-debug");
@@ -2609,11 +2563,11 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             vec.clear();
             vec.emplace_back("# ");
             vec.emplace_back("# Copy Php.ini files to '" + itemValues.etcPath + "'");
-            vec.emplace_back("eval \"cd " + itemValues.srcPath + "; cp *.ini* " + itemValues.etcPath  + " \"");
+            vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; cp *.ini* " + itemValues.etcPath  + ". \"");
             vec.emplace_back("# ");
             vec.emplace_back("# libtool --finish");
-            vec.emplace_back("eval \"cd " + itemValues.srcPath + "; cp libs/* " + itemValues.usrPath + "libs/. \"");
-            vec.emplace_back("eval \"cd " + itemValues.srcPath + "; ./libtool --finish " + itemValues.usrPath + "libs \"");
+            vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; cp libs/* " + itemValues.usrPath + "libs/. \"");
+            vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; ./libtool --finish " + itemValues.usrPath + "libs \"");
             vec.emplace_back("# ");
             vec.emplace_back("# Change apache permissions");
             vec.emplace_back("eval \"chmod 755 " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
@@ -2707,13 +2661,15 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     }
 
-    if (bInstall)
+    if (itemValues.bInstall)
     {
         return  result;
     }
     else
     {
-        return -1;
+        // Why 5, just a random number that is greater than zero...
+        // to indicate an error.
+        return 5;
     }
 }
 
@@ -2735,7 +2691,6 @@ int install_poco(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + "; ./configure --prefix=" + itemValues.usrPath + " ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues);
@@ -2843,11 +2798,13 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     sstr tclProgramName = "tcl";
     sstr tclVersion     = settings["tcl->Version"];
-    sstr tclProgramNameVersion = tclProgramName.append(tclVersion);
     sstr tclConfigurePath = itemValues.rtnPath;
-    sstr installOS = get_InstallOS(itemValues.thisOSType);
+    sstr tclSrcPath = "src";
+    tclConfigurePath = joinPathParts(tclConfigurePath, tclSrcPath);
     tclConfigurePath = joinPathParts(tclConfigurePath, tclProgramName);
+    sstr tclProgramNameVersion = tclProgramName.append(tclVersion);
     tclConfigurePath = joinPathParts(tclConfigurePath, tclProgramNameVersion);
+    sstr installOS = get_InstallOS(itemValues.thisOSType);
     tclConfigurePath = joinPathParts(tclConfigurePath, installOS);
 
     int result = -1;
@@ -2862,7 +2819,7 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         stageSourceCodeIfNeeded(itemValues);
         result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
-        itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, installOS);
+        itemValues.srcPathInstallOS = joinPathParts(itemValues.srcPathPNV, installOS);
 
         // staging
         EnsureStageDirectoryExists(itemValues);
@@ -2873,7 +2830,7 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
         sstr configureStr = "eval \"cd ";
-        configureStr.append(itemValues.srcPathPNV);
+        configureStr.append(itemValues.srcPathInstallOS);
         configureStr.append("; ");
         configureStr.append(" ./configure --prefix=");
         configureStr.append(itemValues.usrPath);
@@ -3073,13 +3030,6 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
         itemValues.etcPath = get_xxx_Path(xxxPath, "etc");
         itemValues.etcPath.append(itemValues.programName);
         itemValues.etcPath.append("/");
-
-        std::cout << "cpyStgPath = " << itemValues.cpyStgPath << std::endl;
-        std::cout << "   stgPath = " << itemValues.stgPath    << std::endl;
-        std::cout << "version    = " << itemValues.version << std::endl;
-        std::cout << "fileName_Compressed = " << itemValues.fileName_Compressed  << std::endl;
-        std::cout << "fileName_Staged     = " << itemValues.fileName_Staged      << std::endl;
-        std::cout << "programNameVersion  = " << itemValues.programNameVersion   << std::endl;
 
         itemValues.usrPath = get_xxx_Path(xxxPath, "usr");
         itemValues.usrPath.append(itemValues.programName);
@@ -3330,12 +3280,12 @@ int main() {
     progVector.emplace_back(program);
 
     program.itemValues.programName = "tcl";
-    program.itemValues.step        = -1;
+    program.itemValues.step        =  1;
     program.funptr = &install_tcl;
     progVector.emplace_back(program);
 
     program.itemValues.programName = "tk";
-    program.itemValues.step        = -1;
+    program.itemValues.step        =  2;
     program.funptr = &install_tk;
     progVector.emplace_back(program);
 
