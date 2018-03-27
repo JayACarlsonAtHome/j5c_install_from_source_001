@@ -65,24 +65,19 @@ enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_B
 
 struct an_itemValues
 {
-    /*alignas(int)*/ bool bDebug;
-    /*alignas(int)*/ bool bDoTests;
-    /*alignas(int)*/ bool bInstall;
-    /*alignas(int)*/ bool bProtectMode;
-    /*alignas(int)*/ bool bScriptOnly;
-    /*alignas(int)*/ bool bSkip;
+    bool bDebug;
+    bool bDoTests;
+    bool bInstall;
+    bool bProtectMode;
+    bool bScriptOnly;
+    bool bSkip;
 
     int     result;
     int     step;
     OS_type thisOSType;
 
-    //  I am not sure how big time_t is supposed to be
-    //  but I am hoping that long long on a 32 bit system
-    //  will help somewhat, probably not though...
-    //  On a 64bit system (like probably every one is on)
-    //     it is a waist...but not that much...
-    alignas(long long)time_t itemStartTime;
-    alignas(long long)time_t itemStop_Time;
+    time_t itemStartTime;
+    time_t itemStop_Time;
 
     sstr compression;
 
@@ -221,13 +216,12 @@ sstr getValid_pVersion(sstr& some_value)
 
 sstr padLeftZeros(int max_width, int number)
 {
-    bool validResult = false;
     auto max = pow(10,max_width);
     bool preConditionsMet = false;
 
     //pre setup
     sstr strNumber = std::to_string(number);
-    auto pad_length = max_width;
+    unsigned long pad_length = static_cast<unsigned long>(max_width);
 
     //check preConditions
     if ((number > -1) && (number < max)) {
@@ -448,8 +442,6 @@ sstr get_Time_as_String(time_t theTime)
     int hours   = timeinfo->tm_hour;
     int minutes = timeinfo->tm_min;
     int seconds = timeinfo->tm_sec;
-    long gmt    = timeinfo->tm_gmtoff;
-    long gmtHoursOffset = gmt / 3600;
 
     sstr strHours   = get_Time_Part<int>(hours);
     sstr strMinutes = get_Time_Part<int>(minutes);
@@ -494,23 +486,33 @@ sstr getDuration(time_t stop, time_t start)
         secondsTotal = stop - start;
     }
 
-    int years = secondsTotal / average_seconds_in_year;
-    long long remainingSeconds = secondsTotal - (years * average_seconds_in_year);
+    // We are only showing 3 digits for the year,
+    //    and if that is not enough we have other problems...
+    int years = static_cast<int>(secondsTotal / average_seconds_in_year);
+    long long remainingSeconds = static_cast<long long>(secondsTotal - (years * average_seconds_in_year));
+
+    // We are only showing 3 digits for the year,
+    //    and if that is not enough we have other problems...
+    if (years > 999) years = 999;
     sstr strYears = padLeftZeros(3, years);
 
-    int days = remainingSeconds / seconds_in_day;
+    // There can only be 3 digits here so we are safe with an int
+    int days = static_cast<int>(remainingSeconds / seconds_in_day);
     remainingSeconds = remainingSeconds - (days * seconds_in_day);
     sstr strDays = padLeftZeros(3, days);
 
-    int hours = remainingSeconds / seconds_in_hour;
+    // There can only be 2 digits here so we are safe with an int
+    int hours = static_cast<int>(remainingSeconds / seconds_in_hour);
     remainingSeconds = remainingSeconds - (hours * seconds_in_hour);
     sstr strHours = padLeftZeros(2, hours);
 
-    int minutes = remainingSeconds / seconds_in_minute;
+    // There can only be 2 digits here so we are safe with an int
+    int minutes = static_cast<int>(remainingSeconds / seconds_in_minute);
     remainingSeconds = remainingSeconds - (minutes * seconds_in_minute);
     sstr strMinutes = padLeftZeros(2, minutes);
 
-    int seconds = remainingSeconds;
+    // There can only be 2 digits here so we are safe with an int
+    int seconds = static_cast<int>(remainingSeconds);
     sstr strSeconds = padLeftZeros(2, seconds);
 
     sstr result = strYears;
@@ -1862,7 +1864,7 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
 
             if (!skipTests) {
                 sstr testPathAndFileName = itemValues.bldPath;
-                sstr suffix = "test_results.txt";
+                suffix = "test_results.txt";
                 testPathAndFileName = joinPathWithFile(testPathAndFileName, suffix);
 
                 vec2.emplace_back("# ");
@@ -2050,7 +2052,6 @@ int install_libzip(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         sstr tmpPath = "build";
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPathPNV, tmpPath);
 
-        std::vector<sstr> vec;
         vec.clear();
         vec.emplace_back("#");
         vec.emplace_back("# Special Instructions for libzip");
@@ -2382,7 +2383,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             + " --with-apr="       + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr        "
             + " --with-apr-util="  + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-util   "
             + " --with-apr-iconv=" + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-iconv  "
-            + " --with-pcre="      + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/pcre " + " ";
+            + " --with-pcre="      + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/pcre " + " "
             + " --enable-so ";
 
         result += basicInstall(itemValues, configureStr);
@@ -2501,7 +2502,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             configureStr.append("  --with-openssl=" + itemValues.usrPath.substr(0,itemValues.usrPath.length()-4) + "openssl ");
             tmpPath = "usr/apache/bin/";
             sstr apxPathFile = joinPathParts(itemValues.rtnPath, tmpPath);
-            sstr tmpFile = "apxs";
+                 tmpFile = "apxs";
             apxPathFile = joinPathWithFile(apePath, tmpFile);
             configureStr.append("  --with-apxs2=");
             configureStr.append(apxPathFile);
@@ -2946,7 +2947,6 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
         sstr debugOnly  = "";
         sstr thisOS     = "";
         sstr version    = "";
-        sstr skip       = "";
 
         scriptOnly    = settings[itemValues.programName + "->Script_Only"];
         doTests       = settings[itemValues.programName + "->Do_Tests"];
@@ -3059,9 +3059,7 @@ int main() {
     time_t programStart;
     time_t programStop;
     programStart = get_Time();
-
-    //sstr theDateTime = make_fileName_dateTime(0);
-
+    
     // get settings from file
     std::map<sstr, sstr> settings;
     sstr fileSettings = "./Install_Settings.cfg";
@@ -3138,7 +3136,6 @@ int main() {
     sstr getPath = "xxx";
     sstr buildVersion;
 
-    int step = -1;
     int result = 0;
     bool anyInstalled = false;
 
@@ -3301,7 +3298,6 @@ int main() {
         bool skip = set_settings(settings, it.itemValues);
 
         if (!skip) {
-            step = it.step;
             funptr = (it.funptr);
             result = process_section(settings, funptr, it.itemValues);
             if (result > -1) { anyInstalled = true; }
