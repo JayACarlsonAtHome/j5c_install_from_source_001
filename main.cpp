@@ -3138,9 +3138,6 @@ int main() {
     sstr getPath = "xxx";
     sstr buildVersion;
 
-    int result = 0;
-    bool anyInstalled = false;
-
     temp = "Installation_Builds_p" + pVersion + ".txt";
     program.itemValues.fileName_Build = joinPathWithFile(program.itemValues.rtnPath, temp);
 
@@ -3170,6 +3167,7 @@ int main() {
         ensure_file(program.itemValues.fileName_Results);
     }
 
+    int result = 0;
     sectionLoaded = prior_Results(program.itemValues.fileName_Results, programName);
     if (!sectionLoaded) {
         bool bScriptOnly = !runDependencies;
@@ -3291,6 +3289,7 @@ int main() {
     //function pointer declaration
     int (*funptr)(std::map<sstr, sstr> &settings, an_itemValues& itemValues);
 
+    bool anyInstalled = false;
     for( auto& it: progVector )
     {
         result = -1;
@@ -3303,11 +3302,12 @@ int main() {
             if (result > -1) { anyInstalled = true; }
         }
     }
+
     if (anyInstalled) {
         programStop = get_Time();
         sstr end = "End of Program";
-        file_append_line(program.itemValues.fileName_Build, end, programStop, programStart);
-        file_append_line(program.itemValues.fileName_Build, end, programStop, programStart);
+        file_append_line(program.itemValues.fileName_Build,   end, programStop, programStart);
+        file_append_line(program.itemValues.fileName_Results, end, programStop, programStart);
     }
     return 0;
 }
