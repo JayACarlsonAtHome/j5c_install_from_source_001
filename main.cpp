@@ -2554,9 +2554,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             if (bCompileForDebug) {
                 configureStr.append("  --enable-debug");
             }
-
             result += basicInstall(itemValues, configureStr);
-
 
             // for php only
             vec.clear();
@@ -2571,14 +2569,21 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             vec.emplace_back("# libtool --finish");
             vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; cp libs/* " + itemValues.usrPath + "libs/. \"");
             vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; ./libtool --finish " + itemValues.usrPath + "libs \"");
+
             vec.emplace_back("# ");
-            vec.emplace_back("# Change apache permissions");
+            vec.emplace_back("# Copy library to apache web server");
+            vec.emplace_back("eval \"cp " + itemValues.usrPath + "libs/libphp7.so " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
+            vec.emplace_back("eval \"cp " + itemValues.usrPath + "libs/libphp7.so " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
+            vec.emplace_back("# ");
+            vec.emplace_back("# Set apache ownership");
+            vec.emplace_back("eval \"chown root:apache_ws " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
+            vec.emplace_back("eval \"chown root:apache_ws " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
+            vec.emplace_back("# ");
+            vec.emplace_back("# Set apache permissions");
             vec.emplace_back("eval \"chmod 755 " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
-
-
+            vec.emplace_back("eval \"chmod 755 " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
 
             result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
 
             sstr xdebugProgVersionCompression = xdebug_version + xdebug_compression;
 
