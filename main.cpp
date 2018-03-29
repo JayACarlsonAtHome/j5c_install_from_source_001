@@ -1212,9 +1212,9 @@ void howToRemoveFileProtection(an_itemValues& itemValues)
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 }
 
-void stageSourceCodeIfNeeded(an_itemValues& itemValues)
+bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
 {
-
+    bool result = false;
     std::vector<sstr> vec;
     itemValues.getPath.append(itemValues.fileName_Compressed);
 
@@ -1238,9 +1238,10 @@ void stageSourceCodeIfNeeded(an_itemValues& itemValues)
     else
     {
         vec.emplace_back("# Source code appears to be staged.");
+        result = true;
     }
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
+    return result;
 }
 
 sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
@@ -1830,119 +1831,24 @@ int apache_notes(an_itemValues& itemValues)
         vec.emplace_back("# ");
         vec.emplace_back("#################################################################################");
         vec.emplace_back("# ");
-        vec.emplace_back("#--> Run these commands to secure and start mariadb.");
+        vec.emplace_back("#--> Run these commands to create the apache group and user.");
         vec.emplace_back("groupadd   apache_ws ");
         vec.emplace_back("useradd -g apache_ws apache_ws ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
         //Create required directories if needed
+        vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("mkdir -p " + itemValues.etcPath + "extra-configurations");
         vec.emplace_back("mkdir -p " + itemValues.etcPath + "sites-available");
         vec.emplace_back("mkdir -p " + itemValues.etcPath + "sites-enabled");
-
-        // Add required run files
-        vec.emplace_back("# ");
-        vec.emplace_back("cd "       + itemValues.usrPath + "run");
-        vec.emplace_back("touch mariadb.socket ");
-        vec.emplace_back("touch mariadb_pid ");
-        //set permissions for mariadb directory recursively
-        vec.emplace_back("# ");
-        vec.emplace_back("cd " + itemValues.usrPath + "../ ");
-        vec.emplace_back("chown -R root:mysql mariadb ");
-        vec.emplace_back("chmod -R 770        mariadb ");
-        //Over ride permissions as required
-        vec.emplace_back("# ");
-        vec.emplace_back("cd " + itemValues.usrPath);
-        vec.emplace_back("chown -R mysql:mysql data ");
-        vec.emplace_back("chmod -R 770         data ");
-        vec.emplace_back("chown -R mysql:mysql run  ");
-        vec.emplace_back("chmod -R 770         run  ");
-        vec.emplace_back("chown -R mysql:mysql var  ");
-        vec.emplace_back("chmod -R 770         var  ");
+        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
 
-        create_mariaDB_cnf_File(itemValues);
-
-        vec.clear();
-        vec.emplace_back("cd " + itemValues.usrPath);
-        vec.emplace_back("#");
-        vec.emplace_back("# script the initial database");
-        vec.emplace_back("#   Note 1: If you see a lot of permission errors and the script fails...");
-        vec.emplace_back("#           It probably means you need to run chmod o+x on all the directories");
-        vec.emplace_back("#            up to the usr/mariadb directory. Once permissions are set up to ");
-        vec.emplace_back("#            the mariadb directory, the rest of the permissions should be ok. ");
-        vec.emplace_back("#            Don't use chmod -R o+x because that would set all the files as well");
-        vec.emplace_back("#              and we only need the directories.");
-        vec.emplace_back("#   Note 2:  Note 1 may not be secure enough for you, In that case you must use");
-        vec.emplace_back("#               Access Control Lists, and there are too many different user options ");
-        vec.emplace_back("#               to create a detailed list here.");
-        sstr command = "./scripts/mysql_install_db ";
-        command.append(" --defaults-file='");
-        command.append(itemValues.etcPath);
-        command.append("my.cnf' ");
-        command.append(" --basedir='");
-        command.append(itemValues.usrPath.substr(0,itemValues.usrPath.length()-1));
-        command.append("' ");
-        command.append(" --datadir='");
-        command.append(itemValues.usrPath);
-        command.append("data' ");
-        command.append(" --tmpdir='");
-        command.append(itemValues.usrPath);
-        command.append("data/temp' ");
-        command.append(" --socket='");
-        command.append(itemValues.usrPath);
-        command.append("run/mariadb.socket' ");
-        command.append(" --user=mysql");
-        vec.emplace_back(command);
-        vec.emplace_back("#");
-        vec.emplace_back("# start the database ");
-        vec.emplace_back("cd " + itemValues.usrPath);
-        command.clear();
-        command.append("./bin/mysqld_safe ");
-        command.append(" --defaults-file='");
-        command.append(itemValues.etcPath);
-        command.append("my.cnf' ");
-        command.append(" --socket='");
-        command.append(itemValues.usrPath);
-        command.append("run/mariadb.socket' ");
-        command.append(" --user=mysql &");
-        vec.emplace_back(command);
-        vec.emplace_back("#");
-        vec.emplace_back("#Secure the installation after starting server by running command:");
-        vec.emplace_back("cd " + itemValues.usrPath);
-        command.clear();
-        command = "./bin/mysql_secure_installation ";
-        command.append(" --socket='");
-        command.append(itemValues.usrPath);
-        command.append("run/mariadb.socket' ");
-        vec.emplace_back(command);
-        vec.emplace_back("#");
-        vec.emplace_back("#After securing mariadb start the client console:");
-        command.clear();
-        command = "./bin/mysql ";
-        command.append(" --defaults-file='");
-        command.append(itemValues.etcPath);
-        command.append("my.cnf' ");
-        command.append(" --socket='");
-        command.append(itemValues.usrPath);
-        command.append("run/mariadb.socket' ");
-        command.append(" -u root -p ");
-        vec.emplace_back(command);
-        vec.emplace_back("# ");
-        vec.emplace_back("# ");
-        vec.emplace_back("# When you want to shutdown run this:");
-        vec.emplace_back("cd " + itemValues.usrPath);
-        command.clear();
-        command ="./bin/mysqladmin ";
-        command.append(" --socket='");
-        command.append(itemValues.usrPath);
-        command.append("run/mariadb.socket'  ");
-        command.append(" -u root -p shutdown ");
-        vec.emplace_back(command);
-        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
-
+        create_apache_conf_File(itemValues);
         vec.clear();
         vec.emplace_back("#");
-        vec.emplace_back("# See the Installation_Notes on how to setup and start mariadb.");
+        vec.emplace_back("# See the Installation_Notes on how to setup and start apache web server.");
         vec.emplace_back("eval \"cd " + itemValues.rtnPath + "\"");
         int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         return result;
@@ -2738,12 +2644,12 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + "; "
-            + " ./configure --prefix=" + itemValues.usrPath + " "
-            + " --with-apr="       + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr        "
-            + " --with-apr-util="  + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-util   "
-            + " --with-apr-iconv=" + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-iconv  "
-            + " --with-pcre="      + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/pcre " + " "
+        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\\n "
+            + " ./configure --prefix=" + itemValues.usrPath + " \\\n"
+            + " --with-apr="       + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr        \\\n"
+            + " --with-apr-util="  + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-util   \\\n"
+            + " --with-apr-iconv=" + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-iconv  \\\n"
+            + " --with-pcre="      + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/pcre       \\\n"
             + " --enable-so ";
 
         result += basicInstall(itemValues, configureStr);
@@ -2838,16 +2744,18 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         {
             appendNewLogSection(itemValues.fileName_Build);
             EnsureStageDirectoryExists(itemValues);
-            stageSourceCodeIfNeeded(itemValues);
+            bool staged = stageSourceCodeIfNeeded(itemValues);
 
-            // If the source code was just downloaded the file name is mirror
-            // instead of anything useful, so we need to rename the rename the file
-            vec.clear();
-            vec.emplace_back("# ");
-            vec.emplace_back("# Change downloaded file name if needed.");
-            vec.emplace_back("eval \"cd " + itemValues.stgPath + "; mv -f mirror " + itemValues.fileName_Compressed + "\"");
-            do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
+            if (!staged) {
+                // If the source code was just downloaded the file name is mirror
+                // instead of anything useful, so we need to rename the rename the file
+                vec.clear();
+                vec.emplace_back("# ");
+                vec.emplace_back("# Change downloaded file name if needed.");
+                vec.emplace_back(
+                        "eval \"cd " + itemValues.stgPath + "; mv -f mirror " + itemValues.fileName_Compressed + "\"");
+                do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+            }
 
             result = setupInstallDirectories(itemValues);
             itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
@@ -2859,64 +2767,90 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig; ";
             configureStr.append("cd ");
             configureStr.append(itemValues.srcPathPNV);
-            configureStr.append("; ./configure");
+            configureStr.append("; \\\n");
+            configureStr.append("./configure");
             configureStr.append("  --prefix=");
             configureStr.append(itemValues.usrPath);
+            configureStr.append(" \\\n");
             configureStr.append("  --exec-prefix=");
             configureStr.append(itemValues.usrPath);
+            configureStr.append(" \\\n");
             configureStr.append("  --srcdir=");
             configureStr.append(itemValues.srcPathPNV);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-openssl=" + itemValues.usrPath.substr(0,itemValues.usrPath.length()-4) + "openssl ");
             tmpPath = "usr/apache/bin/";
             sstr apxPathFile = joinPathParts(itemValues.rtnPath, tmpPath);
                  tmpFile = "apxs";
             apxPathFile = joinPathWithFile(apePath, tmpFile);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-apxs2=");
             configureStr.append(apxPathFile);
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-mysqlnd ");
             tmpPath = "usr/mariadb/";
             sstr mdbPath = joinPathParts(itemValues.rtnPath, tmpPath);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-pdo-mysql=");
             configureStr.append(mdbPath);
             sstr pcePath = "/usr/pcre";
             pcePath = joinPathParts(itemValues.rtnPath, pcePath);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-pcre-regex=");
             configureStr.append(pcePath);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-config-file-path=");
             tmpPath = "lib";
             sstr libPath = joinPathParts(itemValues.usrPath, tmpPath);
             configureStr.append(libPath);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-config-file-scan-dir=");
             configureStr.append(itemValues.etcPath);
             sstr crlPath = "/usr/bin";
+            configureStr.append(" \\\n");
             configureStr.append("  --with-curl=");
             configureStr.append(crlPath);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-mysql-sock=");
             tmpPath = "usr/mariadb/run/";
             sstr sckPathFile = joinPathParts(itemValues.rtnPath, tmpPath);
             tmpFile = "mariadb.socket";
             sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
             configureStr.append(sckPathFile);
+            configureStr.append(" \\\n");
             configureStr.append("  --with-libzip='");
                  tmpPath = "/usr/libzip";
             sstr libZipPath =  joinPathParts(itemValues.rtnPath, tmpPath);
             configureStr.append(libZipPath);
             configureStr.append("' ");
-
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-embedded-mysqli");
+            configureStr.append(" \\\n");
             configureStr.append("  --disable-cgi ");
+            configureStr.append(" \\\n");
             configureStr.append("  --disable-short-tags ");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-bcmath ");
+            configureStr.append(" \\\n");
             configureStr.append("  --with-pcre-jit ");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-sigchild ");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-libgcc ");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-calendar ");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-dba=shared");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-ftp");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-intl");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-mbstring");
+            configureStr.append(" \\\n");
             configureStr.append("  --enable-zend-test");
             if (bCompileForDebug) {
+                configureStr.append(" \\\n");
                 configureStr.append("  --enable-debug");
             }
             result += basicInstall(itemValues, configureStr);
