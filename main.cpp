@@ -1427,9 +1427,6 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("ServerRoot " + itemValues.usrPath);
     vec.emplace_back("Listen 80");
     vec.emplace_back("");
-    vec.emplace_back("");
-    vec.emplace_back("# Dynamic Shared Object (DSO) Support");
-    vec.emplace_back("");
     vec.emplace_back("# To check the syntax of this file run the following commands");
     vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
     vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -t");
@@ -1454,6 +1451,7 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -k restart");
     vec.emplace_back("#  Then check the error log to see if there are any module related errors.");
     vec.emplace_back("#");
+    vec.emplace_back("# Dynamic Shared Object (DSO) Support");
     vec.emplace_back("#");
     vec.emplace_back("LoadModule access_compat_module modules/mod_access_compat.so");
     vec.emplace_back("LoadModule alias_module modules/mod_alias.so");
@@ -1520,17 +1518,17 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("");
     vec.emplace_back("DocumentRoot " + itemValues.usrPath  + "htdocs");
     vec.emplace_back("<Directory   " + itemValues.usrPath  + "htdocs/>");
-    vec.emplace_back("#");
+    vec.emplace_back("");
     vec.emplace_back("  <RequireAny>");
     vec.emplace_back("    Require ip 10.0");
     vec.emplace_back("    Require ip 192.168");
     vec.emplace_back("    Require ip ::1");
     vec.emplace_back("</RequireAny>");
-    vec.emplace_back("#");
+    vec.emplace_back("");
     vec.emplace_back("  Require all Granted");
-    vec.emplace_back("#");
+    vec.emplace_back("");
     vec.emplace_back("  AddType application/x-httpd-php .php");
-    vec.emplace_back("#");
+    vec.emplace_back("");
     vec.emplace_back("  <IfModule php7_module>");
     vec.emplace_back("    php_flag magic_quotes_gpc Off");
     vec.emplace_back("    php_flag short_open_tag Off");
@@ -1541,7 +1539,7 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("    php_value mbstring.func_overload 0");
     vec.emplace_back("    php_value include_path .");
     vec.emplace_back("  </IfModule>");
-    vec.emplace_back("#");
+    vec.emplace_back("");
     vec.emplace_back("</Directory>");
     vec.emplace_back("");
     vec.emplace_back("<IfModule dir_module>");
@@ -1839,13 +1837,34 @@ int apache_notes(an_itemValues& itemValues)
         //Create required directories if needed
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("mkdir -p " + itemValues.etcPath + "extra-configurations");
+        vec.emplace_back("mkdir -p " + itemValues.etcPath + "extra");
         vec.emplace_back("mkdir -p " + itemValues.etcPath + "sites-available");
         vec.emplace_back("mkdir -p " + itemValues.etcPath + "sites-enabled");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
 
+        vec.clear();
+        vec.emplace_back("");
+        vec.emplace_back("# To check the syntax of this file run the following commands");
+        vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
+        vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -t");
+        vec.emplace_back("");
+        vec.emplace_back("# To check the version of Apache Web server run the following commands");
+        vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
+        vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -v");
+        vec.emplace_back("");
+        vec.emplace_back("# To start/restart Apache Web server run the following commands");
+        vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
+        vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -k restart");
+        vec.emplace_back("");
+        vec.emplace_back("# To stop Apache Web server run the following commands");
+        vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
+        vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -k graceful-stop");
+        vec.emplace_back("#");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
         create_apache_conf_File(itemValues);
+
         vec.clear();
         vec.emplace_back("#");
         vec.emplace_back("# See the Installation_Notes on how to setup and start apache web server.");
@@ -2644,15 +2663,31 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\\n "
+        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
             + " ./configure --prefix=" + itemValues.usrPath + " \\\n"
-            + " --with-apr="       + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr        \\\n"
+            + " --with-apr="       + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr             \\\n"
             + " --with-apr-util="  + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-util   \\\n"
             + " --with-apr-iconv=" + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-iconv  \\\n"
             + " --with-pcre="      + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/pcre       \\\n"
             + " --enable-so ";
 
         result += basicInstall(itemValues, configureStr);
+
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
+        vec.emplace_back("eval \"mkdir -p " + itemValues.etcPath + "extra \"");
+        vec.emplace_back("eval \"cd " + itemValues.usrPath + "conf/extra; \\\n"
+                             + " cp " + itemValues.usrPath + "conf/extra/* " + itemValues.etcPath  + "extra/. \"");
+        int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        vec.clear();
+        vec.emplace_back("# ");
+        if (temp == 0) {
+            vec.emplace_back("# Copy apache configuration files was successful.");
+        } else {
+            vec.emplace_back("# Copy apache configuration files was NOT successful.");
+        }
+
         createProtectionWhenRequired(result, itemValues);
     }
     return result;
@@ -2700,9 +2735,9 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // ./apachectl -f /wd3/j5c/p002/etc/apache/apache.conf -k start
         vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -k restart \"");
         int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        vec.emplace_back("# ");
         if (temp == 0)
         {
-            vec.emplace_back("# ");
             vec.emplace_back("# Restarting Apache Web Server was successful.");
         }
         else
@@ -2718,14 +2753,10 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                              + itemValues.etcPath.substr(0,itemValues.etcPath.length()-4)
                              + "apache/apache.conf -k restart \"");
             temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-            if (temp == 0)
-            {
-                vec.emplace_back("# ");
+            vec.emplace_back("# ");
+            if (temp == 0) {
                 vec.emplace_back("# Restarting Apache Web Server was successful.");
-            }
-            else
-            {
-                vec.emplace_back("# ");
+            } else {
                 vec.emplace_back("# Skipping restart of Apache Web Server due to failure of commands.");
             }
         }
@@ -2874,12 +2905,9 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             vec.emplace_back("eval \"cp " + itemValues.usrPath + "libs/libphp7.so " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
             temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
             vec.clear();
-            if (temp == 0)
-            {
+            if (temp == 0) {
                 vec.emplace_back("# Copy library file operations were successful.");
-            }
-            else
-            {
+            } else {
                 vec.emplace_back("# Copy library file operations were NOT successful.");
             }
             result += temp;
@@ -2896,17 +2924,13 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             vec.emplace_back("eval \"chmod 755 " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
             temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
             vec.clear();
-            if (temp == 0)
-            {
+            if (temp == 0) {
                 vec.emplace_back("# Change ownership and permission file operations were successful.");
-            }
-            else
-            {
+            } else {
                 vec.emplace_back("# Change ownership and permission file operations NOT were successful.");
             }
             result += temp;
             do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
 
             sstr xdebugProgVersionCompression = xdebug_version + xdebug_compression;
 
@@ -2932,12 +2956,9 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
                 temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
                 vec.clear();
-                if (temp == 0)
-                {
+                if (temp == 0) {
                     vec.emplace_back("# Wget, phpize, and configure commands were successful.");
-                }
-                else
-                {
+                } else {
                     vec.emplace_back("# Wget, phpize, and configure commands were NOT successful.");
                 }
                 result += temp;
@@ -2950,17 +2971,13 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                                  + itemValues.bldPath + "xdebug-make.txt \"");
                 temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
                 vec.clear();
-                if (temp == 0)
-                {
+                if (temp == 0) {
                     vec.emplace_back("# Make command was successful.");
-                }
-                else
-                {
+                } else {
                     vec.emplace_back("# Make command was NOT successful.");
                 }
                 result += temp;
                 do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
 
                 vec.clear();
                 vec.emplace_back("# ");
@@ -3007,19 +3024,15 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             }
             temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
             vec.clear();
-            if (temp == 0)
-            {
+            if (temp == 0) {
                 vec.emplace_back("# Copy libraries and modules was successful.");
-            }
-            else
-            {
+            } else {
                 vec.emplace_back("# Copy libraries and modules was not successful.");
             }
             result += temp;
             do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
             // end of code block
-
             createProtectionWhenRequired(result, itemValues);
         }
     }
