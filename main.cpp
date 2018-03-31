@@ -403,45 +403,16 @@ sstr joinPathWithFile(sstr& partA, sstr& fileName)
     return path = "/" + fixed1 + "/" + fixed2;
 }
 
-bool isFileSizeGtZero(sstr &fileName, bool bShow = false)
-{
-    bool result = false;
-    sstr positionCommand = std::string(commandPostion, ' ');
-    sstr safeFileName = safeFilePath(fileName);
-    auto startPos = fileName.find(" ");
-    if (startPos == -1) {
-        std::ifstream file(safeFileName, std::ios::in | std::ios::binary);
-        file.seekg(0, file.end);
-        auto worthless = file.tellg();
-        auto real_size = static_cast<long long>(worthless);
-        file.close();
-        if (real_size > 0) { result = true; }
-        if (bShow) {
-            if (real_size > 0) {
-                std::cout << positionCommand << "Found file: '" << fileName << "' \n "
-                          << positionCommand << "  and size = " << real_size << std::endl;
-                result = true;
-            } else {
-                std::cout << positionCommand << "Search file: '" << fileName << "' \n "
-                          << positionCommand << "  and size =  " << real_size << std::endl;
-
-            }
-        }
-    }
-    else {
-        std::cout << "File: " << fileName << " is not a valid file name: not found" << std::endl;
-    }
-    return result;
-}
-
-int ensure_Directory_main(sstr& fullCommand, int result)
+int ensure_Directory_main(sstr& fullCommand, int result, bool show = false)
 {
     std::cout << "  " << fullCommand << std::endl;
     result = system(fullCommand.c_str());
-    if (result == 0) {
-        std::cout << "  ->success on running command:" << std::endl;
-    } else {
-        std::cout << "  ->failure on running command:" << std::endl;
+    if (show) {
+        if (result == 0) {
+            std::cout << "  ->success on running command:" << std::endl;
+        } else {
+            std::cout << "  ->failure on running command:" << std::endl;
+        }
     }
     return result;
 }
@@ -529,8 +500,6 @@ sstr get_GmtOffset()
     return strGmtOff;
 }
 
-
-
 sstr get_Time_as_String(time_t theTime)
 {
     struct tm * timeinfo;
@@ -570,7 +539,6 @@ sstr make_fileName_dateTime(time_t theTime)
     }
     return theDate;
 }
-
 
 sstr getDuration(time_t stop, time_t start)
 {
@@ -628,7 +596,6 @@ sstr getDuration(time_t stop, time_t start)
     result.append(" ");
     return result;
 }
-
 
 int startNewLogSection(std::ofstream& file, sstr utc = "-7")
 {
@@ -740,7 +707,6 @@ int write_file_entry(std::ofstream& file, const sstr& entry, time_t stop, time_t
     }
     return result;
 }
-
 
 int file_write_vector_to_file(sstr &fileName, std::vector <sstr> &vec_lines, bool includeTime = true)
 {
@@ -1128,6 +1094,67 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
     return result;
 }
 
+bool isFileSizeGtZero(an_itemValues itemValues, sstr &fileName, bool bShow = false)
+{
+    bool result = false;
+    std::vector<sstr> vec;
+    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr safeFileName = safeFilePath(fileName);
+    sstr printCommand = "";
+    auto startPos = fileName.find(" ");
+    if (startPos == -1) {
+        std::ifstream file(safeFileName, std::ios::in | std::ios::binary);
+        file.seekg(0, file.end);
+        auto worthless = file.tellg();
+        auto real_size = static_cast<long long>(worthless);
+        file.close();
+        if (real_size > 0) { result = true; }
+        if (real_size < 0) { real_size = 0; }
+        if (bShow) {
+            sstr size = std::to_string(real_size);
+            if (real_size > 0) {
+                vec.clear();
+                printCommand = "# Found File: '";
+                printCommand.append(fileName);
+                printCommand.append("' \n");
+                printCommand.append(positionCommand);
+                printCommand.append("#   and size= ");
+                printCommand.append(size);
+                printCommand.append(".");
+                vec.emplace_back(printCommand);
+                result = true;
+            } else {
+                vec.clear();
+                printCommand = "# Search File: '";
+                printCommand.append(fileName);
+                printCommand.append("' \n");
+                printCommand.append(positionCommand);
+                printCommand.append("#      Status= ");
+                printCommand.append(" File not found or size = ");
+                printCommand.append(size);
+                printCommand.append(".");
+                vec.emplace_back(printCommand);
+            }
+            if (itemValues.fileName_Build.length() > 0) {
+                do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+            }
+        }
+    }
+    else {
+        vec.clear();
+        printCommand = "# Search File: '";
+        printCommand.append(fileName);
+        printCommand.append("' \n");
+        printCommand.append(positionCommand);
+        printCommand.append("#      Status= ");
+        printCommand.append(" is not a valid file name: not found.");
+        vec.emplace_back(printCommand);
+        std::cout << "File: " << fileName << " is not a valid file name: not found" << std::endl;
+    }
+    return result;
+}
+
+
 int removeDirectory(sstr& fileName, sstr& path, std::vector<sstr>& vec)
 {
     if (path.length() > 2)
@@ -1318,14 +1345,25 @@ sstr get_ProtectionFileWithPath(an_itemValues& itemValues)
 }
 
 
-void protectProgram_IfRequired(an_itemValues& itemValues)
+void protectProgram_IfRequired(an_itemValues& itemValues, bool show)
 {
     std::vector<sstr> vec;
+    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr command = "";
     sstr protectionFileWithPath = get_ProtectionFileWithPath(itemValues);
-    if (!(isFileSizeGtZero(itemValues.fileName_Protection, false))) {
+    if (!(isFileSizeGtZero(itemValues, itemValues.fileName_Protection, show))) {
         if (itemValues.bProtectMode) {
-            ensure_Directory_exists1(itemValues.srcPath);
-            vec.emplace_back("eval \"echo 'protection = true' > " + protectionFileWithPath + "\"");
+            vec.emplace_back("#");
+            command = "# Enable protection for ";
+            command.append(itemValues.ProperName);
+            vec.emplace_back(command);
+            command.clear();
+            command = "eval \"echo 'protection = true' \\\n";
+            command.append(positionCommand);
+            command.append(" > ");
+            command.append(protectionFileWithPath);
+            command.append("\"");
+            vec.emplace_back(command);
             do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         }
     }
@@ -1333,12 +1371,11 @@ void protectProgram_IfRequired(an_itemValues& itemValues)
 
 void howToRemoveFileProtection(an_itemValues& itemValues)
 {
+    sstr positionCommand = std::string(commandPostion, ' ');
     sstr protectionFileWithPath = get_ProtectionFileWithPath(itemValues);
-    std::cout << "itemValues.fileName_Protection = " << itemValues.fileName_Protection << std::endl;
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# This " + itemValues.ProperName + " install is currently protected:");
-    vec.emplace_back("# ");
     vec.emplace_back("# To remove this protection, run this command:");
     vec.emplace_back("# eval \" rm -f " + protectionFileWithPath + "\"");
     vec.emplace_back("# ");
@@ -1355,7 +1392,7 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
     vec.emplace_back("# Stage source file if needed.");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
-    if (!(isFileSizeGtZero(itemValues.fileName_Staged, true)))
+    if (!(isFileSizeGtZero(itemValues, itemValues.fileName_Staged, true)))
     {
         vec.emplace_back("# Attempting to download file...");
         if (itemValues.programName == "php")
@@ -2031,7 +2068,7 @@ int make_tests(an_itemValues& itemValues)
             vec.emplace_back("# Make test(s)...");
             vec.emplace_back("# !!! Warning this may take a while...");
             vec.emplace_back(
-                    "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                                   "eval \"cd    '" + itemValues.srcPathPNV + "';\n"
                + positionCommand + "make test > '" + testPathAndFileName + "' 2>&1 \"");
 
             //Most tests have some failures,
@@ -2222,18 +2259,18 @@ int make_install(an_itemValues& itemValues)
     makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
     vec.emplace_back("# ");
     vec.emplace_back("# Make install...");
-    vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                + positionCommand + "make install > '" + makePathAndFileName + "' 2>&1 \"");
-    vec.emplace_back("# ");
+    vec.emplace_back("eval \"      cd '" + itemValues.srcPathPNV + "';\n"
+                + positionCommand + "make install > '" + makePathAndFileName   + "' 2>&1 \"");
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0) {
         vec.clear();
-        vec.emplace_back("# Make Install completed successfully.");
+        vec.emplace_back("# Make install completed successfully.");
     } else {
         vec.clear();
-        vec.emplace_back("# Make Install had some problems.");
+        vec.emplace_back("# Make install had some problems.");
         vec.emplace_back("# Look through '" + itemValues.bldPath + "make_install_results.txt' to find the issue. ");
     }
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     return result;
 }
 
@@ -2638,7 +2675,9 @@ int basicInstall(an_itemValues& itemValues, sstr& configureStr)
     if (result == 0 )
     {
         vec.clear();
-        vec.emplace_back("# Install was successful.");
+        vec.emplace_back("# ");
+        vec.emplace_back("# Summary Status");
+        vec.emplace_back("# " + itemValues.ProperName + " Install was successful.");
     }
     else
     {
@@ -2652,7 +2691,7 @@ int basicInstall(an_itemValues& itemValues, sstr& configureStr)
         }
         else
         {
-            vec.emplace_back("# Install had some issues.");
+            vec.emplace_back("# " + itemValues.ProperName + " Install has some issues.");
             vec.emplace_back("# Look through the build logs in the '" + itemValues.bldPath + "' directory.");
         }
     }
@@ -2774,7 +2813,10 @@ void set_bInstall(an_itemValues &itemValues)
 
     bool bProtected = false;
 
-    if (isFileSizeGtZero(protectionFileWithPath, true)) {
+    vec.emplace_back("#");
+    vec.emplace_back("# Check for " + itemValues.ProperName + " protection file.");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    if (isFileSizeGtZero(itemValues, protectionFileWithPath, true)) {
         bProtected = true;
         howToRemoveFileProtection(itemValues);
     }
@@ -2795,16 +2837,13 @@ void set_bInstall(an_itemValues &itemValues)
     }
 }
 
-void createProtectionWhenRequired(int result, an_itemValues& itemValues)
+void createProtectionWhenRequired(int result, an_itemValues& itemValues, bool show)
 {
     std::vector<sstr> vec;
     if ((itemValues.bProtectMode) && (result == 0))
     {
-        vec.clear();
-        vec.emplace_back("#");
-        protectProgram_IfRequired(itemValues);
+        protectProgram_IfRequired(itemValues, show);
         howToRemoveFileProtection(itemValues);
-        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     }
 }
 
@@ -3005,7 +3044,7 @@ int install_cmake(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
                        + positionCommand + " ./bootstrap --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3031,14 +3070,16 @@ int install_libzip(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.clear();
         vec.emplace_back("#");
         vec.emplace_back("# Special Instructions for libzip");
-        vec.emplace_back("eval \"mkdir -p " + itemValues.srcPathPNV + "\"");
-        vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                    + positionCommand + itemValues.rtnPath + "usr/cmake/bin/cmake .. -DCMAKE_INSTALL_PREFIX=" + itemValues.usrPath +"\"");
+        vec.emplace_back("eval \"mkdir -p '" + itemValues.srcPathPNV + "' \"");
+        vec.emplace_back("eval \"cd       '" + itemValues.srcPathPNV + "';\n"
+                    + positionCommand + " '" + itemValues.rtnPath + "usr/cmake/bin/cmake' ..\\\n"
+                    + positionCommand + " -DCMAKE_INSTALL_PREFIX='" + itemValues.usrPath + "' \\\n"
+                    + positionCommand +"> '" + itemValues.bldPath + "custom_cmake.txt'\"");
         result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         if (result == 0) {
             sstr configureStr = "# No configuration command required.";
             result += basicInstall(itemValues, configureStr);
-            createProtectionWhenRequired(result, itemValues);
+            createProtectionWhenRequired(result, itemValues, false);
         }
         else
         {
@@ -3077,7 +3118,7 @@ int install_perl5(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             result += basicInstall(itemValues, configureStr);
         }
         if (result == 0) {
-            createProtectionWhenRequired(result, itemValues);
+            createProtectionWhenRequired(result, itemValues, false);
         }
     }
     return result;
@@ -3105,7 +3146,7 @@ int install_openssl(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
                        + positionCommand + "./config --prefix=" + itemValues.usrPath + " ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3155,7 +3196,7 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         result += basicInstall(itemValues, configureStr);
         result += do_post_install(settings, itemValues, result);
 
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3186,7 +3227,7 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                        + positionCommand + itemValues.perl5RunPath + "perl Configure.pl \\\n"
                        + positionCommand + " --backend=moar --gen-moar --prefix=" + itemValues.usrPath + "";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3213,7 +3254,7 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
                        + positionCommand + "./configure --prefix=" + itemValues.usrPath + " ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3240,7 +3281,7 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV   + ";\n"
                        + positionCommand + "./configure --prefix=" + itemValues.usrPath + " ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3270,7 +3311,7 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, an_itemValues& itemVa
                        + positionCommand + "  --with-apr=" + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-10)) + "/apr/bin ";
         result += basicInstall(itemValues, configureStr);
 
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3299,7 +3340,7 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, an_itemValues& itemVa
                        + positionCommand + "  --with-apr=" + itemValues.usrPath.substr(0,(itemValues.usrPath.length()-11)) + "/apr/bin ";
 
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3326,7 +3367,7 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
                        + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3353,7 +3394,7 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
                        + positionCommand + "./configure --prefix=" + itemValues.usrPath + " ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3388,7 +3429,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         result += basicInstall(itemValues, configureStr);
         result += do_post_install(settings, itemValues, result);
 
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3426,7 +3467,8 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     sstr mariadbPath = itemValues.rtnPath + "usr/mariadb/bin";
     sstr mariadbController = joinPathWithFile(mariadbPath, tmpFile);
 
-    if ((isFileSizeGtZero(apacheController)) && isFileSizeGtZero(mariadbController)) {
+    if ((isFileSizeGtZero(itemValues,   apacheController))
+        && isFileSizeGtZero(itemValues, mariadbController)) {
 
         vec.clear();
         vec.emplace_back("# ");
@@ -3497,7 +3539,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             result += do_post_install(settings, itemValues, result);
 
             // end of code block
-            createProtectionWhenRequired(result, itemValues);
+            createProtectionWhenRequired(result, itemValues, false);
         }
     }
     else {
@@ -3533,7 +3575,7 @@ int install_poco(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
                        + positionCommand + " ./configure --prefix=" + itemValues.usrPath + " ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3560,7 +3602,7 @@ int install_python(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
                        + positionCommand + " ./configure --prefix=" + itemValues.usrPath + " ";
         result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3640,7 +3682,7 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         configureStr.append(positionCommand);
         configureStr.append(" --enable-64bit ");
         result += basicInstall_tcl(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3704,7 +3746,7 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         configureStr.append(positionCommand);
         configureStr.append(" --enable-64bit ");
         result += basicInstall_tcl(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues);
+        createProtectionWhenRequired(result, itemValues, false);
     }
     return result;
 }
@@ -3712,21 +3754,21 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int reportResults(an_itemValues& itemValues, int installResult)
 {
     int result = 0;
-    sstr programName = itemValues.ProperName;
+    sstr positionCommand = std::string(commandPostion, ' ');
+    time_t  now = get_Time();
+    sstr strNow = get_Time_as_String(now);
+
+    std::cout << " " << strNow << "Summary: # " << "Install " << itemValues.ProperName
+              << "-" << itemValues.version;
     if (itemValues.step < 0)
     {
-        std::cout << "Install " << programName << "-"
-                        << itemValues.version
-                        << " : Result = " << installResult << "." << std::endl;
+        std::cout << " : Result = " << installResult << "." << std::endl;
     }
     else
     {
-        std::cout << "Install " << programName << "-"
-                        << itemValues.version
-                        << " step " << std::setw(2) << std::setfill('0') << itemValues.step
-                        << " : Result = " << installResult << std::endl;
+        std::cout << " step " << std::setw(2) << std::setfill('0') << itemValues.step
+                  << " : Result = " << installResult << std::endl;
     }
-
     time_t stop = get_Time();
 
     result += file_append_results(itemValues.fileName_Build,   itemValues, installResult, stop);
@@ -4044,13 +4086,13 @@ int main() {
     create_file(program.itemValues.fileName_Build);
     do_command(program.itemValues.fileName_Build, vec, false);
 
-    if (!(isFileSizeGtZero(program.itemValues.fileName_Notes))) {
+    if (!(isFileSizeGtZero(program.itemValues, program.itemValues.fileName_Notes))) {
         create_file(program.itemValues.fileName_Notes);
     } else {
         ensure_file(program.itemValues.fileName_Notes);
     }
 
-    if (!(isFileSizeGtZero(program.itemValues.fileName_Results))) {
+    if (!(isFileSizeGtZero(program.itemValues, program.itemValues.fileName_Results))) {
         create_file(program.itemValues.fileName_Results);
     } else {
         ensure_file(program.itemValues.fileName_Results);
