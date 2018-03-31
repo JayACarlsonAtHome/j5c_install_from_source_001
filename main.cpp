@@ -131,7 +131,7 @@ sstr lowerCaseString(sstr& some_value)
     {
         if (std::isupper(some_value.at(idx)))
         {
-            oneChar =  tolower(some_value.at(idx));
+            oneChar =  std::tolower(some_value.at(idx));
         }
         else
         {
@@ -155,7 +155,7 @@ sstr upperCaseString(sstr& some_value)
     {
         if (std::islower(some_value.at(idx)))
         {
-            oneChar =  toupper(some_value.at(idx));
+            oneChar =  std::toupper(some_value.at(idx));
         }
         else
         {
@@ -188,8 +188,8 @@ sstr getDigitsInStringAsString(sstr& some_value)
     int oneChar;
     if (some_value.length() > 0) {
         for (auto idx = 0ul; idx < some_value.length(); ++idx) {
-            if (std::isdigit((*some_value.substr(idx, 1).c_str()))) {
-                oneChar = *some_value.substr(idx, 1).c_str();
+            if (std::isdigit(some_value.at(idx))) {
+                oneChar = some_value.at(idx);
                 result.append({static_cast<char>(oneChar)});
             }
         }
@@ -224,9 +224,9 @@ sstr getValid_pVersion(sstr& some_value)
 
     for (auto idx = 0ul; idx < some_value.length(); ++idx)
     {
-        if (std::isdigit((*some_value.substr(idx,1).c_str())))
+        if (std::isdigit(some_value.at(idx)))
         {
-            oneChar =  *some_value.substr(idx,1).c_str();
+            oneChar =  some_value.at(idx);
             result.append({static_cast<char>(oneChar)});
         }
     }
@@ -798,7 +798,7 @@ sstr getProperNameFromString(sstr& some_value)
     sstr result;
     sstr temp1 = some_value.substr(1,some_value.length());
     temp1 = lowerCaseString(temp1);
-    result = static_cast<char>(toupper(*some_value.substr(0,1).c_str()));
+    result = static_cast<char>(std::toupper(some_value.at(0)));
     result.append({temp1});
     return result;
 }
@@ -1291,13 +1291,13 @@ bool getBoolFromString(sstr& some_value)
     int temp2;
     for (auto idx = 0ul; idx < some_value.length(); ++idx)
     {
-        if (std::isupper((*some_value.substr(idx,1).c_str())))
+        if (std::isupper(some_value.at(idx)))
         {
-            temp2 =  tolower(*some_value.substr(idx,1).c_str());
+            temp2 =  std::tolower(some_value.at(idx));
         }
         else
         {
-            temp2 = (*some_value.substr(idx,1).c_str());
+            temp2 = some_value.at(idx);
         }
         temp1.append({static_cast<char>(temp2)});
     }
