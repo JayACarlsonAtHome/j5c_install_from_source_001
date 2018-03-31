@@ -2028,11 +2028,14 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("#################################################################################");
         vec.emplace_back("# ");
         vec.emplace_back("#--> Run these commands to secure and start mariadb.");
+        vec.emplace_back("#--> Commands run by install (no need to run again)");
+        vec.emplace_back("#-->    This information is provided only for your knowledge");
         vec.emplace_back("groupadd   mysql ");
         vec.emplace_back("useradd -g mysql mysql ");
         //Create required directories if needed
         vec.emplace_back("# ");
         vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/temp");
+        vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/source");
         vec.emplace_back("mkdir -p " + itemValues.usrPath + "run");
         vec.emplace_back("mkdir -p " + itemValues.usrPath + "var/log");
         // Add required run files
@@ -2054,23 +2057,32 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("chmod -R 770         run  ");
         vec.emplace_back("chown -R mysql:mysql var  ");
         vec.emplace_back("chmod -R 770         var  ");
+        vec.emplace_back("#--> End of Commands run by install (no need to run again)");
         file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
 
         create_mariaDB_cnf_File(itemValues);
 
         vec.clear();
+        vec.emplace_back("#--> #");
+        vec.emplace_back("#--> Starting here you must run the commands by hand.");
+        vec.emplace_back("#-->     Start the server");
+        vec.emplace_back("#-->     Set the initial security");
+        vec.emplace_back("#-->     Start the client");
+        vec.emplace_back("#-->     Run a few test commands");
         vec.emplace_back("cd " + itemValues.usrPath);
         vec.emplace_back("#");
-        vec.emplace_back("# script the initial database");
+        vec.emplace_back("# Script the initial database");
         vec.emplace_back("#   Note 1: If you see a lot of permission errors and the script fails...");
-        vec.emplace_back("#           It probably means you need to run chmod o+x on all the directories");
-        vec.emplace_back("#            up to the usr/mariadb directory. Once permissions are set up to ");
-        vec.emplace_back("#            the mariadb directory, the rest of the permissions should be ok. ");
-        vec.emplace_back("#            Don't use chmod -R o+x because that would set all the files as well");
+        vec.emplace_back("#             It probably means you need to run chmod o+x on all the directories");
+        vec.emplace_back("#             from root down to the " + itemValues.usrPath + " directory.");
+        vec.emplace_back("#             Once permissions are set up to the mariadb directory, the rest of ");
+        vec.emplace_back("#             the permissions should be ok. ");
+        vec.emplace_back("#   Note 2: Don't use chmod -R o+x because that would set all the files as well");
         vec.emplace_back("#              and we only need the directories.");
-        vec.emplace_back("#   Note 2:  Note 1 may not be secure enough for you, In that case you must use");
+        vec.emplace_back("#   Note 3: Note 1 may not be secure enough for you, In that case you must use");
         vec.emplace_back("#               Access Control Lists, and there are too many different user options ");
         vec.emplace_back("#               to create a detailed list here.");
+        vec.emplace_back("# ");
         sstr command = "./scripts/mysql_install_db ";
         command.append(" --defaults-file='");
         command.append(itemValues.etcPath);
@@ -2134,6 +2146,9 @@ int mariadb_notes(an_itemValues& itemValues)
         command.append("run/mariadb.socket'  ");
         command.append(" -u root -p shutdown ");
         vec.emplace_back(command);
+        vec.emplace_back("# ");
+        vec.emplace_back("# ");
+        vec.emplace_back("# ");
         file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
 
         vec.clear();
@@ -2143,7 +2158,6 @@ int mariadb_notes(an_itemValues& itemValues)
         int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         return result;
     }
-
 }
 
 
@@ -2260,9 +2274,52 @@ int do_make_install(an_itemValues& itemValues, int results)
     return results;
 }
 
+int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
+{
+    int result = 0;
+    sstr positionCommand = std::string(commandPostion, ' ');
+    std::vector<sstr> vec;
+    vec.clear();
+
+    vec.emplace_back("# ");
+    vec.emplace_back("# Ensure MariaDB (mysql) user / group exists");
+    vec.emplace_back("groupadd   mysql ");
+    vec.emplace_back("useradd -g mysql mysql ");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    //Create required directories if needed
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/temp");
+    vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/source");
+    vec.emplace_back("mkdir -p " + itemValues.usrPath + "run");
+    vec.emplace_back("mkdir -p " + itemValues.usrPath + "var/log");
+    // Add required run files
+    vec.emplace_back("# ");
+    vec.emplace_back("cd "       + itemValues.usrPath + "run");
+    vec.emplace_back("touch mariadb.socket ");
+    vec.emplace_back("touch mariadb_pid ");
+    //set permissions for mariadb directory recursively
+    vec.emplace_back("# ");
+    vec.emplace_back("cd " + itemValues.usrPath + "../ ");
+    vec.emplace_back("chown -R root:mysql mariadb ");
+    vec.emplace_back("chmod -R 770        mariadb ");
+    //Over ride permissions as required
+    vec.emplace_back("# ");
+    vec.emplace_back("cd " + itemValues.usrPath);
+    vec.emplace_back("chown -R mysql:mysql data ");
+    vec.emplace_back("chmod -R 770         data ");
+    vec.emplace_back("chown -R mysql:mysql run  ");
+    vec.emplace_back("chmod -R 770         run  ");
+    vec.emplace_back("chown -R mysql:mysql var  ");
+    vec.emplace_back("chmod -R 770         var  ");
+    result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+}
+
 int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = 0;
+    sstr positionCommand = std::string(commandPostion, ' ');
 
     sstr compileForDebug    = settings[itemValues.programName + "->Compile_For_Debug"];
     sstr xdebug_install     = settings[itemValues.programName + "->Xdebug_Install"];
@@ -2313,6 +2370,13 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.emplace_back("# Copy library file operations were NOT successful.");
     }
     result += temp;
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# Ensure Apache user / group exists");
+    vec.emplace_back("groupadd   apache_ws ");
+    vec.emplace_back("useradd -g apache_ws apache_ws ");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     vec.clear();
@@ -2436,15 +2500,53 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     return result;
 }
 
+int postInstall_Apache(an_itemValues& itemValues)
+{
+    std::vector<sstr> vec;
+    sstr positionCommand = std::string(commandPostion, ' ');
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# Ensure Apache user / group exists");
+    vec.emplace_back("groupadd   apache_ws ");
+    vec.emplace_back("useradd -g apache_ws apache_ws ");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
+    vec.emplace_back(positionCommand);
+    vec.emplace_back("eval \"mkdir -p " + itemValues.etcPath + "extra \"");
+    vec.emplace_back(positionCommand);
+    vec.emplace_back("eval \"cd " + itemValues.usrPath + "conf/extra;\n"
+                + positionCommand + " cp " + itemValues.usrPath + "conf/extra/* " + itemValues.etcPath  + "extra/. \"");
+    int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    vec.clear();
+    vec.emplace_back("# ");
+    if (temp == 0) {
+        vec.emplace_back("# Copy apache configuration files was successful.");
+    } else {
+        vec.emplace_back("# Copy apache configuration files was NOT successful.");
+    }
+}
+
 int do_post_install(std::map<sstr, sstr>& settings, an_itemValues& itemValues, int results)
 {
     if (    (!itemValues.bDebug) ||
             ((itemValues.bDebug) && (itemValues.debugLevel > 5))) {
-        if (results == 0) {
+        if (results == 0)
+        {
             if (itemValues.ProperName == "Php")
             {
                 results = postInstall_PHP(settings, itemValues);
             }
+            if (itemValues.ProperName == "Apache")
+            {
+                results = postInstall_Apache(itemValues);
+            }
+            if (itemValues.ProperName == "MariaDB")
+            {
+                results = postInstall_Apache(itemValues);
+            }
+
 
         }
         if (itemValues.debugLevel == 6) {
@@ -2560,41 +2662,43 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
         vec1.emplace_back("# ");
         result += do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
 
-        vec2.clear();
-        vec2.emplace_back("# ");
-        vec2.emplace_back("# ");
-        vec2.emplace_back("#################################################################################");
-        vec2.emplace_back("# ");
-        vec2.emplace_back("# Tcl/Tk Note Section");
-        vec2.emplace_back("# ");
-        vec2.emplace_back("#################################################################################");
-        vec2.emplace_back("# ");
-        vec2.emplace_back("# ");
-        vec2.emplace_back("# To use tcl cd to this directory: ");
+        if (itemValues.programName == "tcl") {
+            vec2.clear();
+            vec2.emplace_back("# ");
+            vec2.emplace_back("# ");
+            vec2.emplace_back("#################################################################################");
+            vec2.emplace_back("# ");
+            vec2.emplace_back("# Tcl/Tk Note Section");
+            vec2.emplace_back("# ");
+            vec2.emplace_back("#################################################################################");
+            vec2.emplace_back("# ");
+            vec2.emplace_back("# ");
+            vec2.emplace_back("# To use tcl cd to this directory: ");
 
-        sstr command = "cd ";
-        command.append(usrPath);
-        command.append("bin/");
-        vec2.emplace_back(command);
-        vec2.emplace_back("ls -al");
-        command.clear();
-        command = "# Then run tcl with ./tcl [tab complete] then [enter]";
-        vec2.emplace_back(command);
-        vec2.emplace_back("# At this point you should see a prompt like % ");
-        vec2.emplace_back("# type after prompt--> % info tclversion ");
-        vec2.emplace_back("#   and you should see the version you installed. ");
-        vec2.emplace_back("#   add the path to your PATH variable to run this version from any directory.");
-        vec2.emplace_back("# type after prompt--> % wish ");
-        vec2.emplace_back("#   and you should see a small new window open up. ");
-        vec2.emplace_back("#   depending on how you installed this you may have change permissions.");
-        vec2.emplace_back("#   chmod o+rx in the directory tree as appropriate.");
-        vec2.emplace_back("#  Some reference material ");
-        vec2.emplace_back("#    1. The Tcl and TK programming for the Absolute Beginner by Kurt Wall");
-        vec2.emplace_back("#    2. The TCL Programming Language by Ashok P. Nadkarni");
-        vec2.emplace_back("#    3. The TCL and the Tk Toolkit by John K. Outsterhout and Ken Jones");
-        vec2.emplace_back("#    4. The TCL/Tk A Developers Guide by Clif Flynt");
-        vec2.emplace_back("# ");
-        file_write_vector_to_file(itemValues.fileName_Notes, vec2, false);
+            sstr command = "cd ";
+            command.append(usrPath);
+            command.append("bin/");
+            vec2.emplace_back(command);
+            vec2.emplace_back("ls -al");
+            command.clear();
+            command = "# Then run tcl with ./tcl [tab complete] then [enter]";
+            vec2.emplace_back(command);
+            vec2.emplace_back("# At this point you should see a prompt like % ");
+            vec2.emplace_back("# type after prompt--> % info tclversion ");
+            vec2.emplace_back("#   and you should see the version you installed. ");
+            vec2.emplace_back("#   add the path to your PATH variable to run this version from any directory.");
+            vec2.emplace_back("# type after prompt--> % wish ");
+            vec2.emplace_back("#   and you should see a small new window open up. ");
+            vec2.emplace_back("#   depending on how you installed this you may have change permissions.");
+            vec2.emplace_back("#   chmod o+rx in the directory tree as appropriate.");
+            vec2.emplace_back("#  Some reference material ");
+            vec2.emplace_back("#    1. The Tcl and TK programming for the Absolute Beginner by Kurt Wall");
+            vec2.emplace_back("#    2. The TCL Programming Language by Ashok P. Nadkarni");
+            vec2.emplace_back("#    3. The TCL and the Tk Toolkit by John K. Outsterhout and Ken Jones");
+            vec2.emplace_back("#    4. The TCL/Tk A Developers Guide by Clif Flynt");
+            vec2.emplace_back("# ");
+            file_write_vector_to_file(itemValues.fileName_Notes, vec2, false);
+        }
     }
     if (result == 0 )
     {
@@ -3001,6 +3105,8 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                        + positionCommand + "--enable-local-infile ";
 
         result += basicInstall(itemValues, configureStr);
+        result += do_post_install(settings, itemValues, result);
+
         createProtectionWhenRequired(result, itemValues);
     }
     return result;
@@ -3232,21 +3338,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                        + positionCommand + " --enable-so ";
 
         result += basicInstall(itemValues, configureStr);
-
-        vec.clear();
-        vec.emplace_back("# ");
-        vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
-        vec.emplace_back("eval \"mkdir -p " + itemValues.etcPath + "extra \"");
-        vec.emplace_back("eval \"cd " + itemValues.usrPath + "conf/extra; \\\n"
-                             + " cp " + itemValues.usrPath + "conf/extra/* " + itemValues.etcPath  + "extra/. \"");
-        int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-        vec.clear();
-        vec.emplace_back("# ");
-        if (temp == 0) {
-            vec.emplace_back("# Copy apache configuration files was successful.");
-        } else {
-            vec.emplace_back("# Copy apache configuration files was NOT successful.");
-        }
+        result += do_post_install(settings, itemValues, result);
 
         createProtectionWhenRequired(result, itemValues);
     }
@@ -3651,8 +3743,17 @@ int process_section(std::map<sstr, sstr>& settings,
 
 bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
 {
-    itemValues.fileName_Protection = getProtectedFileName(itemValues.programName);
+    // In order for future knowledge of using if statements with these variables
+    //    I am providing these guaranties
+
+    // programName --> will be guarantied to be: lowercase
+    // ProperName -->  will be guarantied to be: the first letter is capital, all others lowercase
+    itemValues.programName         = lowerCaseString(itemValues.programName);
     itemValues.ProperName          = getProperNameFromString(itemValues.programName);
+    //
+    //
+    
+    itemValues.fileName_Protection = getProtectedFileName(itemValues.programName);
 
     sstr skip  = settings[itemValues.programName + "->Skip"];
     if (itemValues.programName == "perl")
