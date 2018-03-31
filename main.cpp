@@ -1360,9 +1360,9 @@ void protectProgram_IfRequired(an_itemValues& itemValues, bool show)
             command.clear();
             command = "eval \"echo 'protection = true' \\\n";
             command.append(positionCommand);
-            command.append(" > ");
+            command.append(" > '");
             command.append(protectionFileWithPath);
-            command.append("\"");
+            command.append("'\"");
             vec.emplace_back(command);
             do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         }
@@ -1377,7 +1377,7 @@ void howToRemoveFileProtection(an_itemValues& itemValues)
     vec.emplace_back("# ");
     vec.emplace_back("# This " + itemValues.ProperName + " install is currently protected:");
     vec.emplace_back("# To remove this protection, run this command:");
-    vec.emplace_back("# eval \" rm -f " + protectionFileWithPath + "\"");
+    vec.emplace_back("# eval \" rm -f '" + protectionFileWithPath + "' \"");
     vec.emplace_back("# ");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 }
@@ -1945,8 +1945,8 @@ int make_clean(an_itemValues& itemValues)
     {
         vec.emplace_back("# ");
         vec.emplace_back("# Make clean");
-        vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                    + positionCommand + "make clean > '" + itemValues.bldPath + clnFileName + "' 2>&1 \"");
+        vec.emplace_back(          "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
+               + positionCommand + "make clean > '" + itemValues.bldPath + clnFileName + "' 2>&1 \"");
     }
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
@@ -2025,20 +2025,20 @@ int test_perl6(an_itemValues& itemValues)
     vec1.emplace_back("# ");
     vec1.emplace_back("# make test...");
     vec1.emplace_back("# !!! Warning this may take a while...");
-    vec1.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                                   + "make test > " + testPathAndFileName1 + " 2>&1 \"");
+    vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                 + positionCommand + "make test > '" + testPathAndFileName1 + "' 2>&1 \"");
     do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
     vec1.clear();
-    vec1.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                 + positionCommand + "make rakudo-test > " + testPathAndFileName2 + " 2>&1 \"");
+    vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                 + positionCommand + "make rakudo-test > '" + testPathAndFileName2 + "' 2>&1 \"");
     do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
     vec1.clear();
-    vec1.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                 + positionCommand + "make rakudo-spectest > " + testPathAndFileName3 + " 2>&1 \"");
+    vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                 + positionCommand + "make rakudo-spectest > '" + testPathAndFileName3 + "' 2>&1 \"");
     do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
     vec1.clear();
-    vec1.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                 + positionCommand + " make modules-test > "    + testPathAndFileName4 + " 2>&1 \"");
+    vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                 + positionCommand + " make modules-test > '"    + testPathAndFileName4 + "' 2>&1 \"");
     do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
 }
 
@@ -2596,17 +2596,38 @@ int postInstall_Apache(an_itemValues& itemValues)
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure Apache user / group exists");
-    vec.emplace_back("groupadd   apache_ws ");
-    vec.emplace_back("useradd -g apache_ws apache_ws ");
+
+    // So to find out if a user exists already we are going to do a
+    // little hacking... users | grep apache_ws will give us one line
+    // if the user exists. So we pipe the results to a create/truncate
+    // file pipe, then we check to see if the file size is greater than 0.
+    sstr userTestFile = itemValues.srcPath + "users.txt";
+    vec.emplace_back("users | grep apache_ws > '" + userTestFile + "'" );
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    bool apacheUserExists = isFileSizeGtZero(itemValues, userTestFile, false);
+    vec.clear();
+    if (!apacheUserExists)
+    {
+        vec.emplace_back("# Adding Apache user / group exists");
+        vec.emplace_back("groupadd   apache_ws ");
+        vec.emplace_back("useradd -g apache_ws apache_ws ");
+        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    }
+    else
+    {
+        vec.emplace_back("# Apache user / group already exists");
+        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    }
+
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
     vec.emplace_back(positionCommand);
-    vec.emplace_back("eval \"mkdir -p " + itemValues.etcPath + "extra \"");
+    vec.emplace_back("eval \"mkdir -p '" + itemValues.etcPath + "extra' \"");
     vec.emplace_back(positionCommand);
-    vec.emplace_back("eval \"cd " + itemValues.usrPath + "conf/extra;\n"
-                + positionCommand + " cp " + itemValues.usrPath + "conf/extra/* " + itemValues.etcPath  + "extra/. \"");
+    vec.emplace_back("eval \"cd '" + itemValues.usrPath + "conf/extra';\n"
+                + positionCommand + " cp '" + itemValues.usrPath
+                     + "conf/extra/*' '" + itemValues.etcPath  + "extra/.' \"");
     int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
     vec.emplace_back("# ");
@@ -3112,15 +3133,16 @@ int install_perl5(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
         if (result == 0) {
-            sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
-                                             + positionCommand + "./Configure -Dprefix="
-                                                               + itemValues.usrPath + " -d -e ";
+            sstr configureStr   = "eval \"cd   '" + itemValues.srcPathPNV + "';\n "
+              + positionCommand + "./Configure \\\n"
+              + positionCommand + "  -Dprefix='" + itemValues.usrPath + "' -d -e ";
             result += basicInstall(itemValues, configureStr);
         }
         if (result == 0) {
             createProtectionWhenRequired(result, itemValues, false);
         }
     }
+    settings["perl5RunPath"] = itemValues.usrPath + "bin";
     return result;
 }
 
@@ -3143,8 +3165,8 @@ int install_openssl(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
-                       + positionCommand + "./config --prefix=" + itemValues.usrPath + " ";
+        sstr     configureStr = "eval \"         cd '" + itemValues.srcPathPNV + "';\n"
+            + positionCommand + "./config --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3172,25 +3194,25 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         //     and end the command with \" there.
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
                        + positionCommand + "./BUILD/autorun.sh;\n "
-                       + positionCommand + " cd " + itemValues.srcPathPNV + ";\n "
-                       + positionCommand + "./configure --prefix=" + itemValues.usrPath + " " + "\\\n"
-                       + positionCommand + "--enable-assembler                  "  + "\\\n"
-                       + positionCommand + "--jemalloc_static_library=/usr/lib64"  + "\\\n"
-                       + positionCommand + "--with-extra-charsets=complex       "  + "\\\n"
-                       + positionCommand + "--enable-thread-safe-client         "  + "\\\n"
-                       + positionCommand + "--with-big-tables                   "  + "\\\n"
-                       + positionCommand + "--with-plugin-maria                 "  + "\\\n"
-                       + positionCommand + "--with-aria-tmp-tables              "  + "\\\n"
-                       + positionCommand + "--without-plugin-innodb_plugin      "  + "\\\n"
-                       + positionCommand + "--with-mysqld-ldflags=-static       "  + "\\\n"
-                       + positionCommand + "--with-client-ldflags=-static       "  + "\\\n"
-                       + positionCommand + "--with-readline                     "  + "\\\n"
-                       + positionCommand + "--with-ssl                          "  + "\\\n"
-                       + positionCommand + "--with-embedded-server              "  + "\\\n"
-                       + positionCommand + "--with-libevent                     "  + "\\\n"
-                       + positionCommand + "--with-mysqld-ldflags=-all-static   "  + "\\\n"
-                       + positionCommand + "--with-client-ldflags=-all-static   "  + "\\\n"
-                       + positionCommand + "--with-zlib-dir=bundled             "  + "\\\n"
+                       + positionCommand + " cd '" + itemValues.srcPathPNV + "';\n "
+                       + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' " + "\\\n"
+                       + positionCommand + "--enable-assembler                    "  + "\\\n"
+                       + positionCommand + "--jemalloc_static_library='/usr/lib64'"  + "\\\n"
+                       + positionCommand + "--with-extra-charsets=complex         "  + "\\\n"
+                       + positionCommand + "--enable-thread-safe-client           "  + "\\\n"
+                       + positionCommand + "--with-big-tables                     "  + "\\\n"
+                       + positionCommand + "--with-plugin-maria                   "  + "\\\n"
+                       + positionCommand + "--with-aria-tmp-tables                "  + "\\\n"
+                       + positionCommand + "--without-plugin-innodb_plugin        "  + "\\\n"
+                       + positionCommand + "--with-mysqld-ldflags=-static         "  + "\\\n"
+                       + positionCommand + "--with-client-ldflags=-static         "  + "\\\n"
+                       + positionCommand + "--with-readline                       "  + "\\\n"
+                       + positionCommand + "--with-ssl                            "  + "\\\n"
+                       + positionCommand + "--with-embedded-server                "  + "\\\n"
+                       + positionCommand + "--with-libevent                       "  + "\\\n"
+                       + positionCommand + "--with-mysqld-ldflags=-all-static     "  + "\\\n"
+                       + positionCommand + "--with-client-ldflags=-all-static     "  + "\\\n"
+                       + positionCommand + "--with-zlib-dir=bundled               "  + "\\\n"
                        + positionCommand + "--enable-local-infile ";
 
         result += basicInstall(itemValues, configureStr);
@@ -3204,7 +3226,12 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     // we need this path for running perl5 as part of the configure statement
-    itemValues.perl5RunPath = settings[itemValues.programName + "->Perl5_Executable"];
+    itemValues.perl5RunPath = settings["perl5RunPath"];
+    if (itemValues.perl5RunPath.length()< 1)
+    {
+        sstr temp = "usr/perl/bin/";
+        itemValues.perl5RunPath = joinPathParts(itemValues.rtnPath,temp);
+    }
 
     int result = -1;
     sstr positionCommand = std::string(commandPostion, ' ');
@@ -3223,9 +3250,9 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
-                       + positionCommand + itemValues.perl5RunPath + "perl Configure.pl \\\n"
-                       + positionCommand + " --backend=moar --gen-moar --prefix=" + itemValues.usrPath + "";
+        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n "
+                       + positionCommand + "'" + itemValues.perl5RunPath + "/perl' Configure.pl \\\n"
+                       + positionCommand + " --backend=moar --gen-moar --prefix='" + itemValues.usrPath + "'";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3278,8 +3305,8 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV   + ";\n"
-                       + positionCommand + "./configure --prefix=" + itemValues.usrPath + " ";
+        sstr configureStr = "eval \"            cd '" + itemValues.srcPathPNV   + "';\n"
+               + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3306,9 +3333,12 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                       + positionCommand + " ./configure --prefix=" + itemValues.usrPath + "\\\n"
-                       + positionCommand + "  --with-apr=" + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-10)) + "/apr/bin ";
+
+        sstr aprBasePath = itemValues.rtnPath + "usr/apr/bin";
+        sstr       configureStr = "eval \"   cd '" + itemValues.srcPathPNV + "';\n"
+              + positionCommand + " ./configure \\\n"
+              + positionCommand + "   --prefix='" + itemValues.usrPath + "' \\\n"
+              + positionCommand + " --with-apr='" + aprBasePath + "' ";
         result += basicInstall(itemValues, configureStr);
 
         createProtectionWhenRequired(result, itemValues, false);
@@ -3335,10 +3365,11 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                       + positionCommand + " ./configure --prefix=" + itemValues.usrPath + "\\\n"
-                       + positionCommand + "  --with-apr=" + itemValues.usrPath.substr(0,(itemValues.usrPath.length()-11)) + "/apr/bin ";
-
+        sstr aprBasePath = itemValues.rtnPath + "usr/apr/bin";
+        sstr configureStr =      "eval \"      cd '" + itemValues.srcPathPNV + "';\n"
+             + positionCommand + " ./configure  \\\n"
+             + positionCommand + "      --prefix='" + itemValues.usrPath + "' \\\n"
+             + positionCommand + "    --with-apr='" + aprBasePath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3364,8 +3395,9 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                       + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' ";
+        sstr configureStr =    "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
+           + positionCommand + "./configure \\\n"
+           + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3391,8 +3423,10 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
-                       + positionCommand + "./configure --prefix=" + itemValues.usrPath + " ";
+        sstr configureStr =    "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
+                               + positionCommand + "./configure \\\n"
+                               + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
+
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3418,12 +3452,13 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
+        sstr usrBasePath = itemValues.rtnPath + "usr/";
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
                        + positionCommand + " ./configure --prefix=" + itemValues.usrPath + " \\\n"
-                       + positionCommand + " --with-apr="       + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr             \\\n"
-                       + positionCommand + " --with-apr-util="  + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-util   \\\n"
-                       + positionCommand + " --with-apr-iconv=" + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/apr-iconv  \\\n"
-                       + positionCommand + " --with-pcre="      + itemValues.usrPath.substr(0, (itemValues.usrPath.length()-8)) + "/pcre       \\\n"
+                       + positionCommand + " --with-apr="       + usrBasePath + "/apr        \\\n"
+                       + positionCommand + " --with-apr-util="  + usrBasePath + "/apr-util   \\\n"
+                       + positionCommand + " --with-apr-iconv=" + usrBasePath + "/apr-iconv  \\\n"
+                       + positionCommand + " --with-pcre="      + usrBasePath + "/pcre       \\\n"
                        + positionCommand + " --enable-so ";
 
         result += basicInstall(itemValues, configureStr);
