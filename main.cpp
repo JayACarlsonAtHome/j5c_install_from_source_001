@@ -120,17 +120,22 @@ struct an_itemValues
 
 sstr lowerCaseString(sstr& some_value)
 {
+    // unicode lower case conversions require
+    // very specialized code, and this is not it
+    // but it will handle the english words that
+    // we need for this program.
+
     sstr result;
     int oneChar;
     for (auto idx = 0ul; idx < some_value.length(); ++idx)
     {
-        if (std::isupper((*some_value.substr(idx,1).c_str())))
+        if (std::isupper(some_value.at(idx)))
         {
-            oneChar =  tolower(*some_value.substr(idx,1).c_str());
+            oneChar =  tolower(some_value.at(idx));
         }
         else
         {
-            oneChar = (*some_value.substr(idx,1).c_str());
+            oneChar = some_value.at(idx);
         }
         result.append({static_cast<char>(oneChar)});
     }
@@ -139,17 +144,22 @@ sstr lowerCaseString(sstr& some_value)
 
 sstr upperCaseString(sstr& some_value)
 {
+    // unicode upper case conversions require
+    // very specialized code, and this is not it
+    // but it will handle the english words that
+    // we need for this program.
+
     sstr result;
     int oneChar;
     for (auto idx = 0ul; idx < some_value.length(); ++idx)
     {
-        if (std::islower((*some_value.substr(idx,1).c_str())))
+        if (std::islower(some_value.at(idx)))
         {
-            oneChar =  toupper(*some_value.substr(idx,1).c_str());
+            oneChar =  toupper(some_value.at(idx));
         }
         else
         {
-            oneChar = (*some_value.substr(idx,1).c_str());
+            oneChar = some_value.at(idx);
         }
         result.append({static_cast<char>(oneChar)});
     }
@@ -318,6 +328,61 @@ sstr removeCharFromEnd__OfString(sstr &str, char c)
     return result;
 }
 
+sstr safeFilePath(sstr& path)
+{
+    sstr resultPath  = path;
+    auto startPos1 = resultPath.find(' ');
+    auto startPos2 = resultPath.find('\\');
+    int x = 0;
+    bool cont = true;
+    int failSafe = 0;
+    if (startPos1 == -1) { cont = false; }
+    while (cont)
+    {
+        if (startPos1 != -1)
+        {
+            if (startPos2 + 1 == startPos1)
+            {
+                cont = false;
+            }
+            else
+            {
+                resultPath.replace(startPos1, 1, "\\ ");
+                startPos1+=2;
+                startPos1 = resultPath.find(' ',  startPos1);
+                startPos2 = resultPath.find('\\', startPos1);
+            }
+        }
+        failSafe+=1;
+
+        // this should be adequate for most situations
+        // it would probably be safe to reduce this
+        // number to 100
+        if (failSafe > 999) break;
+    }
+    return resultPath;
+}
+
+sstr unDelimitPath(sstr& path)
+{
+    sstr newPath = removeCharFromStartOfString(path, '\'');
+    newPath = removeCharFromEnd__OfString(newPath, '\'');
+    return newPath;
+}
+
+
+sstr delimitPath(sstr& path)
+{
+    sstr temp;
+    temp = removeCharFromStartOfString(path, '\'');
+    temp = removeCharFromEnd__OfString(temp, '\'');
+    sstr newPath  = "'";
+    newPath.append(temp);
+    newPath.append("'");
+    return newPath;
+}
+
+
 sstr joinPathParts(sstr& partA, sstr& partB)
 {
     sstr fixed1, fixed2, path;
@@ -338,23 +403,33 @@ sstr joinPathWithFile(sstr& partA, sstr& fileName)
     return path = "/" + fixed1 + "/" + fixed2;
 }
 
-
 bool isFileSizeGtZero(sstr &fileName, bool bShow = false)
 {
     bool result = false;
-    std::ifstream file(fileName, std::ios::in | std::ios::binary);
-    file.seekg (0, file.end);
-    auto worthless = file.tellg();
-    auto real_size = static_cast<long long>(worthless);
-    file.close();
-    if (real_size > 0) { result = true; }
-    if (bShow) {
-        if (real_size > 0) {
-            std::cout << "Found file: " << fileName << " and size = " << real_size << std::endl;
-            result = true;
-        } else {
-            std::cout << "File: " << fileName << " not found or size is 0" << std::endl;
+    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr safeFileName = safeFilePath(fileName);
+    auto startPos = fileName.find(" ");
+    if (startPos == -1) {
+        std::ifstream file(safeFileName, std::ios::in | std::ios::binary);
+        file.seekg(0, file.end);
+        auto worthless = file.tellg();
+        auto real_size = static_cast<long long>(worthless);
+        file.close();
+        if (real_size > 0) { result = true; }
+        if (bShow) {
+            if (real_size > 0) {
+                std::cout << positionCommand << "Found file: '" << fileName << "' \n "
+                          << positionCommand << "  and size = " << real_size << std::endl;
+                result = true;
+            } else {
+                std::cout << positionCommand << "Search file: '" << fileName << "' \n "
+                          << positionCommand << "  and size =  " << real_size << std::endl;
+
+            }
         }
+    }
+    else {
+        std::cout << "File: " << fileName << " is not a valid file name: not found" << std::endl;
     }
     return result;
 }
@@ -1057,7 +1132,7 @@ int removeDirectory(sstr& fileName, sstr& path, std::vector<sstr>& vec)
 {
     if (path.length() > 2)
     {
-        vec.emplace_back("eval \"rm -rf " + path + "\"");
+        vec.emplace_back("eval \"rm -rf '" + path + "'\"");
     }
     return 0;
 }
@@ -1285,11 +1360,11 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         vec.emplace_back("# Attempting to download file...");
         if (itemValues.programName == "php")
         {
-            vec.emplace_back("eval \"cd " + itemValues.stgPath + "; wget " + itemValues.getPath + "/from/this/mirror \"");
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "/from/this/mirror \"");
         }
         else
         {
-            vec.emplace_back("eval \"cd " + itemValues.stgPath + "; wget " + itemValues.getPath + "\"");
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "\"");
         }
 
     }
@@ -1359,15 +1434,15 @@ int ensureWrkDirExist(an_itemValues& itemValues)
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure " + itemValues.ProperName + " working directories exist. ");
-    vec.emplace_back("eval \"mkdir -p " + itemValues.bldPath + "\"");
-    vec.emplace_back("eval \"mkdir -p " + itemValues.etcPath + "\"");
-    vec.emplace_back("eval \"mkdir -p " + itemValues.srcPath + "\"");
+    vec.emplace_back("eval \"mkdir -p '" + itemValues.bldPath + "'\"");
+    vec.emplace_back("eval \"mkdir -p '" + itemValues.etcPath + "'\"");
+    vec.emplace_back("eval \"mkdir -p '" + itemValues.srcPath + "'\"");
     if (itemValues.programName == "tk") {
-        vec.emplace_back("#already exists " + itemValues.usrPath + "\"");
+        vec.emplace_back("#already exists '" + itemValues.usrPath + "'\"");
     }
     else
     {
-        vec.emplace_back("eval \"mkdir -p " + itemValues.usrPath + "\"");
+        vec.emplace_back("eval \"mkdir -p '" + itemValues.usrPath + "'\"");
     }
     result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0)
@@ -1391,9 +1466,9 @@ int createTargetFromStage(an_itemValues& itemValues)
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Copy, decompress, and remove compressed file.");
-    vec.emplace_back("eval \"cd " + itemValues.stgPath + ";        cp ./"   + itemValues.fileName_Compressed + " " + itemValues.srcPath + "\"");
-    vec.emplace_back("eval \"cd " + itemValues.srcPath + "; tar xf " + itemValues.fileName_Compressed + "\"");
-    vec.emplace_back("eval \"cd " + itemValues.srcPath + "; rm  -f " + itemValues.fileName_Compressed + "\"");
+    vec.emplace_back("eval \"cd '" + itemValues.stgPath + "';        cp './"   + itemValues.fileName_Compressed + "' '" + itemValues.srcPath + "'\"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0)
     {
@@ -1416,7 +1491,7 @@ int EnsureStageDirectoryExists(an_itemValues& itemValues)
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure stage directory exists.");
-    vec.emplace_back("eval \"mkdir -p " + itemValues.stgPath + "\"");
+    vec.emplace_back("eval \"mkdir -p '" + itemValues.stgPath + "'\"");
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0)
     {
@@ -1797,44 +1872,21 @@ int create_mariaDB_cnf_File(an_itemValues &itemValues)
 int configure(an_itemValues& itemValues,  sstr& configureStr)
 {
     sstr positionCommand = std::string(commandPostion,' ');
-    sstr outFileName1 = "pre_make_results.txt";
-    sstr outFileName2 = "gmake_results.txt";
-
-    sstr outFileName = outFileName1;
-    if (configureStr.find("gmake") != -1)
-    {
-        outFileName = outFileName2;
-    }
+    sstr outFileName = "pre_make_results.txt";
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Pre make commands -- usually configure, but not always...");
-    vec.emplace_back("# Piping results to " + itemValues.bldPath + ".");
+    vec.emplace_back("# Piping results to '" + itemValues.bldPath + "'.");
     // We are ending the command we started here with \"
     //   This was started in the configureStr.
     configureStr.append(" \\\n" + positionCommand + "> '" + itemValues.bldPath + outFileName + "' 2>&1 \"");
     vec.emplace_back(configureStr);
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    vec.clear();
     if (result == 0) {
-        vec.clear();
-        if (configureStr.find("gmake") != -1)
-        {
-            vec.emplace_back("# gmake commands completed successfully.");
-        }
-        else
-        {
-            vec.emplace_back("# Pre make commands completed successfully.");
-        }
-
+        vec.emplace_back("# Pre make commands completed successfully.");
     } else {
-        vec.clear();
-        if (configureStr.find("gmake") != -1)
-        {
-            vec.emplace_back("# gmake commands had some problems.");
-        }
-        else
-        {
-            vec.emplace_back("# Pre make commands had some problems.");
-        }
+        vec.emplace_back("# Pre make commands had some problems.");
         vec.emplace_back("# Look through '" + itemValues.bldPath + outFileName + "' to find the issue. ");
     }
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
@@ -1878,7 +1930,7 @@ int make(an_itemValues& itemValues)
 
     std::vector<sstr> vec;
     vec.emplace_back("# ");
-    sstr command = "make";
+    sstr command = "make ";
     int result = 0;
     if (itemValues.ProperName == "Cmake")
     {
@@ -1886,8 +1938,8 @@ int make(an_itemValues& itemValues)
     }
     sstr printCommand = getProperNameFromString(command);
     vec.emplace_back("# " + printCommand);
-    vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                + positionCommand + command + " > '" + itemValues.bldPath + mkeFileName + "' 2>&1 \"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                + positionCommand + command + "  > '" + itemValues.bldPath + mkeFileName + "' 2>&1 \"");
     result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
 
@@ -1979,8 +2031,8 @@ int make_tests(an_itemValues& itemValues)
             vec.emplace_back("# Make test(s)...");
             vec.emplace_back("# !!! Warning this may take a while...");
             vec.emplace_back(
-                    "eval \"cd " + itemValues.srcPathPNV + ";\n"
-               + positionCommand + "make test > " + testPathAndFileName + " 2>&1 \"");
+                    "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+               + positionCommand + "make test > '" + testPathAndFileName + "' 2>&1 \"");
 
             //Most tests have some failures,
             //  so we don't want to fail the install because of a test failure.
@@ -2170,8 +2222,8 @@ int make_install(an_itemValues& itemValues)
     makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
     vec.emplace_back("# ");
     vec.emplace_back("# Make install...");
-    vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + ";\n"
-                + positionCommand + "make install > " + makePathAndFileName + " 2>&1 \"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                + positionCommand + "make install > '" + makePathAndFileName + "' 2>&1 \"");
     vec.emplace_back("# ");
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0) {
@@ -2950,12 +3002,8 @@ int install_cmake(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                       + positionCommand + " ./bootstrap --prefix=" + itemValues.usrPath + " ";
-        result += configure(itemValues, configureStr);
-
-        configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                  + positionCommand + "gmake ";
+        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                       + positionCommand + " ./bootstrap --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues);
     }
@@ -3275,8 +3323,8 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                       + positionCommand + "./configure --prefix=" + itemValues.usrPath + " ";
+        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                       + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues);
     }
@@ -3745,14 +3793,13 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
 {
     // In order for future knowledge of using if statements with these variables
     //    I am providing these guaranties
-
     // programName --> will be guarantied to be: lowercase
     // ProperName -->  will be guarantied to be: the first letter is capital, all others lowercase
-    itemValues.programName         = lowerCaseString(itemValues.programName);
-    itemValues.ProperName          = getProperNameFromString(itemValues.programName);
+       itemValues.programName = lowerCaseString(itemValues.programName);
+       itemValues.ProperName  = getProperNameFromString(itemValues.programName);
     //
     //
-    
+
     itemValues.fileName_Protection = getProtectedFileName(itemValues.programName);
 
     sstr skip  = settings[itemValues.programName + "->Skip"];
