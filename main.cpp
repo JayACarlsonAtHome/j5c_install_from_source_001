@@ -1567,6 +1567,7 @@ int setupInstallDirectories(an_itemValues& itemValues)
 int create_apache_conf_File(an_itemValues &itemValues)
 {
     std::vector<sstr> vec;
+    sstr positionCommand = std::string(commandPostion, ' ');
     vec.clear();
     vec.emplace_back("#Save the original apache.conf file if any, to have as a guide.");
 
@@ -1574,7 +1575,8 @@ int create_apache_conf_File(an_itemValues &itemValues)
     //  in a day we will still have the original file somewhere.
 
     sstr theDate = make_fileName_dateTime(0);
-    vec.emplace_back("eval \"cd /etc/httpd/conf/; cp httpd.conf" + itemValues.etcPath + "rpm_based_httpd.conf.old_" + theDate + "\"");
+    vec.emplace_back("eval \"cd /etc/httpd/conf/; cp httpd.conf \\\n"
+        + positionCommand  + "  '" +  itemValues.etcPath + "extra/rpm_based_httpd.conf.old_" + theDate + "' \"");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     //Now we have to create the new my.cnf file
@@ -1771,9 +1773,9 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("  Include " + itemValues.etcPath + "extra/httpd-info.conf");
     vec.emplace_back("");
     vec.emplace_back("# Virtual hosts");
-    vec.emplace_back("  Include " + itemValues.etcPath + "sites-enabled/site-001-dev.conf");
-    vec.emplace_back("  Include " + itemValues.etcPath + "sites-enabled/site-001-tst.conf");
-    vec.emplace_back("  Include " + itemValues.etcPath + "sites-enabled/site-001-prd.conf");
+    vec.emplace_back("#  Include " + itemValues.etcPath + "sites-enabled/site-001-dev.conf");
+    vec.emplace_back("#  Include " + itemValues.etcPath + "sites-enabled/site-001-tst.conf");
+    vec.emplace_back("#  Include " + itemValues.etcPath + "sites-enabled/site-001-prd.conf");
     vec.emplace_back("");
     vec.emplace_back("# Local access to the Apache HTTP Server Manual");
     vec.emplace_back("  Include " + itemValues.etcPath + "extra/httpd-manual.conf");
@@ -1798,7 +1800,8 @@ int apache_notes(an_itemValues& itemValues)
         vec.emplace_back("# ");
         vec.emplace_back("#################################################################################");
         vec.emplace_back("# ");
-        vec.emplace_back("#--> Run these commands to create the apache group and user.");
+        vec.emplace_back("#--> Commands to create the apache group and user.");
+        vec.emplace_back("#-->   Should have been completed with a succesful install.");
         vec.emplace_back("groupadd   apache_ws ");
         vec.emplace_back("useradd -g apache_ws apache_ws ");
         file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
@@ -1836,8 +1839,8 @@ int apache_notes(an_itemValues& itemValues)
 
         vec.clear();
         vec.emplace_back("#");
-        vec.emplace_back("# See the Installation_Notes on how to setup and start apache web server.");
-        vec.emplace_back("eval \"cd " + itemValues.rtnPath + "\"");
+        vec.emplace_back("# See the Installation Notes on how to");
+        vec.emplace_back("#   setup and start apache web server.");
         int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         return result;
     }
@@ -2591,44 +2594,72 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
 int postInstall_Apache(an_itemValues& itemValues)
 {
+    int result = 0;
     std::vector<sstr> vec;
     sstr positionCommand = std::string(commandPostion, ' ');
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure Apache user / group exists");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     // So to find out if a user exists already we are going to do a
-    // little hacking... users | grep apache_ws will give us one line
+    // little hacking... cat /etc/passwd | grep apache_ws will give us one line
     // if the user exists. So we pipe the results to a create/truncate
     // file pipe, then we check to see if the file size is greater than 0.
-    sstr userTestFile = itemValues.srcPath + "users.txt";
-    vec.emplace_back("users | grep apache_ws > '" + userTestFile + "'" );
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    bool apacheUserExists = isFileSizeGtZero(itemValues, userTestFile, false);
+
+    sstr groupTestFile = itemValues.srcPath + "group.txt";
+    sstr user_TestFile = itemValues.srcPath + "users.txt";
+
+    // Group must exist before adding the user to the group
+    // ...so we do the group first
     vec.clear();
-    if (!apacheUserExists)
+    vec.emplace_back("cat /etc/group  | grep apache_ws > '" + groupTestFile + "'" );
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    bool apacheGroupExists = isFileSizeGtZero(itemValues, groupTestFile, false);
+    vec.clear();
+    if (!apacheGroupExists)
     {
-        vec.emplace_back("# Adding Apache user / group exists");
-        vec.emplace_back("groupadd   apache_ws ");
-        vec.emplace_back("useradd -g apache_ws apache_ws ");
-        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        vec.emplace_back("# Adding Apache group");
+        vec.emplace_back("groupadd apache_ws");
     }
     else
     {
-        vec.emplace_back("# Apache user / group already exists");
-        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        vec.emplace_back("# Apache group already exists");
     }
+    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    // we should remove the groupTestFile now...
+    vec.clear();
+    vec.emplace_back("rm -f '" + groupTestFile + "'");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    vec.clear();
+    vec.emplace_back("cat /etc/passwd | grep apache_ws > '" + user_TestFile + "'" );
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    bool apacheUserExists = isFileSizeGtZero(itemValues, user_TestFile, false);
+    vec.clear();
+    if (!apacheUserExists)
+    {
+        vec.emplace_back("# Adding Apache user");
+        vec.emplace_back("useradd -g apache_ws apache_ws ");
+
+    }
+    else
+    {
+        vec.emplace_back("# Apache user already exists");
+    }
+    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    // we should remove the user_TestFile now...
+    vec.clear();
+    vec.emplace_back("rm -f '" + user_TestFile + "'");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
-    vec.emplace_back(positionCommand);
-    vec.emplace_back("eval \"mkdir -p '" + itemValues.etcPath + "extra' \"");
-    vec.emplace_back(positionCommand);
-    vec.emplace_back("eval \"cd '" + itemValues.usrPath + "conf/extra';\n"
-                + positionCommand + " cp '" + itemValues.usrPath
-                     + "conf/extra/*' '" + itemValues.etcPath  + "extra/.' \"");
+    vec.emplace_back("mkdir -p '" + itemValues.etcPath + "extra' ");
+    vec.emplace_back("cp   -rf '" + itemValues.usrPath + "conf/extra/'* '" + itemValues.etcPath  + "extra/'. ");
     int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    std::cout << "cp results = " << temp << std::endl;
     vec.clear();
     vec.emplace_back("# ");
     if (temp == 0) {
@@ -2636,34 +2667,35 @@ int postInstall_Apache(an_itemValues& itemValues)
     } else {
         vec.emplace_back("# Copy apache configuration files was NOT successful.");
     }
+    result += temp;
+    return result;
 }
 
 int do_post_install(std::map<sstr, sstr>& settings, an_itemValues& itemValues, int results)
 {
+    int returnResults = 0;
     if (    (!itemValues.bDebug) ||
             ((itemValues.bDebug) && (itemValues.debugLevel > 5))) {
         if (results == 0)
         {
             if (itemValues.ProperName == "Php")
             {
-                results = postInstall_PHP(settings, itemValues);
+                returnResults = postInstall_PHP(settings, itemValues);
             }
             if (itemValues.ProperName == "Apache")
             {
-                results = postInstall_Apache(itemValues);
+                returnResults = postInstall_Apache(itemValues);
             }
             if (itemValues.ProperName == "MariaDB")
             {
-                results = postInstall_Apache(itemValues);
+                returnResults = postInstall_Apache(itemValues);
             }
-
-
         }
         if (itemValues.debugLevel == 6) {
-            results = decrementResultIfTesting(itemValues, results);
+            returnResults = decrementResultIfTesting(itemValues, results);
         }
     }
-    return results;
+    return returnResults;
 }
 
 
@@ -3305,8 +3337,11 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"            cd '" + itemValues.srcPathPNV   + "';\n"
-               + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' ";
+
+        sstr    configureStr = "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
+           + positionCommand + " ./configure \\\n"
+           + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
+
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3454,12 +3489,13 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         //     and end the command with \" there.
         sstr usrBasePath = itemValues.rtnPath + "usr/";
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
-                       + positionCommand + " ./configure --prefix=" + itemValues.usrPath + " \\\n"
-                       + positionCommand + " --with-apr="       + usrBasePath + "/apr        \\\n"
-                       + positionCommand + " --with-apr-util="  + usrBasePath + "/apr-util   \\\n"
-                       + positionCommand + " --with-apr-iconv=" + usrBasePath + "/apr-iconv  \\\n"
-                       + positionCommand + " --with-pcre="      + usrBasePath + "/pcre       \\\n"
-                       + positionCommand + " --enable-so ";
+                       + positionCommand + " ./configure \\\n"
+                       + positionCommand + "         --prefix=" + itemValues.usrPath + "     \\\n"
+                       + positionCommand + "       --with-apr=" + usrBasePath + "apr         \\\n"
+                       + positionCommand + "  --with-apr-util=" + usrBasePath + "apr-util    \\\n"
+                       + positionCommand + " --with-apr-iconv=" + usrBasePath + "apr-iconv   \\\n"
+                       + positionCommand + "      --with-pcre=" + usrBasePath + "pcre        \\\n"
+                       + positionCommand + " --enable-so                                   ";
 
         result += basicInstall(itemValues, configureStr);
         result += do_post_install(settings, itemValues, result);
