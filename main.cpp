@@ -32,7 +32,7 @@ using namespace J5C_DSL_Code;
 using sstr = std::string;
 
 //constant expressions
-constexpr auto commandPostion = 19;
+constexpr auto commandPosition = 19;
 constexpr auto daysIn400Years = 146097L;
 constexpr auto seconds_in_minute = 60;
 constexpr auto seconds_in_hour   = 60 * seconds_in_minute;
@@ -333,7 +333,6 @@ sstr safeFilePath(sstr& path)
     sstr resultPath  = path;
     auto startPos1 = resultPath.find(' ');
     auto startPos2 = resultPath.find('\\');
-    int x = 0;
     bool cont = true;
     int failSafe = 0;
     if (startPos1 == -1) { cont = false; }
@@ -1073,7 +1072,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
             //    is not under the start, stop and duration times.
             bool cont = true;
             auto startPos = command.find('\n');
-            sstr temp = std::string(commandPostion + 6, ' ');
+            sstr temp = std::string(commandPosition + 6, ' ');
             sstr replacement = "\n";
             replacement.append(temp);
             while (cont)
@@ -1098,7 +1097,7 @@ bool isFileSizeGtZero(an_itemValues itemValues, sstr &fileName, bool bShow = fal
 {
     bool result = false;
     std::vector<sstr> vec;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr safeFileName = safeFilePath(fileName);
     sstr printCommand = "";
     auto startPos = fileName.find(" ");
@@ -1348,7 +1347,7 @@ sstr get_ProtectionFileWithPath(an_itemValues& itemValues)
 void protectProgram_IfRequired(an_itemValues& itemValues, bool show)
 {
     std::vector<sstr> vec;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command = "";
     sstr protectionFileWithPath = get_ProtectionFileWithPath(itemValues);
     if (!(isFileSizeGtZero(itemValues, itemValues.fileName_Protection, show))) {
@@ -1371,7 +1370,7 @@ void protectProgram_IfRequired(an_itemValues& itemValues, bool show)
 
 void howToRemoveFileProtection(an_itemValues& itemValues)
 {
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr protectionFileWithPath = get_ProtectionFileWithPath(itemValues);
     std::vector<sstr> vec;
     vec.emplace_back("# ");
@@ -1563,11 +1562,78 @@ int setupInstallDirectories(an_itemValues& itemValues)
     return result;
 }
 
+int ensure_GroupExists(an_itemValues itemValues, sstr& groupName)
+{
+    int result = 0;
+    std::vector<sstr> vec;
+    sstr groupFileName = "/etc/group";
+    sstr groupTestFile = itemValues.srcPath + groupName + "-group-test.txt";
+
+    // So to find out if a user exists already we are going to do a
+    // little hacking... cat /etc/group | grep groupName will give us one line
+    // if the groupName exists. So we pipe the results to a create/truncate
+    // file pipe, then we check to see if the file size is greater than 0.
+
+    // Group must exist before adding the user to the group
+    // ...so we must do the group first
+    vec.clear();
+    vec.emplace_back("cat " + groupFileName + "  | grep " + groupName + " > '" + groupTestFile + "'");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    bool apacheGroupExists = isFileSizeGtZero(itemValues, groupTestFile, false);
+    vec.clear();
+    if (!apacheGroupExists) {
+        vec.emplace_back("# Adding " + groupName + " group");
+        vec.emplace_back("groupadd " + groupName);
+    } else {
+        vec.emplace_back("# " + groupName + "group already exists");
+    }
+    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    // we should remove the groupTestFile now...
+    vec.clear();
+    vec.emplace_back("rm -f '" + groupTestFile + "'");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    return result;
+}
+
+int ensure_UserExists(an_itemValues itemValues, sstr& groupName, sstr& userName)
+{
+    int result = 0;
+    std::vector<sstr> vec;
+    sstr userFileName = "/etc/passwd";
+    sstr user_TestFile = itemValues.srcPath + "users.txt";
+
+    // So to find out if a user exists already we are going to do a
+    // little hacking... cat /etc/passwd | grep apache_ws will give us one line
+    // if the user exists. So we pipe the results to a create/truncate
+    // file pipe, then we check to see if the file size is greater than 0.
+
+    vec.clear();
+    vec.emplace_back("cat " + userFileName + " | grep apache_ws > '" + user_TestFile + "'" );
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    bool apacheUserExists = isFileSizeGtZero(itemValues, user_TestFile, false);
+    vec.clear();
+    if (!apacheUserExists)
+    {
+        vec.emplace_back("# Adding " + userName + " user");
+        vec.emplace_back("useradd -g " + groupName + " " + userName);
+
+    }
+    else
+    {
+        vec.emplace_back("# " + userName + " user already exists");
+    }
+    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    // we should remove the user_TestFile now...
+    vec.clear();
+    vec.emplace_back("rm -f '" + user_TestFile + "'");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    return result;
+}
 
 int create_apache_conf_File(an_itemValues &itemValues)
 {
     std::vector<sstr> vec;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     vec.clear();
     vec.emplace_back("#Save the original apache.conf file if any, to have as a guide.");
 
@@ -1911,7 +1977,7 @@ int create_mariaDB_cnf_File(an_itemValues &itemValues)
 
 int configure(an_itemValues& itemValues,  sstr& configureStr)
 {
-    sstr positionCommand = std::string(commandPostion,' ');
+    sstr positionCommand = std::string(commandPosition,' ');
     sstr outFileName = "pre_make_results.txt";
     std::vector<sstr> vec;
     vec.emplace_back("# ");
@@ -1936,7 +2002,7 @@ int configure(an_itemValues& itemValues,  sstr& configureStr)
 int make_clean(an_itemValues& itemValues)
 {
     int result = 0;
-    sstr positionCommand = std::string(commandPostion,' ');
+    sstr positionCommand = std::string(commandPosition,' ');
     sstr clnFileName = "make_clean_results.txt";
     sstr mkeFileName = "make_results.txt";
 
@@ -1964,7 +2030,7 @@ int make_clean(an_itemValues& itemValues)
 
 int make(an_itemValues& itemValues)
 {
-    sstr positionCommand = std::string(commandPostion,' ');
+    sstr positionCommand = std::string(commandPosition,' ');
     sstr clnFileName = "make_clean_results.txt";
     sstr mkeFileName = "make_results.txt";
 
@@ -2012,7 +2078,7 @@ int test_php(an_itemValues& itemValues)
 
 int test_perl6(an_itemValues& itemValues)
 {
-    sstr positionCommand = std::string(commandPostion,' ');
+    sstr positionCommand = std::string(commandPosition,' ');
     sstr suffix1 = "make_test_results.txt";
     sstr suffix2 = "rakudo_test_results.txt";
     sstr suffix3 = "rakudo_specTest_results.txt";
@@ -2050,7 +2116,7 @@ int make_tests(an_itemValues& itemValues)
 {
     int result = 0;
     bool cont = true;
-    sstr positionCommand = std::string(commandPostion,' ');
+    sstr positionCommand = std::string(commandPosition,' ');
     std::vector<sstr> vec;
     if (itemValues.bDoTests) {
         if (itemValues.ProperName == "Php")   {
@@ -2255,7 +2321,7 @@ int mariadb_notes(an_itemValues& itemValues)
 
 int make_install(an_itemValues& itemValues)
 {
-    sstr positionCommand = std::string(commandPostion,' ');
+    sstr positionCommand = std::string(commandPosition,' ');
     std::vector<sstr> vec;
     sstr makePathAndFileName = itemValues.bldPath;
     sstr suffix = "make_install_results.txt";
@@ -2369,15 +2435,19 @@ int do_make_install(an_itemValues& itemValues, int results)
 int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = 0;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     std::vector<sstr> vec;
     vec.clear();
-
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure MariaDB (mysql) user / group exists");
-    vec.emplace_back("groupadd   mysql ");
-    vec.emplace_back("useradd -g mysql mysql ");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    sstr mariaDB_Owner = "mysql";
+    sstr mariaDB_Group = "mysql";
+    sstr mariaDB_User  = "mysql";
+
+    result += ensure_GroupExists(itemValues, mariaDB_Group);
+    result += ensure_UserExists( itemValues, mariaDB_Group, mariaDB_User);
 
     //Create required directories if needed
     vec.clear();
@@ -2386,6 +2456,7 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
     vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/source");
     vec.emplace_back("mkdir -p " + itemValues.usrPath + "run");
     vec.emplace_back("mkdir -p " + itemValues.usrPath + "var/log");
+
     // Add required run files
     vec.emplace_back("# ");
     vec.emplace_back("cd "       + itemValues.usrPath + "run");
@@ -2394,24 +2465,25 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
     //set permissions for mariadb directory recursively
     vec.emplace_back("# ");
     vec.emplace_back("cd " + itemValues.usrPath + "../ ");
-    vec.emplace_back("chown -R root:mysql mariadb ");
-    vec.emplace_back("chmod -R 770        mariadb ");
+    vec.emplace_back("chown -R root:" + mariaDB_Group + " " + itemValues.programName);
+    vec.emplace_back("chmod -R 770  " + itemValues.programName);
     //Over ride permissions as required
     vec.emplace_back("# ");
     vec.emplace_back("cd " + itemValues.usrPath);
-    vec.emplace_back("chown -R mysql:mysql data ");
+    vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " data ");
     vec.emplace_back("chmod -R 770         data ");
-    vec.emplace_back("chown -R mysql:mysql run  ");
+    vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " run ");
     vec.emplace_back("chmod -R 770         run  ");
-    vec.emplace_back("chown -R mysql:mysql var  ");
+    vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " var ");
     vec.emplace_back("chmod -R 770         var  ");
-    result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    return result;
 }
 
 int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = 0;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
 
     sstr compileForDebug    = settings[itemValues.programName + "->Compile_For_Debug"];
     sstr xdebug_install     = settings[itemValues.programName + "->Xdebug_Install"];
@@ -2467,15 +2539,20 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure Apache user / group exists");
-    vec.emplace_back("groupadd   apache_ws ");
-    vec.emplace_back("useradd -g apache_ws apache_ws ");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    sstr apache_Owner = "apache_ws";
+    sstr apache_Group = "apache_ws";
+    sstr apache_User  = "apache_ws";
+
+    result += ensure_GroupExists(itemValues, apache_Group);
+    result += ensure_UserExists( itemValues, apache_Group, apache_User);
 
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache ownership");
-    vec.emplace_back("eval \"chown root:apache_ws " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
-    vec.emplace_back("eval \"chown root:apache_ws " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
+    vec.emplace_back("eval \"chown root:" + apache_Group + " " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
+    vec.emplace_back("eval \"chown root:" + apache_Group + " " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache permissions");
     vec.emplace_back("eval \"chmod 755 " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
@@ -2592,66 +2669,24 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     return result;
 }
 
+
+
 int postInstall_Apache(an_itemValues& itemValues)
 {
     int result = 0;
     std::vector<sstr> vec;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Ensure Apache user / group exists");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
-    // So to find out if a user exists already we are going to do a
-    // little hacking... cat /etc/passwd | grep apache_ws will give us one line
-    // if the user exists. So we pipe the results to a create/truncate
-    // file pipe, then we check to see if the file size is greater than 0.
+    sstr apache_Owner = "apache_ws";
+    sstr apache_Group = "apache_ws";
+    sstr apache_User  = "apache_ws";
 
-    sstr groupTestFile = itemValues.srcPath + "group.txt";
-    sstr user_TestFile = itemValues.srcPath + "users.txt";
-
-    // Group must exist before adding the user to the group
-    // ...so we do the group first
-    vec.clear();
-    vec.emplace_back("cat /etc/group  | grep apache_ws > '" + groupTestFile + "'" );
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    bool apacheGroupExists = isFileSizeGtZero(itemValues, groupTestFile, false);
-    vec.clear();
-    if (!apacheGroupExists)
-    {
-        vec.emplace_back("# Adding Apache group");
-        vec.emplace_back("groupadd apache_ws");
-    }
-    else
-    {
-        vec.emplace_back("# Apache group already exists");
-    }
-    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    // we should remove the groupTestFile now...
-    vec.clear();
-    vec.emplace_back("rm -f '" + groupTestFile + "'");
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
-    vec.clear();
-    vec.emplace_back("cat /etc/passwd | grep apache_ws > '" + user_TestFile + "'" );
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    bool apacheUserExists = isFileSizeGtZero(itemValues, user_TestFile, false);
-    vec.clear();
-    if (!apacheUserExists)
-    {
-        vec.emplace_back("# Adding Apache user");
-        vec.emplace_back("useradd -g apache_ws apache_ws ");
-
-    }
-    else
-    {
-        vec.emplace_back("# Apache user already exists");
-    }
-    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    // we should remove the user_TestFile now...
-    vec.clear();
-    vec.emplace_back("rm -f '" + user_TestFile + "'");
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    result += ensure_GroupExists(itemValues, apache_Group);
+    result += ensure_UserExists( itemValues, apache_Group, apache_User);
 
     vec.clear();
     vec.emplace_back("# ");
@@ -2932,7 +2967,7 @@ sstr getProtectedFileName(sstr& programName)
 
 sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr  compileForDebug   = settings[itemValues.programName + "->Compile_For_Debug"];
     bool bCompileForDebug   = getBoolFromString(compileForDebug);
 
@@ -3074,7 +3109,7 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
 int install_cmake(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3105,7 +3140,7 @@ int install_cmake(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_libzip(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3148,7 +3183,7 @@ int install_libzip(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_perl5(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3181,7 +3216,7 @@ int install_perl5(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_openssl(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3208,7 +3243,7 @@ int install_openssl(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3266,7 +3301,7 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     }
 
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3294,7 +3329,7 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3321,7 +3356,7 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_apache_step_01(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3351,7 +3386,7 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, an_itemValues& itemVa
 int install_apache_step_02(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3384,7 +3419,7 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, an_itemValues& itemVa
 int install_apache_step_03(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3414,7 +3449,7 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, an_itemValues& itemVa
 int install_apache_step_04(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3442,7 +3477,7 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, an_itemValues& itemVa
 int install_apache_step_05(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3471,7 +3506,7 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, an_itemValues& itemVa
 int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3508,7 +3543,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result    = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
 
     sstr compileForDebug    = settings[itemValues.programName + "->Compile_For_Debug"];
     sstr xdebug_install     = settings[itemValues.programName + "->Xdebug_Install"];
@@ -3627,7 +3662,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_poco(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3654,7 +3689,7 @@ int install_poco(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_python(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3681,7 +3716,7 @@ int install_python(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3717,7 +3752,7 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
  int install_tcl(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
@@ -3761,7 +3796,7 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
 int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     sstr tclProgramName = "tcl";
     sstr tclVersion     = settings["tcl->Version"];
     sstr tclConfigurePath = itemValues.rtnPath;
@@ -3825,7 +3860,7 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int reportResults(an_itemValues& itemValues, int installResult)
 {
     int result = 0;
-    sstr positionCommand = std::string(commandPostion, ' ');
+    sstr positionCommand = std::string(commandPosition, ' ');
     time_t  now = get_Time();
     sstr strNow = get_Time_as_String(now);
 
