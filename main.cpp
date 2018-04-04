@@ -1087,8 +1087,14 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
                 startPos = command.find('\n', startPos + replacement.length() + 1);
             }
             file_append_line(fileName, command, stop, start);
-        }
 
+            if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum"))) )
+            {
+                command = "!!!Error -- Process terminated for safety...";
+                file_append_line(fileName, command, stop, start);
+                break;
+            }
+        }
     }
     return result;
 }
@@ -1509,13 +1515,13 @@ int createTargetFromStage(an_itemValues& itemValues)
     if (result == 0)
     {
         vec.clear();
-        vec.emplace_back("# Target created.");
+        vec.emplace_back("# Source code positioned for compiliation.");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     }
     else
     {
         vec.clear();
-        vec.emplace_back("# Target was not created successfully.");
+        vec.emplace_back("# Source code NOT positioned for compiliation.");
         vec.emplace_back("# Check for valid path and permissions.");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     }
@@ -1585,7 +1591,7 @@ int ensure_GroupExists(an_itemValues itemValues, sstr& groupName)
         vec.emplace_back("# Adding " + groupName + " group");
         vec.emplace_back("groupadd " + groupName);
     } else {
-        vec.emplace_back("# " + groupName + "group already exists");
+        vec.emplace_back("# " + groupName + " group already exists.");
     }
     result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     // we should remove the groupTestFile now...
@@ -1620,7 +1626,7 @@ int ensure_UserExists(an_itemValues itemValues, sstr& groupName, sstr& userName)
     }
     else
     {
-        vec.emplace_back("# " + userName + " user already exists");
+        vec.emplace_back("# " + userName + " user already exists.");
     }
     result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     // we should remove the user_TestFile now...
@@ -2432,6 +2438,64 @@ int do_make_install(an_itemValues& itemValues, int results)
     return results;
 }
 
+int postInstall_Apache(an_itemValues& itemValues)
+{
+    int result = 0;
+    std::vector<sstr> vec;
+    sstr positionCommand = std::string(commandPosition, ' ');
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# Ensure Apache user / group exists");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    sstr apache_Owner = "apache_ws";
+    sstr apache_Group = "apache_ws";
+    sstr apache_User  = "apache_ws";
+
+    result += ensure_GroupExists(itemValues, apache_Group);
+    result += ensure_UserExists( itemValues, apache_Group, apache_User);
+
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
+    vec.emplace_back("mkdir -p '" + itemValues.etcPath + "extra' ");
+    vec.emplace_back("cp   -rf '" + itemValues.usrPath + "conf/extra/'* '" + itemValues.etcPath  + "extra/.' ");
+    int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    std::cout << "cp results = " << temp << std::endl;
+    vec.clear();
+    if (temp == 0) {
+        vec.emplace_back("# Copy apache configuration files was successful.");
+    } else {
+        vec.emplace_back("# Copy apache configuration files was NOT successful.");
+    }
+    result += temp;
+
+    //set permissions for apache directory recursively
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# Change Apache permissions.");
+    vec.emplace_back("chown -R root:" + apache_Group + " '" + itemValues.rtnPath + "usr/" + itemValues.programName + "'");
+    vec.emplace_back("chmod -R 770  '" + itemValues.rtnPath + "usr/" + itemValues.programName + "'");
+    temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("chown -R root:" + apache_Group + " '" + itemValues.etcPath + "'");
+    vec.emplace_back("chmod -R 770 '" + itemValues.etcPath + "'");
+    temp += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    vec.clear();
+    if (temp == 0) {
+        vec.emplace_back("# Change Apache file permissions were successful.");
+    } else {
+        vec.emplace_back("# Change Apache file permissions were NOT successful.");
+    }
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    result += temp;
+
+    return result;
+}
+
 int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = 0;
@@ -2669,56 +2733,6 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     return result;
 }
 
-
-
-int postInstall_Apache(an_itemValues& itemValues)
-{
-    int result = 0;
-    std::vector<sstr> vec;
-    sstr positionCommand = std::string(commandPosition, ' ');
-    vec.clear();
-    vec.emplace_back("# ");
-    vec.emplace_back("# Ensure Apache user / group exists");
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
-    sstr apache_Owner = "apache_ws";
-    sstr apache_Group = "apache_ws";
-    sstr apache_User  = "apache_ws";
-
-    result += ensure_GroupExists(itemValues, apache_Group);
-    result += ensure_UserExists( itemValues, apache_Group, apache_User);
-
-    vec.clear();
-    vec.emplace_back("# ");
-    vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
-    vec.emplace_back("mkdir -p '" + itemValues.etcPath + "extra' ");
-    vec.emplace_back("cp   -rf '" + itemValues.usrPath + "conf/extra/'* '" + itemValues.etcPath  + "extra/'. ");
-    int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    std::cout << "cp results = " << temp << std::endl;
-    vec.clear();
-    vec.emplace_back("# ");
-    if (temp == 0) {
-        vec.emplace_back("# Copy apache configuration files was successful.");
-    } else {
-        vec.emplace_back("# Copy apache configuration files was NOT successful.");
-    }
-    result += temp;
-
-    //set permissions for apache directory recursively
-    vec.emplace_back("# ");
-    vec.emplace_back("cd '" + itemValues.usrPath + "../';\n ");
-    vec.emplace_back("chown -R root:" + apache_Group + " " + itemValues.programName);
-    vec.emplace_back("chmod -R 770  " + itemValues.programName);
-    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
-    vec.emplace_back("# ");
-    vec.emplace_back("cd '" + itemValues.etcPath + "../';\n ");
-    vec.emplace_back("chown -R root:" + apache_Group + " " + itemValues.programName);
-    vec.emplace_back("chmod -R 770  " + itemValues.programName);
-    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    return result;
-}
-
 int do_post_install(std::map<sstr, sstr>& settings, an_itemValues& itemValues, int results)
 {
     int returnResults = 0;
@@ -2778,7 +2792,7 @@ int basicInstall(an_itemValues& itemValues, sstr& configureStr)
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# Summary Status");
-        vec.emplace_back("# " + itemValues.ProperName + " Install was successful.");
+        vec.emplace_back("# " + itemValues.ProperName + " install was successful.");
     }
     else
     {
@@ -3549,7 +3563,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                        + positionCommand + "  --with-apr-util='" + usrBasePath + "apr-util'    \\\n"
                        + positionCommand + " --with-apr-iconv='" + usrBasePath + "apr-iconv'   \\\n"
                        + positionCommand + "      --with-pcre='" + usrBasePath + "pcre'        \\\n"
-                       + positionCommand + " --enable-so                                   ";
+                       + positionCommand + "      --enable-so             ";
 
         result += basicInstall(itemValues, configureStr);
         result += do_post_install(settings, itemValues, result);
