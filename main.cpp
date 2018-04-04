@@ -1985,7 +1985,7 @@ int configure(an_itemValues& itemValues,  sstr& configureStr)
     vec.emplace_back("# Piping results to '" + itemValues.bldPath + "'.");
     // We are ending the command we started here with \"
     //   This was started in the configureStr.
-    configureStr.append(" \\\n" + positionCommand + "> '" + itemValues.bldPath + outFileName + "' 2>&1 \"");
+    configureStr.append(positionCommand + " \\\n" + positionCommand + "> '" + itemValues.bldPath + outFileName + "' 2>&1 \"");
     vec.emplace_back(configureStr);
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
@@ -2174,7 +2174,7 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("# ");
         vec.emplace_back("# optional testing...(after installation and starting)...");
         vec.emplace_back(
-                "# eval \"cd " + itemValues.srcPathPNV + "mysql-test; " + perlPath + " mysql-test-run.pl > " +
+                "# eval \"cd '" + itemValues.srcPathPNV + "mysql-test'; '" + perlPath + "' mysql-test-run.pl > " +
                 testPathAndFileName + " 2>&1 \"");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
@@ -2192,23 +2192,23 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("useradd -g mysql mysql ");
         //Create required directories if needed
         vec.emplace_back("# ");
-        vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/temp");
-        vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/source");
-        vec.emplace_back("mkdir -p " + itemValues.usrPath + "run");
-        vec.emplace_back("mkdir -p " + itemValues.usrPath + "var/log");
+        vec.emplace_back("mkdir -p '" + itemValues.usrPath + "data/temp'");
+        vec.emplace_back("mkdir -p '" + itemValues.usrPath + "data/source'");
+        vec.emplace_back("mkdir -p '" + itemValues.usrPath + "run'");
+        vec.emplace_back("mkdir -p '" + itemValues.usrPath + "var/log'");
         // Add required run files
         vec.emplace_back("# ");
-        vec.emplace_back("cd "       + itemValues.usrPath + "run");
+        vec.emplace_back("cd '"       + itemValues.usrPath + "run'");
         vec.emplace_back("touch mariadb.socket ");
         vec.emplace_back("touch mariadb_pid ");
         //set permissions for mariadb directory recursively
         vec.emplace_back("# ");
-        vec.emplace_back("cd " + itemValues.usrPath + "../ ");
+        vec.emplace_back("cd '" + itemValues.usrPath + "../' ");
         vec.emplace_back("chown -R root:mysql mariadb ");
         vec.emplace_back("chmod -R 770        mariadb ");
         //Over ride permissions as required
         vec.emplace_back("# ");
-        vec.emplace_back("cd " + itemValues.usrPath);
+        vec.emplace_back("cd '" + itemValues.usrPath + "'");
         vec.emplace_back("chown -R mysql:mysql data ");
         vec.emplace_back("chmod -R 770         data ");
         vec.emplace_back("chown -R mysql:mysql run  ");
@@ -2227,7 +2227,7 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("#-->     Set the initial security");
         vec.emplace_back("#-->     Start the client");
         vec.emplace_back("#-->     Run a few test commands");
-        vec.emplace_back("cd " + itemValues.usrPath);
+        vec.emplace_back("cd '" + itemValues.usrPath + "'");
         vec.emplace_back("#");
         vec.emplace_back("# Script the initial database");
         vec.emplace_back("#   Note 1: If you see a lot of permission errors and the script fails...");
@@ -2261,7 +2261,7 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back(command);
         vec.emplace_back("#");
         vec.emplace_back("# start the database ");
-        vec.emplace_back("cd " + itemValues.usrPath);
+        vec.emplace_back("cd '" + itemValues.usrPath + "'");
         command.clear();
         command.append("./bin/mysqld_safe ");
         command.append(" --defaults-file='");
@@ -2296,7 +2296,7 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("# ");
         vec.emplace_back("# ");
         vec.emplace_back("# When you want to shutdown run this:");
-        vec.emplace_back("cd " + itemValues.usrPath);
+        vec.emplace_back("cd '" + itemValues.usrPath + "'");
         command.clear();
         command ="./bin/mysqladmin ";
         command.append(" --socket='");
@@ -2312,7 +2312,7 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.clear();
         vec.emplace_back("#");
         vec.emplace_back("# See the Installation_Notes on how to setup and start mariadb.");
-        vec.emplace_back("eval \"cd " + itemValues.rtnPath + "\"");
+        vec.emplace_back("eval \"cd '" + itemValues.rtnPath + "' \"");
         int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         return result;
     }
@@ -2805,11 +2805,11 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
         vec1.clear();
         vec1.emplace_back("# ");
         vec1.emplace_back("# Configure...");
-        vec1.emplace_back("# Piping results to the \"" + itemValues.bldPath + "\" directory.");
+        vec1.emplace_back("# Piping results to the \"'" + itemValues.bldPath + "'\" directory.");
 
         // We are ending the command we started with \"
         //   This was started in the configureStr in the calling function.
-        configureStr.append(" > " + itemValues.bldPath + "configure_results.txt 2>&1 \"");
+        configureStr.append(" > '" + itemValues.bldPath + "configure_results.txt' 2>&1 \"");
         vec1.emplace_back(configureStr);
         vec1.emplace_back("# ");
         vec1.emplace_back("# make");
@@ -2817,7 +2817,7 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
         sstr makePathAndFileName = itemValues.bldPath;
         sstr suffix = "make_results.txt";
         makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
-        vec1.emplace_back("eval \"cd " + itemValues.srcPathInstallOS + "; make -j  > " + makePathAndFileName + " 2>&1 \"");
+        vec1.emplace_back("eval \"cd '" + itemValues.srcPathInstallOS + "'; make -j  > '" + makePathAndFileName + "' 2>&1 \"");
         result = do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
 
         if (itemValues.bDoTests) {
@@ -2830,14 +2830,14 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
                 vec2.emplace_back("# ");
                 vec2.emplace_back("# make test");
                 vec2.emplace_back("# !!! Warning this may take a while...");
-                vec2.emplace_back("eval \"cd " + itemValues.srcPathInstallOS + "; make test > " + testPathAndFileName + " 2>&1 \"");
+                vec2.emplace_back("eval \"cd '" + itemValues.srcPathInstallOS + "'; make test > '" + testPathAndFileName + "' 2>&1 \"");
                 do_command(itemValues.fileName_Build, vec2, itemValues.bScriptOnly);
             }
         }
         vec1.clear();
         vec1.emplace_back("# ");
         vec1.emplace_back("# make install");
-        vec1.emplace_back("eval \"cd " + itemValues.srcPathInstallOS + "; make install > " + itemValues.bldPath + "install_results.txt 2>&1 \"");
+        vec1.emplace_back("eval \"cd '" + itemValues.srcPathInstallOS + "'; make install > '" + itemValues.bldPath + "install_results.txt' 2>&1 \"");
         vec1.emplace_back("# ");
         result += do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
 
@@ -2854,9 +2854,9 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
             vec2.emplace_back("# ");
             vec2.emplace_back("# To use tcl cd to this directory: ");
 
-            sstr command = "cd ";
+            sstr command = "cd '";
             command.append(usrPath);
-            command.append("bin/");
+            command.append("bin/'");
             vec2.emplace_back(command);
             vec2.emplace_back("ls -al");
             command.clear();
@@ -2915,7 +2915,7 @@ void set_bInstall(an_itemValues &itemValues)
         vec.emplace_back("# This will prevent the installation out of caution. ");
         vec.emplace_back("# Remove this directory to install this program.");
         vec.emplace_back("# you can use the command below to do it: (without the '#')");
-        vec.emplace_back("# rm -rf " + itemValues.usrPath);
+        vec.emplace_back("# rm -rf '" + itemValues.usrPath + "'");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     }
     if (bProtected)
@@ -2970,7 +2970,10 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     sstr positionCommand = std::string(commandPosition, ' ');
     sstr  compileForDebug   = settings[itemValues.programName + "->Compile_For_Debug"];
     bool bCompileForDebug   = getBoolFromString(compileForDebug);
-
+    sstr sslVersion     = settings["openssl->Version"];
+    sstr openSSLVersion = "openssl";
+    openSSLVersion.append("-");
+    openSSLVersion.append(sslVersion);
     //
     // Note: Don't end the command with \" to close the command here.
     //   We are going to append more to the command in the function
@@ -2987,121 +2990,124 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     sstr mariadbController = joinPathWithFile(mariadbPath, tmpFile);
 
 
-    sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig; ";
-    configureStr.append("cd ");
+    sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig;                    \\\n ";
+    configureStr.append(positionCommand);
+    configureStr.append("cd '");
     configureStr.append(itemValues.srcPathPNV);
-    configureStr.append("; \\\n");
+    configureStr.append("';                            \\\n");
     configureStr.append(positionCommand);
     configureStr.append("./configure");
-    configureStr.append("  --prefix=");
+    configureStr.append("  --prefix='");
     configureStr.append(itemValues.usrPath);
-    configureStr.append(" \\\n");
+    configureStr.append("'                     \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --exec-prefix=");
+    configureStr.append("  --exec-prefix='");
     configureStr.append(itemValues.usrPath);
-    configureStr.append(" \\\n");
+    configureStr.append("'                           \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --srcdir=");
+    configureStr.append("  --srcdir='");
     configureStr.append(itemValues.srcPathPNV);
-    configureStr.append(" \\\n");
+    configureStr.append("'                      \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --with-openssl=" + itemValues.usrPath.substr(0,itemValues.usrPath.length()-4) + "openssl ");
+    configureStr.append("  --with-openssl='" + itemValues.rtnPath + "usr/openssl/'");
+    configureStr.append("                      \\\n");
     tmpPath = "usr/apache/bin/";
     sstr apxPathFile = joinPathParts(itemValues.rtnPath, tmpPath);
     tmpFile = "apxs";
     apxPathFile = joinPathWithFile(apePath, tmpFile);
-    configureStr.append(" \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --with-apxs2=");
+    configureStr.append("  --with-apxs2='");
     configureStr.append(apxPathFile);
-    configureStr.append(" \\\n");
+    configureStr.append("'                 \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-mysqlnd ");
+    configureStr.append("                                                \\\n");
     tmpPath = "usr/mariadb/";
     sstr mdbPath = joinPathParts(itemValues.rtnPath, tmpPath);
-    configureStr.append(" \\\n");
+
     configureStr.append(positionCommand);
-    configureStr.append("  --with-pdo-mysql=");
+    configureStr.append("  --with-pdo-mysql='");
     configureStr.append(mdbPath);
+    configureStr.append("'                    \\\n");
+    configureStr.append(positionCommand);
     sstr pcePath = "/usr/pcre";
     pcePath = joinPathParts(itemValues.rtnPath, pcePath);
-    configureStr.append(" \\\n");
-    configureStr.append(positionCommand);
-    configureStr.append("  --with-pcre-regex=");
+    configureStr.append("  --with-pcre-regex='");
     configureStr.append(pcePath);
-    configureStr.append(" \\\n");
+    configureStr.append("'                      \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --with-config-file-path=");
+    configureStr.append("  --with-config-file-path='");
     tmpPath = "lib";
     sstr libPath = joinPathParts(itemValues.usrPath, tmpPath);
     configureStr.append(libPath);
-    configureStr.append(" \\\n");
+    configureStr.append("'             \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --with-config-file-scan-dir=");
+    configureStr.append("  --with-config-file-scan-dir='");
     configureStr.append(itemValues.etcPath);
     sstr crlPath = "/usr/bin";
-    configureStr.append(" \\\n");
+    configureStr.append("'             \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --with-curl=");
+    configureStr.append("  --with-curl='");
     configureStr.append(crlPath);
-    configureStr.append(" \\\n");
+    configureStr.append("'                                           \\\n");
     configureStr.append(positionCommand);
-    configureStr.append("  --with-mysql-sock=");
+    configureStr.append("  --with-mysql-sock='");
     tmpPath = "usr/mariadb/run/";
     sstr sckPathFile = joinPathParts(itemValues.rtnPath, tmpPath);
     tmpFile = "mariadb.socket";
     sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
     configureStr.append(sckPathFile);
-    configureStr.append(" \\\n");
+    configureStr.append("' \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --with-libzip='");
     tmpPath = "/usr/libzip";
     sstr libZipPath =  joinPathParts(itemValues.rtnPath, tmpPath);
     configureStr.append(libZipPath);
     configureStr.append("' ");
-    configureStr.append(" \\\n");
+    configureStr.append("                       \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-embedded-mysqli");
-    configureStr.append(" \\\n");
+    configureStr.append("                                         \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --disable-cgi ");
-    configureStr.append(" \\\n");
+    configureStr.append("                                                   \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --disable-short-tags ");
-    configureStr.append(" \\\n");
+    configureStr.append("                                            \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-bcmath ");
-    configureStr.append(" \\\n");
+    configureStr.append("                                                 \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --with-pcre-jit ");
-    configureStr.append(" \\\n");
+    configureStr.append("                                                 \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-sigchild ");
-    configureStr.append(" \\\n");
+    configureStr.append("                                               \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-libgcc ");
-    configureStr.append(" \\\n");
+    configureStr.append("                                                 \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-calendar ");
-    configureStr.append(" \\\n");
+    configureStr.append("                                               \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-dba=shared");
-    configureStr.append(" \\\n");
+    configureStr.append("                                              \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-ftp");
-    configureStr.append(" \\\n");
+    configureStr.append("                                                     \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-intl");
-    configureStr.append(" \\\n");
+    configureStr.append("                                                    \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-mbstring");
-    configureStr.append(" \\\n");
+    configureStr.append("                                                \\\n");
     configureStr.append(positionCommand);
     configureStr.append("  --enable-zend-test");
-    if (bCompileForDebug) {
-        configureStr.append(" \\\n");
+    configureStr.append("                                               \\\n");
+    if (1){ //bCompileForDebug) {
         configureStr.append(positionCommand);
         configureStr.append("  --enable-debug");
+        configureStr.append("                                                   \\\n");
     }
     return  configureStr;
 }
@@ -3345,8 +3351,8 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                       + positionCommand + "./configure --prefix=" + itemValues.usrPath + " ";
+        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                       + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3525,11 +3531,11 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         sstr usrBasePath = itemValues.rtnPath + "usr/";
         sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
                        + positionCommand + " ./configure \\\n"
-                       + positionCommand + "         --prefix=" + itemValues.usrPath + "     \\\n"
-                       + positionCommand + "       --with-apr=" + usrBasePath + "apr         \\\n"
-                       + positionCommand + "  --with-apr-util=" + usrBasePath + "apr-util    \\\n"
-                       + positionCommand + " --with-apr-iconv=" + usrBasePath + "apr-iconv   \\\n"
-                       + positionCommand + "      --with-pcre=" + usrBasePath + "pcre        \\\n"
+                       + positionCommand + "         --prefix='" + itemValues.usrPath + "'     \\\n"
+                       + positionCommand + "       --with-apr='" + usrBasePath + "apr'         \\\n"
+                       + positionCommand + "  --with-apr-util='" + usrBasePath + "apr-util'    \\\n"
+                       + positionCommand + " --with-apr-iconv='" + usrBasePath + "apr-iconv'   \\\n"
+                       + positionCommand + "      --with-pcre='" + usrBasePath + "pcre'        \\\n"
                        + positionCommand + " --enable-so                                   ";
 
         result += basicInstall(itemValues, configureStr);
@@ -3598,7 +3604,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             vec.emplace_back("# ");
             vec.emplace_back("# The server appears to be online, lets see if we can restart.");
             vec.emplace_back("#     using the most likely configuration file...");
-            vec.emplace_back("eval \"cd " + apePath + "; ./apachectl -f "
+            vec.emplace_back("eval \"cd '" + apePath + "'; ./apachectl -f "
                              + itemValues.etcPath.substr(0,itemValues.etcPath.length()-4)
                              + "apache/apache.conf -k restart \"");
             temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
@@ -3615,7 +3621,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.emplace_back("# MariaDB Database Server files appear to be installed.");
         vec.emplace_back("#   Not attempting to start mariadb. ");
         vec.emplace_back("#   MariaDB requires more setup. Follow the instructions");
-        vec.emplace_back("#   in '" + itemValues.bldPath + "Installation_Notes/p???.txt' " );
+        vec.emplace_back("#   in '" + itemValues.bldPath + "Installation_Notes/p" + itemValues.version + ".txt' " );
         vec.emplace_back("#   To start MariaDB." );
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
@@ -3633,7 +3639,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                 vec.emplace_back("# ");
                 vec.emplace_back("# Change downloaded file name if needed.");
                 vec.emplace_back(
-                        "eval \"cd " + itemValues.stgPath + "; mv -f mirror " + itemValues.fileName_Compressed + "\"");
+                        "eval \"cd " + itemValues.stgPath + "; mv -f mirror '" + itemValues.fileName_Compressed + "' \"");
                 do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
             }
 
@@ -3678,8 +3684,8 @@ int install_poco(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                       + positionCommand + " ./configure --prefix=" + itemValues.usrPath + " ";
+        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                       + positionCommand + " ./configure --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3705,8 +3711,8 @@ int install_python(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n"
-                       + positionCommand + " ./configure --prefix=" + itemValues.usrPath + " ";
+        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                       + positionCommand + " ./configure --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
     }
@@ -3770,12 +3776,13 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd ";
+        sstr configureStr = "eval \"cd '";
         configureStr.append(itemValues.srcPathInstallOS);
-        configureStr.append(";\n");
+        configureStr.append("';\n");
         configureStr.append(positionCommand);
-        configureStr.append("./configure --prefix=");
+        configureStr.append("./configure --prefix='");
         configureStr.append(itemValues.usrPath);
+        configureStr.append("' \\\n");
         configureStr.append(positionCommand);
         configureStr.append(" --enable-threads");
         configureStr.append(" \\\n");
@@ -3830,16 +3837,17 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
-        sstr configureStr = "eval \"cd ";
+        sstr configureStr = "eval \"cd '";
         configureStr.append(itemValues.srcPathInstallOS);
-        configureStr.append(";\n");
+        configureStr.append("';\n");
         configureStr.append(positionCommand);
-        configureStr.append("./configure --prefix=");
+        configureStr.append("./configure --prefix='");
         configureStr.append(itemValues.usrPath);
+        configureStr.append("' \\\n");
         configureStr.append(positionCommand);
-        configureStr.append(" --with-tcl=");
+        configureStr.append(" --with-tcl='");
         configureStr.append(tclConfigurePath);
-        configureStr.append(" \\\n");
+        configureStr.append("' \\\n");
         configureStr.append(positionCommand);
         configureStr.append(" --enable-threads");
         configureStr.append(" \\\n");
