@@ -29,7 +29,7 @@ Apache-2.4.29
 
 Perl6-2018.01
 
-Php-7.2.2 (with optional xdebug)
+Php-7.2.3 (with optional xdebug)
 
 Poco-1.9.0
 
@@ -82,40 +82,28 @@ On a side note, if you wanted to learn some C++, the code is dependable.
 The code may not be optimized to the level it could be, but examine this code for 
 a second...
 
-sstr upperCaseString(sstr& some_value)
-
+sstr lowerCaseString(sstr& some_value)
 {
+    // unicode lower case conversions require
+    // very specialized code, and this is not it
+    // but it will handle the english words that
+    // we need for this program.
 
     sstr result;
-    
     int oneChar;
-    
     for (auto idx = 0ul; idx < some_value.length(); ++idx)
-    
     {
-    
-        if (std::islower((*some_value.substr(idx,1).c_str())))
-        
+        if (std::isupper(some_value.at(idx)))
         {
-        
-            oneChar =  toupper(*some_value.substr(idx,1).c_str());
-            
+            oneChar =  std::tolower(some_value.at(idx));
         }
-        
         else
-        
         {
-        
-            oneChar = (*some_value.substr(idx,1).c_str());
-            
+            oneChar = some_value.at(idx);
         }
-        
         result.append({static_cast<char>(oneChar)});
-        
     }
-    
     return result;
-    
 }
 
 
