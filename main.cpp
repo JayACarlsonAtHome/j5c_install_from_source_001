@@ -2452,24 +2452,24 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
     //Create required directories if needed
     vec.clear();
     vec.emplace_back("# ");
-    vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/temp");
-    vec.emplace_back("mkdir -p " + itemValues.usrPath + "data/source");
-    vec.emplace_back("mkdir -p " + itemValues.usrPath + "run");
-    vec.emplace_back("mkdir -p " + itemValues.usrPath + "var/log");
+    vec.emplace_back("mkdir -p '" + itemValues.usrPath + "data/temp'");
+    vec.emplace_back("mkdir -p '" + itemValues.usrPath + "data/source'");
+    vec.emplace_back("mkdir -p '" + itemValues.usrPath + "run'");
+    vec.emplace_back("mkdir -p '" + itemValues.usrPath + "var/log'");
 
     // Add required run files
     vec.emplace_back("# ");
-    vec.emplace_back("cd "       + itemValues.usrPath + "run");
+    vec.emplace_back("cd '"       + itemValues.usrPath + "run'");
     vec.emplace_back("touch mariadb.socket ");
     vec.emplace_back("touch mariadb_pid ");
     //set permissions for mariadb directory recursively
     vec.emplace_back("# ");
-    vec.emplace_back("cd " + itemValues.usrPath + "../ ");
-    vec.emplace_back("chown -R root:" + mariaDB_Group + " " + itemValues.programName);
-    vec.emplace_back("chmod -R 770  " + itemValues.programName);
+    vec.emplace_back("cd '" + itemValues.usrPath + "../';\n ");
+    vec.emplace_back("chown -R root:" + mariaDB_Group + " '" + itemValues.programName + "'");
+    vec.emplace_back("chmod -R 770  '" + itemValues.programName + "'");
     //Over ride permissions as required
     vec.emplace_back("# ");
-    vec.emplace_back("cd " + itemValues.usrPath);
+    vec.emplace_back("cd '" + itemValues.usrPath + "'");
     vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " data ");
     vec.emplace_back("chmod -R 770         data ");
     vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " run ");
@@ -2511,21 +2511,21 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
     std::vector<sstr> vec;
     vec.clear();
-    vec.emplace_back("eval \"cd " + itemValues.usrPath + "; mkdir -p libs \"");
+    vec.emplace_back("eval \"cd '" + itemValues.usrPath + "'; mkdir -p libs \"");
     result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Copy Php.ini files to '" + itemValues.etcPath + "'");
-    vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; cp *.ini* " + itemValues.etcPath  + ". \"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "'; cp *.ini* '" + itemValues.etcPath  + ".' \"");
     vec.emplace_back("# ");
     vec.emplace_back("# libtool --finish");
-    vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; cp libs/* " + itemValues.usrPath + "libs/. \"");
-    vec.emplace_back("eval \"cd " + itemValues.srcPathPNV + "; ./libtool --finish " + itemValues.usrPath + "libs \"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "'; cp libs/* '" + itemValues.usrPath + "libs/.' \"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "'; ./libtool --finish '" + itemValues.usrPath + "libs' \"");
     vec.emplace_back("# ");
     vec.emplace_back("# Copy library to apache web server");
-    vec.emplace_back("eval \"cp " + itemValues.usrPath + "libs/libphp7.so " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
-    vec.emplace_back("eval \"cp " + itemValues.usrPath + "libs/libphp7.so " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
+    vec.emplace_back("eval \"cp '" + itemValues.usrPath + "libs/libphp7.so' '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
+    vec.emplace_back("eval \"cp '" + itemValues.usrPath + "libs/libphp7.so' '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
     int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
     if (temp == 0) {
@@ -2551,12 +2551,12 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache ownership");
-    vec.emplace_back("eval \"chown root:" + apache_Group + " " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
-    vec.emplace_back("eval \"chown root:" + apache_Group + " " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
+    vec.emplace_back("eval \"chown root:" + apache_Group + " '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
+    vec.emplace_back("eval \"chown root:" + apache_Group + " '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache permissions");
-    vec.emplace_back("eval \"chmod 755 " + itemValues.rtnPath + "usr/apache/modules/libphp7.so \"");
-    vec.emplace_back("eval \"chmod 755 " + itemValues.rtnPath + "usr/apache/modules/mod_php7.so \"");
+    vec.emplace_back("eval \"chmod 755 '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
+    vec.emplace_back("eval \"chmod 755 '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
     temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
     if (temp == 0) {
@@ -2576,18 +2576,18 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# wget xdebug");
-        vec.emplace_back("eval \"cd " + itemValues.usrPath + "; wget " + xdebug_wget + xDebugCompressedFileName + " \"");
+        vec.emplace_back("eval \"cd '" + itemValues.usrPath + "';\nwget '" + xdebug_wget + xDebugCompressedFileName + "' \"");
         vec.emplace_back(
-                "eval \"cd " + itemValues.usrPath + "; tar " + xdebug_tar_options + " " + xDebugCompressedFileName +
-                " \"");
+                "eval \"cd '" + itemValues.usrPath + "'; tar '" + xdebug_tar_options + "' '" + xDebugCompressedFileName +
+                "' \"");
 
         vec.emplace_back("# ");
         vec.emplace_back("# phpize");
-        vec.emplace_back("eval \"cd " + itemValues.usrPath + xDebugProgVersion + "; ../bin/phpize > " + itemValues.bldPath + "phpize.txt \"");
+        vec.emplace_back("eval \"cd '" + itemValues.usrPath + xDebugProgVersion + "';\n ../bin/phpize > '" + itemValues.bldPath + "phpize.txt' \"");
         vec.emplace_back("# ");
         vec.emplace_back("# config");
-        vec.emplace_back("eval \"cd " + itemValues.usrPath + xDebugProgVersion + "; ./configure --with-php-config="
-                         + itemValues.usrPath + "bin/php-config > " + itemValues.bldPath + "xdebug-configure.txt \"");
+        vec.emplace_back("eval \"cd '" + itemValues.usrPath + xDebugProgVersion + "'; ./configure --with-php-config='"
+                         + itemValues.usrPath + "bin/php-config' > '" + itemValues.bldPath + "xdebug-configure.txt' \"");
 
         temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         vec.clear();
@@ -2602,8 +2602,8 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# make");
-        vec.emplace_back("eval \"cd " + itemValues.usrPath + xDebugProgVersion + "; make > "
-                         + itemValues.bldPath + "xdebug-make.txt \"");
+        vec.emplace_back("eval \"cd '" + itemValues.usrPath + xDebugProgVersion + "'; make > '"
+                         + itemValues.bldPath + "xdebug-make.txt' \"");
         temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         vec.clear();
         if (temp == 0) {
@@ -2620,12 +2620,12 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
         // checking for the mode of PHP and adjusting accordingly
         if (bCompileForDebug) {
-            vec.emplace_back("eval \"cd " + itemValues.usrPath + xDebugProgVersion + "; cp modules/xdebug.so "
-                             + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version + " \"");
+            vec.emplace_back("eval \"cd '" + itemValues.usrPath + xDebugProgVersion + "'; cp modules/xdebug.so '"
+                             + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version + "' \"");
 
         } else {
-            vec.emplace_back("eval \"cd " + itemValues.usrPath + xDebugProgVersion + "; cp modules/xdebug.so "
-                             + itemValues.usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + " \"");
+            vec.emplace_back("eval \"cd '" + itemValues.usrPath + xDebugProgVersion + "'; cp modules/xdebug.so '"
+                             + itemValues.usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + "' \"");
 
         }
         result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
@@ -2634,25 +2634,25 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         //   regardless of the debug / non-debug mode.
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("# Create: " + itemValues.etcPath + "lib");
-        vec.emplace_back("eval \"mkdir -p " + itemValues.etcPath + "lib \"");
+        vec.emplace_back("# Create: '" + itemValues.etcPath + "lib'");
+        vec.emplace_back("eval \"mkdir -p '" + itemValues.etcPath + "lib' \"");
         // end of small section
 
         // checking for the mode of PHP and adjusting accordingly
         if (bCompileForDebug) {
             vec.emplace_back("# ");
-            vec.emplace_back("# zend_extension = " + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
-                             "/xdebug.so");
-            vec.emplace_back("eval \"cd " + itemValues.etcPath + "lib/; echo zend_extension = "
+            vec.emplace_back("# zend_extension = '" + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+                             "/xdebug.so'");
+            vec.emplace_back("eval \"cd '" + itemValues.etcPath + "lib/';\necho zend_extension = '"
                              + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
-                             "/xdebug.so > php_ext.ini \"");
+                             "/xdebug.so' > php_ext.ini \"");
         } else {
             vec.emplace_back("# ");
-            vec.emplace_back("# zend_extension = " + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
-                             "/xdebug.so");
-            vec.emplace_back("eval \"cd " + itemValues.etcPath + "lib/; echo zend_extension = "
+            vec.emplace_back("# zend_extension = '" + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+                             "/xdebug.so'");
+            vec.emplace_back("eval \"cd '" + itemValues.etcPath + "lib/';\necho zend_extension = '"
                              + itemValues.usrPath + "lib/php/extensions/no-debug-zts-" + zts_version +
-                             "/xdebug.so > php_ext.ini \"");
+                             "/xdebug.so' > php_ext.ini \"");
         }
     } else {
         vec.emplace_back("# Xdebug not installed.");
@@ -2702,6 +2702,13 @@ int postInstall_Apache(an_itemValues& itemValues)
     } else {
         vec.emplace_back("# Copy apache configuration files was NOT successful.");
     }
+
+    //set permissions for apache directory recursively
+    vec.emplace_back("# ");
+    vec.emplace_back("cd '" + itemValues.usrPath + "../';\n ");
+    vec.emplace_back("chown -R root:" + apache_Group + " " + itemValues.programName);
+    vec.emplace_back("chmod -R 770  " + itemValues.programName);
+
     result += temp;
     return result;
 }
@@ -2723,7 +2730,7 @@ int do_post_install(std::map<sstr, sstr>& settings, an_itemValues& itemValues, i
             }
             if (itemValues.ProperName == "MariaDB")
             {
-                returnResults = postInstall_Apache(itemValues);
+                returnResults = postInstall_MariaDB(settings, itemValues);
             }
         }
         if (itemValues.debugLevel == 6) {
