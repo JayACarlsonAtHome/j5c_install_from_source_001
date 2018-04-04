@@ -2702,14 +2702,20 @@ int postInstall_Apache(an_itemValues& itemValues)
     } else {
         vec.emplace_back("# Copy apache configuration files was NOT successful.");
     }
+    result += temp;
 
     //set permissions for apache directory recursively
     vec.emplace_back("# ");
     vec.emplace_back("cd '" + itemValues.usrPath + "../';\n ");
     vec.emplace_back("chown -R root:" + apache_Group + " " + itemValues.programName);
     vec.emplace_back("chmod -R 770  " + itemValues.programName);
+    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
-    result += temp;
+    vec.emplace_back("# ");
+    vec.emplace_back("cd '" + itemValues.etcPath + "../';\n ");
+    vec.emplace_back("chown -R root:" + apache_Group + " " + itemValues.programName);
+    vec.emplace_back("chmod -R 770  " + itemValues.programName);
+    result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     return result;
 }
 
