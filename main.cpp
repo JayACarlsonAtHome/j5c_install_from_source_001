@@ -1072,7 +1072,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
             //    is not under the start, stop and duration times.
             bool cont = true;
             auto startPos = command.find('\n');
-            sstr temp = std::string(commandPosition + 6, ' ');
+            sstr temp = std::string(commandPosition + 4, ' ');
             sstr replacement = "\n";
             replacement.append(temp);
             while (cont)
@@ -1205,6 +1205,7 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install bison");
     vec.emplace_back("yum -y install boost-devel");
     vec.emplace_back("yum -y install bzip2-devel");
+    vec.emplace_back("yum -y install clang");
     vec.emplace_back("yum -y install cmake");
     vec.emplace_back("yum -y install cmake-gui");
     vec.emplace_back("yum -y install expat-devel");
@@ -1272,6 +1273,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("apt install build-essential -y");
     vec.emplace_back("apt install bison -y");
     vec.emplace_back("apt install bzip2 -y");
+    vec.emplace_back("apt install clang -y");
     vec.emplace_back("apt install cmake -y");
     vec.emplace_back("apt install cmake-gui -y");
     vec.emplace_back("apt install ftp -y");
@@ -3017,7 +3019,7 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     sstr mariadbController = joinPathWithFile(mariadbPath, tmpFile);
 
 
-    sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig;                    \\\n ";
+    sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig;                      \\\n ";
     configureStr.append(positionCommand);
     configureStr.append("cd '");
     configureStr.append(itemValues.srcPathPNV);
