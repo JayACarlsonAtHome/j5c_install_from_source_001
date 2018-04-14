@@ -254,7 +254,7 @@ sstr padLeftZeros(int max_width, int number)
 {
     auto max = pow(10,max_width);
     bool preConditionsMet = false;
-
+    sstr result;
     //pre setup
     sstr strNumber = std::to_string(number);
     unsigned long pad_length = static_cast<unsigned long>(max_width);
@@ -268,19 +268,18 @@ sstr padLeftZeros(int max_width, int number)
     if (preConditionsMet) {
         if (pad_length > 0) {
             sstr pad_string = sstr(pad_length, '0');
-            sstr result = pad_string;
+            result = pad_string;
             result.append(strNumber);
-            return result;
         } else
         {
-            return strNumber;
+            result = strNumber;
         }
     }
     else
     {
-        return "Error in padLeftZeros(int max_width, int number);";
+        result = "Error in padLeftZeros(int max_width, int number);";
     }
-
+    return result;
 };
 
 
@@ -1177,17 +1176,18 @@ int install_apt_required_dependencies()
 
 int install_mac_required_dependencies(Mac_PM mpm)
 {
+    int result = 0;
     if (mpm == Mac_PM ::Home_Brew) {
         //install_home_brew_required_dependencies();
         std::cout << "Not Implemented Yet" << std::endl;
-        return 1;
+        result = 1;
     }
     if (mpm == Mac_PM ::MacPorts) {
         //install_macPort_required_dependencies();
         std::cout << "Not Implemented Yet" << std::endl;
-        return 1;
+        result = 1;
     }
-    return 1;
+    return result;
 }
 
 int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool createScriptOnly)
@@ -1374,6 +1374,7 @@ void protectProgram_IfRequired(an_itemValues& itemValues, bool show)
             do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         }
     }
+    return;
 }
 
 void howToRemoveFileProtection(an_itemValues& itemValues)
@@ -1387,6 +1388,7 @@ void howToRemoveFileProtection(an_itemValues& itemValues)
     vec.emplace_back("# eval \" rm -f '" + protectionFileWithPath + "' \"");
     vec.emplace_back("# ");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    return;
 }
 
 bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
@@ -1423,7 +1425,7 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
 
 sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
 {
-
+    sstr result = "";
     if (replacement.length() == 3) {
         sstr newPath = xxxPath;
         auto start = newPath.rfind("xxx");
@@ -1439,9 +1441,12 @@ sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
             //   And it won't cause deleting the entire partition.
             newPath = "Err in get_xxx_Path()...xxx was not found.";
         }
-        return newPath;
+        result = newPath;
     }
-    return "Err in get_xxx_Path()...Replacement path length is != 3.";
+    else {
+        result = "Err in get_xxx_Path()...Replacement path length is != 3.";
+    }
+    return result;
 }
 
 
@@ -2086,6 +2091,7 @@ int test_php(an_itemValues& itemValues)
 
 int test_perl6(an_itemValues& itemValues)
 {
+    int result = 0;
     sstr positionCommand = std::string(commandPosition,' ');
     sstr suffix1 = "make_test_results.txt";
     sstr suffix2 = "rakudo_test_results.txt";
@@ -2117,6 +2123,9 @@ int test_perl6(an_itemValues& itemValues)
     vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
                  + positionCommand + " make modules-test > '"    + testPathAndFileName4 + "' 2>&1 \"");
     do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
+    // We are assuming the tests will always fail to some degree,
+    //    and we are ok with that, just report conditions normal...
+    return result;
 }
 
 
@@ -2737,29 +2746,29 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
 int do_post_install(std::map<sstr, sstr>& settings, an_itemValues& itemValues, int results)
 {
-    int returnResults = 0;
+    int newResults = 0;
     if (    (!itemValues.bDebug) ||
             ((itemValues.bDebug) && (itemValues.debugLevel > 5))) {
         if (results == 0)
         {
             if (itemValues.ProperName == "Php")
             {
-                returnResults = postInstall_PHP(settings, itemValues);
+                newResults = postInstall_PHP(settings, itemValues);
             }
             if (itemValues.ProperName == "Apache")
             {
-                returnResults = postInstall_Apache(itemValues);
+                newResults = postInstall_Apache(itemValues);
             }
             if (itemValues.ProperName == "MariaDB")
             {
-                returnResults = postInstall_MariaDB(settings, itemValues);
+                newResults = postInstall_MariaDB(settings, itemValues);
             }
         }
         if (itemValues.debugLevel == 6) {
-            returnResults = decrementResultIfTesting(itemValues, results);
+            newResults = decrementResultIfTesting(itemValues, results);
         }
     }
-    return returnResults;
+    return newResults;
 }
 
 
