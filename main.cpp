@@ -3268,31 +3268,37 @@ int install_libzip(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
         sstr tmpPath = "build";
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPathPNV, tmpPath);
 
-        vec.clear();
-        vec.emplace_back("#");
-        vec.emplace_back("# Special Instructions for libzip");
-        vec.emplace_back("eval \"mkdir -p '" + itemValues.srcPathPNV + "' \"");
-        vec.emplace_back("eval \"cd       '" + itemValues.srcPathPNV + "';\n"
-                    + positionCommand + " '" + itemValues.rtnPath + "usr/cmake/bin/cmake' ..\\\n"
-                    + positionCommand + " -DCMAKE_INSTALL_PREFIX='" + itemValues.usrPath + "' \\\n"
-                    + positionCommand +"> '" + itemValues.bldPath + "custom_cmake.txt'\"");
-        result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-        if (result == 0) {
-            sstr configureStr = "# No configuration command required.";
-            result += basicInstall(itemValues, configureStr);
-            createProtectionWhenRequired(result, itemValues, false);
-        }
-        else
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
         {
+            result = setupInstallDirectories(itemValues);
             vec.clear();
             vec.emplace_back("#");
-            vec.emplace_back("# non-system cmake failed");
-            do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+            vec.emplace_back("# Special Instructions for libzip");
+            vec.emplace_back("eval \"mkdir -p '" + itemValues.srcPathPNV + "' \"");
+            vec.emplace_back("eval \"cd       '" + itemValues.srcPathPNV + "';\n"
+                        + positionCommand + " '" + itemValues.rtnPath + "usr/cmake/bin/cmake' ..\\\n"
+                        + positionCommand + " -DCMAKE_INSTALL_PREFIX='" + itemValues.usrPath + "' \\\n"
+                        + positionCommand +"> '" + itemValues.bldPath + "custom_cmake.txt'\"");
+            result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+            if (result == 0) {
+                sstr configureStr = "# No configuration command required.";
+                result += basicInstall(itemValues, configureStr);
+                createProtectionWhenRequired(result, itemValues, false);
+            }
+            else
+            {
+                vec.clear();
+                vec.emplace_back("#");
+                vec.emplace_back("# non-system cmake failed");
+                do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+            }
+        } else {
+            result = badSha256sum(itemValues);
         }
     }
     return result;
@@ -3311,20 +3317,26 @@ int install_perl5(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        if (result == 0) {
-            sstr configureStr   = "eval \"cd   '" + itemValues.srcPathPNV + "';\n "
-              + positionCommand + "./Configure \\\n"
-              + positionCommand + "  -Dprefix='" + itemValues.usrPath + "' -d -e ";
-            result += basicInstall(itemValues, configureStr);
-        }
-        if (result == 0) {
-            createProtectionWhenRequired(result, itemValues, false);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            if (result == 0) {
+                sstr configureStr   = "eval \"cd   '" + itemValues.srcPathPNV + "';\n "
+                  + positionCommand + "./Configure \\\n"
+                  + positionCommand + "  -Dprefix='" + itemValues.usrPath + "' -d -e ";
+                result += basicInstall(itemValues, configureStr);
+            }
+            if (result == 0) {
+                createProtectionWhenRequired(result, itemValues, false);
+            }
+        } else {
+            result = badSha256sum(itemValues);
         }
     }
     settings["perl5RunPath"] = itemValues.usrPath + "bin";
@@ -3344,16 +3356,24 @@ int install_openssl(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr     configureStr = "eval \"         cd '" + itemValues.srcPathPNV + "';\n"
-            + positionCommand + "./config --prefix='" + itemValues.usrPath + "' ";
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr     configureStr = "eval \"         cd '" + itemValues.srcPathPNV + "';\n"
+                + positionCommand + "./config --prefix='" + itemValues.usrPath + "' ";
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
+
     }
     return result;
 }
@@ -3371,13 +3391,17 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
                        + positionCommand + "./BUILD/autorun.sh;\n "
                        + positionCommand + " cd '" + itemValues.srcPathPNV + "';\n "
                        + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' " + "\\\n"
@@ -3400,10 +3424,13 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                        + positionCommand + "--with-zlib-dir=bundled               "  + "\\\n"
                        + positionCommand + "--enable-local-infile ";
 
-        result += basicInstall(itemValues, configureStr);
-        result += do_post_install(settings, itemValues, result);
+            result += basicInstall(itemValues, configureStr);
+            result += do_post_install(settings, itemValues, result);
 
-        createProtectionWhenRequired(result, itemValues, false);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3429,17 +3456,25 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n "
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n "
                        + positionCommand + "'" + itemValues.perl5RunPath + "/perl' Configure.pl \\\n"
                        + positionCommand + " --backend=moar --gen-moar --prefix='" + itemValues.usrPath + "'";
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3457,16 +3492,24 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+
+            // Note: Don't end the command with \" to close the command here.
         //   We are going to append more to the command in the function
         //     and end the command with \" there.
         sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
                        + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' ";
         result += basicInstall(itemValues, configureStr);
         createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3484,19 +3527,26 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
 
-        sstr    configureStr = "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
-           + positionCommand + " ./configure \\\n"
-           + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
 
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+            sstr    configureStr = "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
+               + positionCommand + " ./configure \\\n"
+               + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
+
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3515,21 +3565,29 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
 
-        sstr aprBasePath = itemValues.rtnPath + "usr/apr/bin";
-        sstr       configureStr = "eval \"   cd '" + itemValues.srcPathPNV + "';\n"
-              + positionCommand + " ./configure \\\n"
-              + positionCommand + "   --prefix='" + itemValues.usrPath + "' \\\n"
-              + positionCommand + " --with-apr='" + aprBasePath + "' ";
-        result += basicInstall(itemValues, configureStr);
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
 
-        createProtectionWhenRequired(result, itemValues, false);
+            sstr aprBasePath = itemValues.rtnPath + "usr/apr/bin";
+            sstr       configureStr = "eval \"   cd '" + itemValues.srcPathPNV + "';\n"
+                  + positionCommand + " ./configure \\\n"
+                  + positionCommand + "   --prefix='" + itemValues.usrPath + "' \\\n"
+                  + positionCommand + " --with-apr='" + aprBasePath + "' ";
+            result += basicInstall(itemValues, configureStr);
+
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
+
     }
     return result;
 }
@@ -3547,19 +3605,26 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr aprBasePath = itemValues.rtnPath + "usr/apr/bin";
-        sstr configureStr =      "eval \"      cd '" + itemValues.srcPathPNV + "';\n"
-             + positionCommand + " ./configure  \\\n"
-             + positionCommand + "      --prefix='" + itemValues.usrPath + "' \\\n"
-             + positionCommand + "    --with-apr='" + aprBasePath + "' ";
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr aprBasePath = itemValues.rtnPath + "usr/apr/bin";
+            sstr configureStr =      "eval \"      cd '" + itemValues.srcPathPNV + "';\n"
+                 + positionCommand + " ./configure  \\\n"
+                 + positionCommand + "      --prefix='" + itemValues.usrPath + "' \\\n"
+                 + positionCommand + "    --with-apr='" + aprBasePath + "' ";
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3577,17 +3642,24 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr =    "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
-           + positionCommand + "./configure \\\n"
-           + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr =    "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
+               + positionCommand + "./configure \\\n"
+               + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3605,18 +3677,25 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, an_itemValues& itemVa
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr =    "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
-                               + positionCommand + "./configure \\\n"
-                               + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
 
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr =    "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
+                                   + positionCommand + "./configure \\\n"
+                                   + positionCommand + "    --prefix='" + itemValues.usrPath + "' ";
+
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3634,26 +3713,33 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr usrBasePath = itemValues.rtnPath + "usr/";
-        sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
-                       + positionCommand + " ./configure \\\n"
-                       + positionCommand + "         --prefix='" + itemValues.usrPath + "'     \\\n"
-                       + positionCommand + "       --with-apr='" + usrBasePath + "apr'         \\\n"
-                       + positionCommand + "  --with-apr-util='" + usrBasePath + "apr-util'    \\\n"
-                       + positionCommand + " --with-apr-iconv='" + usrBasePath + "apr-iconv'   \\\n"
-                       + positionCommand + "      --with-pcre='" + usrBasePath + "pcre'        \\\n"
-                       + positionCommand + "      --enable-so             ";
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
 
-        result += basicInstall(itemValues, configureStr);
-        result += do_post_install(settings, itemValues, result);
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr usrBasePath = itemValues.rtnPath + "usr/";
+            sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + ";\n "
+                           + positionCommand + " ./configure \\\n"
+                           + positionCommand + "         --prefix='" + itemValues.usrPath + "'     \\\n"
+                           + positionCommand + "       --with-apr='" + usrBasePath + "apr'         \\\n"
+                           + positionCommand + "  --with-apr-util='" + usrBasePath + "apr-util'    \\\n"
+                           + positionCommand + " --with-apr-iconv='" + usrBasePath + "apr-iconv'   \\\n"
+                           + positionCommand + "      --with-pcre='" + usrBasePath + "pcre'        \\\n"
+                           + positionCommand + "      --enable-so             ";
 
-        createProtectionWhenRequired(result, itemValues, false);
+            result += basicInstall(itemValues, configureStr);
+            result += do_post_install(settings, itemValues, result);
+
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3754,16 +3840,22 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                         "eval \"cd " + itemValues.stgPath + "; mv -f mirror '" + itemValues.fileName_Compressed + "' \"");
                 do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
             }
-
-            result = setupInstallDirectories(itemValues);
             itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-            sstr configureStr = create_php_configuration(settings, itemValues);
-            result += basicInstall(itemValues, configureStr);
-            result += do_post_install(settings, itemValues, result);
+            bool securityCheck = check_Sha256sum(itemValues);
+            if (securityCheck)
+            {
+                result = setupInstallDirectories(itemValues);
 
-            // end of code block
-            createProtectionWhenRequired(result, itemValues, false);
+                sstr configureStr = create_php_configuration(settings, itemValues);
+                result += basicInstall(itemValues, configureStr);
+                result += do_post_install(settings, itemValues, result);
+
+                // end of code block
+                createProtectionWhenRequired(result, itemValues, false);
+            } else {
+                result = badSha256sum(itemValues);
+            }
         }
     }
     else {
@@ -3790,16 +3882,23 @@ int install_poco(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                       + positionCommand + " ./configure --prefix='" + itemValues.usrPath + "' ";
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                           + positionCommand + " ./configure --prefix='" + itemValues.usrPath + "' ";
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3817,16 +3916,23 @@ int install_python(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                       + positionCommand + " ./configure --prefix='" + itemValues.usrPath + "' ";
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                           + positionCommand + " ./configure --prefix='" + itemValues.usrPath + "' ";
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3844,25 +3950,33 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        /*
-         * Currently Installation of this is not supported...
-         *   Maybe later when I know more about it.
-         *
-         *  // Note: Don't end the command with \" to close the command here.
-         *  //   We are going to append more to the command in the function
-         *  //     and end the command with \" there.
-         *
-         * sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + " ";
-         *
-         * result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
-         *                      xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
-         *
-         * createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
-         *                            bProtectMode,  bScriptOnly );
-         */
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+
+            /*
+             * Currently Installation of this is not supported...
+             *   Maybe later when I know more about it.
+             *
+             *  // Note: Don't end the command with \" to close the command here.
+             *  //   We are going to append more to the command in the function
+             *  //     and end the command with \" there.
+             *
+             * sstr configureStr = "eval \"cd " + workingPath + "; ./configure --prefix=" + usrPath + " ";
+             *
+             * result += basicInstall(buildFileName, notes_file, ProperName, configureStr,
+             *                      xxxPath, progVersion, rtnPath, bDebug, bDoTests, bScriptOnly);
+             *
+             * createProtectionWhenRequired(result, buildFileName, protectedFileName, srcPath, ProperName,
+             *                            bProtectMode,  bScriptOnly );
+             */
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3880,34 +3994,41 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
         sstr installOS = get_InstallOS(itemValues.thisOSType);
         itemValues.srcPathInstallOS = joinPathParts(itemValues.srcPathPNV, installOS);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"cd '";
-        configureStr.append(itemValues.srcPathInstallOS);
-        configureStr.append("';\n");
-        configureStr.append(positionCommand);
-        configureStr.append("./configure --prefix='");
-        configureStr.append(itemValues.usrPath);
-        configureStr.append("' \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-threads");
-        configureStr.append(" \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-shared ");
-        configureStr.append(" \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-symbols");
-        configureStr.append(" \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-64bit ");
-        result += basicInstall_tcl(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "eval \"cd '";
+            configureStr.append(itemValues.srcPathInstallOS);
+            configureStr.append("';\n");
+            configureStr.append(positionCommand);
+            configureStr.append("./configure --prefix='");
+            configureStr.append(itemValues.usrPath);
+            configureStr.append("' \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-threads");
+            configureStr.append(" \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-shared ");
+            configureStr.append(" \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-symbols");
+            configureStr.append(" \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-64bit ");
+            result += basicInstall_tcl(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3936,42 +4057,44 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
-        itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
+        itemValues.srcPathPNV       = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
         itemValues.srcPathInstallOS = joinPathParts(itemValues.srcPathPNV, installOS);
 
-        // staging
-        EnsureStageDirectoryExists(itemValues);
-        stageSourceCodeIfNeeded(itemValues);
-        set_bInstall(itemValues);
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck)
+        {
+            result = setupInstallDirectories(itemValues);
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"cd '";
-        configureStr.append(itemValues.srcPathInstallOS);
-        configureStr.append("';\n");
-        configureStr.append(positionCommand);
-        configureStr.append("./configure --prefix='");
-        configureStr.append(itemValues.usrPath);
-        configureStr.append("' \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --with-tcl='");
-        configureStr.append(tclConfigurePath);
-        configureStr.append("' \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-threads");
-        configureStr.append(" \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-shared ");
-        configureStr.append(" \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-symbols");
-        configureStr.append(" \\\n");
-        configureStr.append(positionCommand);
-        configureStr.append(" --enable-64bit ");
-        result += basicInstall_tcl(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "eval \"cd '";
+            configureStr.append(itemValues.srcPathInstallOS);
+            configureStr.append("';\n");
+            configureStr.append(positionCommand);
+            configureStr.append("./configure --prefix='");
+            configureStr.append(itemValues.usrPath);
+            configureStr.append("' \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --with-tcl='");
+            configureStr.append(tclConfigurePath);
+            configureStr.append("' \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-threads");
+            configureStr.append(" \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-shared ");
+            configureStr.append(" \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-symbols");
+            configureStr.append(" \\\n");
+            configureStr.append(positionCommand);
+            configureStr.append(" --enable-64bit ");
+            result += basicInstall_tcl(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
