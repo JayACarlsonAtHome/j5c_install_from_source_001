@@ -1142,7 +1142,7 @@ bool check_Sha256sum(an_itemValues& itemValues)
     command.append(itemValues.sha256sum_Config);
     vec.emplace_back(command);
     command.clear();
-    command.append("# Actual   sha256sum_Config = ");
+    command.append("# Actual   sha256sum_File   = ");
     command.append(itemValues.sha256sum_Real);
     vec.emplace_back(command);
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
