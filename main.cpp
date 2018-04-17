@@ -84,6 +84,9 @@ struct an_itemValues
     time_t itemStop_Time;
 
     sstr compression;
+    sstr sha256sum_Config;
+    sstr sha256sum_FileName;
+    sstr sha256sum_Real;
 
     //Paths
     sstr bldPath;
@@ -201,7 +204,6 @@ sstr getDigitsInStringAsString(sstr& some_value)
     return result;
 }
 
-
 sstr getValid_pVersion(sstr& some_value)
 {
     // explanation of what this does...
@@ -249,7 +251,6 @@ sstr getValid_pVersion(sstr& some_value)
     return result;
 }
 
-
 sstr padLeftZeros(int max_width, int number)
 {
     auto max = pow(10,max_width);
@@ -281,7 +282,6 @@ sstr padLeftZeros(int max_width, int number)
     }
     return result;
 };
-
 
 sstr stripCharFromString(sstr& inString, const char c)
 {
@@ -368,7 +368,6 @@ sstr unDelimitPath(sstr& path)
     return newPath;
 }
 
-
 sstr delimitPath(sstr& path)
 {
     sstr temp;
@@ -379,7 +378,6 @@ sstr delimitPath(sstr& path)
     newPath.append("'");
     return newPath;
 }
-
 
 sstr joinPathParts(sstr& partA, sstr& partB)
 {
@@ -846,7 +844,6 @@ int file_append_results(sstr& fileName, an_itemValues& itemValues, int installRe
     return result;
 }
 
-
 int file_append_blank_lines(sstr& fileName, int count)
 {
     std::ofstream file;
@@ -1098,6 +1095,78 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly = f
     return result;
 }
 
+sstr get_sha256sum(an_itemValues& itemValues)
+{
+    sstr result  = "Sha256sum not found.";
+    sstr positionCommand = std::string(commandPosition, ' ');
+    auto length  = itemValues.sha256sum_Config.length();
+    sstr sha256File = "sha256sum.txt";
+    std::vector<sstr> vec;
+    sstr it_data;
+    sstr outPathFileName = joinPathWithFile(itemValues.stgPath, sha256File);
+    sstr command = "rm -f " + itemValues.stgPath + "sha256sum.txt;";
+    command.append("\n");
+    command.append(positionCommand);
+    command.append("sha256sum ");
+    command.append(itemValues.stgPath);
+    command.append( "* > ");
+    command.append(outPathFileName);
+    vec.emplace_back(command);
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    ensure_file(outPathFileName);
+    vec.clear();
+    // this is assuming there won't be more than 100 different versions
+    //  in the same directory -- potentially a bad decision, but unlikely
+    vec = readFile(outPathFileName, 100);
+    for (const auto& it : vec)
+    {
+        it_data = it;
+        auto find = it_data.find(itemValues.fileName_Compressed);
+        if (find < it_data.length())
+        {
+            result = it_data.substr(0,length);
+            break;
+        }
+    }
+    return result;
+}
+
+bool check_Sha256sum(an_itemValues& itemValues)
+{
+    bool result = false;
+    itemValues.sha256sum_Real = get_sha256sum(itemValues);
+    sstr positionCommand = std::string(commandPosition, ' ');
+    std::vector<sstr> vec;
+    vec.clear();
+    sstr command {"# Expected sha256sum_Config = "};
+    command.append(itemValues.sha256sum_Config);
+    vec.emplace_back(command);
+    command.clear();
+    command.append("# Actual   sha256sum_Config = ");
+    command.append(itemValues.sha256sum_Real);
+    vec.emplace_back(command);
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    if (itemValues.sha256sum_Real == itemValues.sha256sum_Config)
+    {
+        result = true;
+    }
+    return result;
+}
+
+int badSha256sum(an_itemValues& itemValues)
+{
+    std::vector<sstr> vec;
+    vec.clear();
+    vec.emplace_back("# ");
+    vec.emplace_back("# Shaw256sums do not match: ");
+    vec.emplace_back("#!!!--Warning--!!! Skipping installation due to security concerns !!! ");
+    vec.emplace_back("#");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    // just an arbitrary number greater than 0;
+    return 2;
+}
+
+
 bool isFileSizeGtZero(an_itemValues itemValues, sstr &fileName, bool bShow = false)
 {
     bool result = false;
@@ -1318,6 +1387,11 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     return result;
 }
 
+
+//
+// Install helper functions
+//
+
 bool getBoolFromString(sstr& some_value)
 {
     bool result = false;
@@ -1350,7 +1424,6 @@ sstr get_ProtectionFileWithPath(an_itemValues& itemValues)
     protectionFileWithPath.append(".txt");
     return protectionFileWithPath;
 }
-
 
 void protectProgram_IfRequired(an_itemValues& itemValues, bool show)
 {
@@ -1448,7 +1521,6 @@ sstr get_xxx_Path(const sstr& xxxPath, const sstr& replacement)
     }
     return result;
 }
-
 
 int removeWorkingDirectories(an_itemValues& itemValues)
 {
@@ -2128,7 +2200,6 @@ int test_perl6(an_itemValues& itemValues)
     return result;
 }
 
-
 int make_tests(an_itemValues& itemValues)
 {
     int result = 0;
@@ -2335,7 +2406,6 @@ int mariadb_notes(an_itemValues& itemValues)
     }
 }
 
-
 int make_install(an_itemValues& itemValues)
 {
     sstr positionCommand = std::string(commandPosition,' ');
@@ -2359,7 +2429,6 @@ int make_install(an_itemValues& itemValues)
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     return result;
 }
-
 
 int decrementResultIfTesting(an_itemValues& itemValues, int in_result)
 {
@@ -2771,7 +2840,6 @@ int do_post_install(std::map<sstr, sstr>& settings, an_itemValues& itemValues, i
     return newResults;
 }
 
-
 int basicInstall(an_itemValues& itemValues, sstr& configureStr)
 {
     int result = 0;
@@ -2824,8 +2892,6 @@ int basicInstall(an_itemValues& itemValues, sstr& configureStr)
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     return result;
 }
-
-
 
 int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
 {
@@ -3150,33 +3216,41 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     return  configureStr;
 }
 
-int install_cmake(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
-{
+//
+// install functions
+//
+
+int install_cmake(std::map<sstr, sstr>& settings, an_itemValues& itemValues) {
     int result = -1;
     sstr positionCommand = std::string(commandPosition, ' ');
     sstr command;
     std::vector<sstr> vec;
 
     set_bInstall(itemValues);
-    if (itemValues.bInstall)
-    {
+    if (itemValues.bInstall) {
         appendNewLogSection(itemValues.fileName_Build);
         EnsureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        result = setupInstallDirectories(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-        // Unlike all the other install_xxx functions this time we have to call configure
-        //   two times, so the first time we call it individually with the bootstrap command.
-        //   The second time we pass gmake to the basicInstall function.
+        bool securityCheck = check_Sha256sum(itemValues);
+        if (securityCheck) {
 
-        // Note: Don't end the command with \" to close the command here.
-        //   We are going to append more to the command in the function
-        //     and end the command with \" there.
-        sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                       + positionCommand + " ./bootstrap --prefix='" + itemValues.usrPath + "' ";
-        result += basicInstall(itemValues, configureStr);
-        createProtectionWhenRequired(result, itemValues, false);
+            result = setupInstallDirectories(itemValues);
+            // Unlike all the other install_xxx functions this time we have to call configure
+            //   two times, so the first time we call it individually with the bootstrap command.
+            //   The second time we pass gmake to the basicInstall function.
+
+            // Note: Don't end the command with \" to close the command here.
+            //   We are going to append more to the command in the function
+            //     and end the command with \" there.
+            sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                                + positionCommand + " ./bootstrap --prefix='" + itemValues.usrPath + "' ";
+            result += basicInstall(itemValues, configureStr);
+            createProtectionWhenRequired(result, itemValues, false);
+        } else {
+            result = badSha256sum(itemValues);
+        }
     }
     return result;
 }
@@ -3838,7 +3912,6 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     return result;
 }
 
-
 int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     sstr positionCommand = std::string(commandPosition, ' ');
@@ -4033,9 +4106,10 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
             // else accept user input
             itemValues.debugLevel = std::stoi(debugLevel);
         }
-        itemValues.compression = settings[itemValues.programName + "->Compression"];
-        itemValues.version     = settings[itemValues.programName + "->Version"];
-        itemValues.getPath     = settings[itemValues.programName + "->WGET"];
+        itemValues.compression  = settings[itemValues.programName + "->Compression"];
+        itemValues.version      = settings[itemValues.programName + "->Version"];
+        itemValues.getPath      = settings[itemValues.programName + "->WGET"];
+        itemValues.sha256sum_Config = settings[itemValues.programName + "->Sha256sum"];
 
 
         if (itemValues.programName == "perl")
@@ -4043,13 +4117,14 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
             // We have to override these values because perl  and perl5 are the same thing
             //   But we don't want to confuse it with   perl6 because that is a totally different by similar language
             //   We are adding 5 or 6 to match the perl version
-            skip                   = settings[itemValues.programName + "5->Skip"];
-            itemValues.compression = settings[itemValues.programName + "5->Compression"];
-            debugOnly              = settings[itemValues.programName + "5->Debug_Only"];
-            doTests                = settings[itemValues.programName + "5->Do_Tests"];
-            scriptOnly             = settings[itemValues.programName + "5->Script_Only"];
-            itemValues.version     = settings[itemValues.programName + "5->Version"];
-            itemValues.getPath     = settings[itemValues.programName + "5->WGET"];
+            skip                    = settings[itemValues.programName + "5->Skip"];
+            itemValues.compression  = settings[itemValues.programName + "5->Compression"];
+            debugOnly               = settings[itemValues.programName + "5->Debug_Only"];
+            doTests                 = settings[itemValues.programName + "5->Do_Tests"];
+            scriptOnly              = settings[itemValues.programName + "5->Script_Only"];
+            itemValues.version      = settings[itemValues.programName + "5->Version"];
+            itemValues.getPath      = settings[itemValues.programName + "5->WGET"];
+            itemValues.sha256sum_Config = settings[itemValues.programName + "5->Sha256sum"];
         }
 
         itemValues.bSkip         = getBoolFromString(skip);
@@ -4098,6 +4173,8 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
             itemValues.fileName_Compressed.append("-src");
             itemValues.fileName_Compressed.append(itemValues.compression);
         }
+
+        itemValues.sha256sum_FileName = joinPathWithFile(itemValues.stgPath, itemValues.fileName_Compressed);
         //end of section
 
         itemValues.fileName_Staged     =  joinPathWithFile(itemValues.stgPath, itemValues.fileName_Compressed);
