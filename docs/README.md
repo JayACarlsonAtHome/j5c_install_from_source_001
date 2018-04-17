@@ -9,9 +9,9 @@ The current list of programs is:
 From source code:
 ===========================
 
-Perl-5.26.1
+Perl-5.26.2
 
-Openssl 1.1.0g
+Openssl 1.1.0h
 
 Mariadb-10.3.5
 
@@ -21,23 +21,23 @@ Apr-util-1.6.1
 
 Apr-iconv-1.2.2
 
-Pcre-8.41
+Pcre-8.42
 
-Pcre2-10.30
+Pcre2-10.31
 
-Apache-2.4.29
+Apache-2.4.33
 
 Perl6-2018.01
 
-Php-7.2.3 (with optional xdebug)
+Php-7.2.4 (with optional xdebug)
 
 Poco-1.9.0
 
-Postfix-3.2.4
+Postfix-3.3.0
 
-Python-3.6.4
+Python-3.6.5
 
-Ruby-2.5.0
+Ruby-2.5.1
 
 Tcl-8.7a1
 
