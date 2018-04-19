@@ -2103,7 +2103,7 @@ int make_clean(an_itemValues& itemValues)
         vec.emplace_back(          "eval \"    cd '" + itemValues.srcPathPNV + "';\n"
                + positionCommand + "make clean > '" + itemValues.bldPath + clnFileName + "' 2>&1 \"");
     }
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
     if (result == 0) {
         vec.emplace_back("# Make clean commands completed successfully.");
@@ -2141,8 +2141,6 @@ int make(an_itemValues& itemValues)
                 + positionCommand + command + "  > '" + itemValues.bldPath + mkeFileName + "' 2>&1 \"");
     result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
-
-
     if (result == 0) {
         vec.emplace_back("# " + printCommand + " completed successfully.");
     } else {
@@ -2247,9 +2245,8 @@ int make_tests(an_itemValues& itemValues)
         vec.emplace_back("# Make test(s) have completed");
         vec.emplace_back("# See results in " + itemValues.bldPath +".");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-        return 0;
     }
-
+    return 0;
 }
 
 int mariadb_notes(an_itemValues& itemValues)
