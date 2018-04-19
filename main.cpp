@@ -1373,6 +1373,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("apt install libxslt-dev -y");
     vec.emplace_back("apt install libx11-dev -y");
     vec.emplace_back("apt install openssl-dev -y");
+    vec.emplace_back("apt install qt4-qmake -y");
     vec.emplace_back("apt install x11-common -y");
     vec.emplace_back("apt install x11-xserver-utils  -y");
     vec.emplace_back("apt install x11-utils -y");
@@ -2123,7 +2124,14 @@ int make(an_itemValues& itemValues)
     vec.emplace_back("# ");
     sstr command = "make ";
     int result = 0;
-    if (itemValues.ProperName == "Cmake")
+    if (
+        (itemValues.ProperName == "Cmake")
+        && (
+                (itemValues.thisOSType == OS_type::RedHat)
+             || (itemValues.thisOSType == OS_type::Fedora)
+             || (itemValues.thisOSType == OS_type::CentOS)
+           )
+       )
     {
         command = "gmake";
     }
@@ -4128,8 +4136,16 @@ int reportResults(an_itemValues& itemValues, int installResult)
 
 int logFinalSettings(sstr& fileNameBuilds, std::map<sstr, sstr>& settings, sstr& programName )
 {
+    sstr tempProgramName = "";
     int max_set_width = 32;
-    sstr tempProgramName = programName + "->";
+    if (programName == "perl")
+    {
+        tempProgramName = programName + "5->";
+    }
+    else
+    {
+        tempProgramName = programName + "->";
+    }
     sstr pad_string;
     sstr str_buffer;
     std::vector<sstr> generated_settings;
