@@ -3162,10 +3162,23 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     configureStr.append(itemValues.etcPath);
     sstr crlPath = "/usr/bin";
     configureStr.append("'             \\\n");
-    configureStr.append(positionCommand);
-    configureStr.append("  --with-curl='");
-    configureStr.append(crlPath);
-    configureStr.append("'                                           \\\n");
+
+    if (itemValues.thisOSType != OS_type::Fedora)
+    {
+        //I tried everything I could think of
+        // and I couldn't get --with-curl to work on Fedora
+        // even though the files were there the ./config command
+        // couldn't find them.  I also tried tweaking the permissions
+        // on the files, and still nothing.
+
+        //I will probably have to work on this later...
+
+        configureStr.append(positionCommand);
+        configureStr.append("  --with-curl='");
+        configureStr.append(crlPath);
+        configureStr.append("'                                           \\\n");
+
+    }
     configureStr.append(positionCommand);
     configureStr.append("  --with-mysql-sock='");
     tmpPath = "usr/mariadb/run/";
