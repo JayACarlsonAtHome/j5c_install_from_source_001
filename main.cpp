@@ -19,6 +19,7 @@
 // Other stuff := Perl, Ruby, Tcl/Tk, POCO C++ Libraries
 
 #include <math.h>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -128,20 +129,21 @@ sstr lowerCaseString(sstr& some_value)
     // but it will handle the english words that
     // we need for this program.
 
-    sstr result;
-    int oneChar;
-    for (auto idx = 0ul; idx < some_value.length(); ++idx)
+    // I tested 6 versions of lowercase
+    //   (this was code test number 4 and the fastest version)
+    //   (turns out c++ string operations are much slower than c string operations)
+    // Note you have to be in the millions of operations
+    //   for it to even matter, and we only do a less than
+    //   a thousand here.
+
+    auto len = some_value.length();
+    char strChar[len+1];
+    strcpy(strChar, some_value.c_str());
+    for (auto idx = 0ul; idx < len; ++idx)
     {
-        if (std::isupper(some_value.at(idx)))
-        {
-            oneChar =  std::tolower(some_value.at(idx));
-        }
-        else
-        {
-            oneChar = some_value.at(idx);
-        }
-        result.append({static_cast<char>(oneChar)});
+        strChar[idx] =  std::tolower(strChar[idx]);
     }
+    sstr result {strChar};
     return result;
 }
 
@@ -152,21 +154,16 @@ sstr upperCaseString(sstr& some_value)
     // but it will handle the english words that
     // we need for this program.
 
-    sstr result;
-    int oneChar;
-    for (auto idx = 0ul; idx < some_value.length(); ++idx)
+    auto len = some_value.length();
+    char strChar[len+1];
+    strcpy(strChar, some_value.c_str());
+    for (auto idx = 0ul; idx < len; ++idx)
     {
-        if (std::islower(some_value.at(idx)))
-        {
-            oneChar =  std::toupper(some_value.at(idx));
-        }
-        else
-        {
-            oneChar = some_value.at(idx);
-        }
-        result.append({static_cast<char>(oneChar)});
+        strChar[idx] =  std::toupper(strChar[idx]);
     }
+    sstr result {strChar};
     return result;
+
 }
 
 sstr trimLeftAndRight(sstr& inString, sstr& ws)
@@ -757,11 +754,21 @@ sstr getProperNameFromString(sstr& some_value)
     // make the first letter capital
     // make all other letters lowercase
 
-    sstr result;
-    sstr temp1 = some_value.substr(1,some_value.length());
-    temp1 = lowerCaseString(temp1);
-    result = static_cast<char>(std::toupper(some_value.at(0)));
-    result.append({temp1});
+    // in the effort of don't repeat yourself
+    //   I would like to call lowerCaseString()
+    //   and then uppercase the first charactor
+    //   but the string to char arrays back to strings to char arrays
+    //   make it sub-optimal
+
+    auto len = some_value.length();
+    char strChar[len+1];
+    strcpy(strChar, some_value.c_str());
+    for (auto idx = 0ul; idx < len; ++idx)
+    {
+        strChar[idx] =  std::tolower(strChar[idx]);
+    }
+    strChar[0] =  std::toupper(strChar[0]);
+    sstr result {strChar};
     return result;
 }
 

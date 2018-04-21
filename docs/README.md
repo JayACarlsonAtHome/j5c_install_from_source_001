@@ -82,6 +82,10 @@ On a side note, if you wanted to learn some C++, the code is dependable.
 The code may not be optimized to the level it could be, but examine this code for 
 a second...
 
+//to allow the code sample to work, 
+//  you need the following line...
+using sstr = std::string;
+
 sstr lowerCaseString(sstr& some_value)
 {
     // unicode lower case conversions require
@@ -106,6 +110,26 @@ sstr lowerCaseString(sstr& some_value)
     return result;
 }
 
+//the faster version of lowercase
+
+sstr lowerCaseString(sstr& some_value)
+{
+
+    // unicode lower case conversions require
+    // very specialized code, and this is not it
+    // but it will handle the english words that
+    // we need for this program.
+
+    auto len = some_value.length();
+    char strChar[len+1];
+    strcpy(strChar, some_value.c_str());
+    for (auto idx = 0ul; idx < len; ++idx)
+    {
+        strChar[idx] =  std::tolower(strChar[idx]);
+    }
+    sstr result {strChar};
+    return result;
+}
 
 Lets just say that this code takes 30 milli seconds to run.
 But compiling MariaDB takes 40 minutes. Optimizing this code to take 
