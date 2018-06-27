@@ -1701,11 +1701,11 @@ int ensure_UserExists(an_itemValues itemValues, sstr& groupName, sstr& userName)
     // file pipe, then we check to see if the file size is greater than 0.
 
     vec.clear();
-    vec.emplace_back("cat " + userFileName + " | grep apache_ws > '" + user_TestFile + "'" );
+    vec.emplace_back("cat " + userFileName + " | grep  " + userName + "  > '" + user_TestFile + "'" );
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    bool apacheUserExists = isFileSizeGtZero(itemValues, user_TestFile, false);
+    bool userExists = isFileSizeGtZero(itemValues, user_TestFile, false);
     vec.clear();
-    if (!apacheUserExists)
+    if (!userExists)
     {
         vec.emplace_back("# Adding " + userName + " user");
         vec.emplace_back("useradd -g " + groupName + " " + userName);
@@ -1845,7 +1845,7 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("  </Directory>");
     vec.emplace_back("#");
     vec.emplace_back("ServerAdmin yourAdminEmail@somewhere.com");
-    vec.emplace_back("ServerName  127.0.0.1");
+    vec.emplace_back("ServerName  127.0.1.1");
     vec.emplace_back("");
     vec.emplace_back("DocumentRoot " + itemValues.usrPath  + "htdocs");
     vec.emplace_back("<Directory   " + itemValues.usrPath  + "htdocs/>");
@@ -2032,7 +2032,7 @@ int create_mariaDB_cnf_File(an_itemValues &itemValues)
     vec.emplace_back("socket='" + itemValues.usrPath + "run/mariadb.socket'");
     vec.emplace_back("bind-address=127.0.1.2");
     vec.emplace_back("port=3306");
-    vec.emplace_back("#skip-external-networking");
+    vec.emplace_back("#skip-external-locking");
     vec.emplace_back(" ");
     vec.emplace_back("#Directories");
     vec.emplace_back("  basedir='" + itemValues.usrPath + "'");
@@ -2569,8 +2569,8 @@ int postInstall_Apache(an_itemValues& itemValues)
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Change Apache permissions.");
-    vec.emplace_back("chown -R root:" + apache_Group + " '" + itemValues.rtnPath + "usr/" + itemValues.programName + "'");
-    vec.emplace_back("chmod -R 770  '" + itemValues.rtnPath + "usr/" + itemValues.programName + "'");
+    vec.emplace_back("chown -R root:" + apache_Group + " '" + itemValues.usrPath + "usr/" + itemValues.programName + "'");
+    vec.emplace_back("chmod -R 770  '" + itemValues.usrPath + "usr/" + itemValues.programName + "'");
     temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     vec.clear();
@@ -4178,7 +4178,7 @@ int logFinalSettings(sstr& fileNameBuilds, std::map<sstr, sstr>& settings, sstr&
         if (element.first.substr(0, tempProgramName.length()) == tempProgramName) {
             auto pad_length = max_set_width - element.first.length();
             pad_string = sstr(pad_length, ' ');
-            str_buffer = ": "  + pad_string + element.first + " : " + element.second;
+            str_buffer = pad_string + element.first + " : " + element.second;
             generated_settings.push_back(str_buffer);
         }
     }
