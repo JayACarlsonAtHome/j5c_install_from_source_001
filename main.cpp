@@ -2032,6 +2032,7 @@ int create_mariaDB_cnf_File(an_itemValues &itemValues)
     vec.emplace_back("socket='" + itemValues.usrPath + "run/mariadb.socket'");
     vec.emplace_back("bind-address=127.0.1.2");
     vec.emplace_back("port=3306");
+    vec.emplace_back("#skip-external-networking");
     vec.emplace_back(" ");
     vec.emplace_back("#Directories");
     vec.emplace_back("  basedir='" + itemValues.usrPath + "'");
@@ -2041,7 +2042,6 @@ int create_mariaDB_cnf_File(an_itemValues &itemValues)
     vec.emplace_back("  log-basename='MariaDB_Logs'");
     vec.emplace_back(" ");
     vec.emplace_back("#Other Stuff");
-    vec.emplace_back("#skip-networking");
     vec.emplace_back("skip-ssl");
     vec.emplace_back("key_buffer_size=32M");
     vec.emplace_back(" ");
@@ -2285,6 +2285,9 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("# ");
         vec.emplace_back("#################################################################################");
         vec.emplace_back("# ");
+        vec.emplace_back("#--> Edit the /etc/hosts file to contain the following line:");
+        vec.emplace_back("     127.0.1.2   mariadb");
+        vec.emplace_back("#");
         vec.emplace_back("#--> Run these commands to secure and start mariadb.");
         vec.emplace_back("#--> Commands run by install (no need to run again)");
         vec.emplace_back("#-->    This information is provided only for your knowledge");
