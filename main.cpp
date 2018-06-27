@@ -122,6 +122,43 @@ struct an_itemValues
     sstr perl5RunPath;
 };
 
+sstr multilineCommand(std::vector<sstr> commands) {
+
+    sstr result = "";
+
+    if (commands.size() > 0) {
+        // this is to just get the type
+        auto maxLen = commands[0].length();
+        auto curLen = maxLen;
+        auto padLen = maxLen;
+        sstr padding = "";
+
+        for (auto element : commands) {
+            curLen = element.length();
+            if (curLen > maxLen) {
+                maxLen = curLen;
+            }
+        }
+
+        for (auto element : commands) {
+            curLen = element.length();
+            padLen = maxLen - curLen + 2;
+            padding.clear();
+            padding = std::string(padLen, ' ');
+            result.append(element);
+            result.append(padding);
+            result.append("\\\n");
+        }
+    }
+    result = result.substr(0, result.length()-2);
+    result.append("\n");
+    result.append("# End of multiline command.");
+    return result;
+}
+
+
+
+
 sstr lowerCaseString(sstr& some_value)
 {
     // unicode lower case conversions require
