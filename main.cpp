@@ -123,7 +123,7 @@ struct an_itemValues
     sstr perl5RunPath;
 };
 
-sstr multilineCommand(std::vector<sstr> commands, bool remove_last_continuation_char = false) {
+sstr multilineCommand(std::vector<sstr>& commands, bool remove_last_continuation_char = false) {
 
     sstr result = "";
 
@@ -1704,7 +1704,7 @@ int setupInstallDirectories(an_itemValues& itemValues)
     return result;
 }
 
-int ensure_GroupExists(an_itemValues itemValues, sstr& groupName)
+int ensure_GroupExists(an_itemValues itemValues, sstr groupName)
 {
     int result = 0;
     std::vector<sstr> vec;
@@ -1737,7 +1737,7 @@ int ensure_GroupExists(an_itemValues itemValues, sstr& groupName)
     return result;
 }
 
-int ensure_UserExists(an_itemValues itemValues, sstr& groupName, sstr& userName)
+int ensure_UserExists(an_itemValues itemValues, sstr groupName, sstr userName)
 {
     int result = 0;
     std::vector<sstr> vec;
@@ -2355,7 +2355,7 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("touch mariadb_pid ");
         //set permissions for mariadb directory recursively
         vec.emplace_back("# ");
-        vec.emplace_back("cd '" + itemValues.usrPath + "../' ");
+        vec.emplace_back("cd '" + itemValues.rtnPath + "usr' ");
         vec.emplace_back("chown -R root:mysql mariadb ");
         vec.emplace_back("chmod -R 770        mariadb ");
         //Over ride permissions as required
@@ -2672,7 +2672,7 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
     vec.emplace_back("touch mariadb_pid ");
     //set permissions for mariadb directory recursively
     vec.emplace_back("# ");
-    vec.emplace_back("cd '" + itemValues.usrPath + "../';\n ");
+    vec.emplace_back("cd '" + itemValues.rtnPath + "usr';\n ");
     vec.emplace_back("chown -R root:" + mariaDB_Group + " '" + itemValues.programName + "'");
     vec.emplace_back("chmod -R 770  '" + itemValues.programName + "'");
     //Over ride permissions as required
@@ -2749,12 +2749,10 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     vec.emplace_back("# Ensure Apache user / group exists");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
+    // The owner, group, and user should already exist.
     sstr apache_Owner = "apache_ws";
     sstr apache_Group = "apache_ws";
     sstr apache_User  = "apache_ws";
-
-    result += ensure_GroupExists(itemValues, apache_Group);
-    result += ensure_UserExists( itemValues, apache_Group, apache_User);
 
     vec.clear();
     vec.emplace_back("# ");
@@ -3287,77 +3285,22 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     temp.append("' ");
     commands.emplace_back(temp);
 
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-embedded-mysqli");
-    commands.emplace_back(temp);
+    commands.emplace_back(positionCommand + "  --enable-embedded-mysqli");
+    commands.emplace_back(positionCommand + "  --disable-cgi");
+    commands.emplace_back(positionCommand + "  --disable-short-tags");
+    commands.emplace_back(positionCommand + "  --enable-bcmath");
+    commands.emplace_back(positionCommand + "  --with-pcre-jit");
+    commands.emplace_back(positionCommand + "  --enable-sigchild");
+    commands.emplace_back(positionCommand + "  --enable-libgcc");
+    commands.emplace_back(positionCommand + "  --enable-calendar");
+    commands.emplace_back(positionCommand + "  --enable-dba=shared");
+    commands.emplace_back(positionCommand + "  --enable-ftp");
+    commands.emplace_back(positionCommand + "  --enable-intl");
+    commands.emplace_back(positionCommand + "  --enable-mbstring");
+    commands.emplace_back(positionCommand + "  --enable-zend-test");
 
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --disable-cgi");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --disable-short-tags");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-bcmath");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --with-pcre-jit");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-sigchild");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-libgcc");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-calendar");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-dba=shared");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-ftp");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-intl");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-mbstring");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --enable-zend-test");
-    commands.emplace_back(temp);
-
-    if (1){ //bCompileForDebug) {
-
-        temp.clear();
-        temp.append(positionCommand);
-        temp.append("  --enable-debug");
-        commands.emplace_back(temp);
+    if ( bCompileForDebug ){
+        commands.emplace_back(positionCommand + "  --enable-debug");
     }
 
     configureStr.append(multilineCommand(commands, false));
