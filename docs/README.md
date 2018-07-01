@@ -9,11 +9,17 @@ The current list of programs is:
 From source code:
 ===========================
 
-Perl-5.26.2
+CMake 3.11.4
+
+Libzip 1.5.1
+
+Perl-5.28.0
 
 Openssl 1.1.0h
 
-Mariadb-10.3.5
+Mariadb-10.3.7
+
+Perl6-2018.04
 
 Apr-1.6.3
 
@@ -27,13 +33,11 @@ Pcre2-10.31
 
 Apache-2.4.33
 
-Perl6-2018.01
-
-Php-7.2.4 (with optional xdebug)
+Php-7.2.7 (with optional xdebug 2.6.0)
 
 Poco-1.9.0
 
-Postfix-3.3.0
+Postfix-3.3.1
 
 Python-3.6.5
 
