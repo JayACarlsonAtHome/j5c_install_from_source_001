@@ -4440,8 +4440,8 @@ int main() {
     program.itemValues.cpyStgPath = joinPathParts(program.itemValues.company, temp);
     temp = "xxx";
     sstr xxxPath  = joinPathParts(program.itemValues.rtnPath, temp);
-    sstr programName = "dependencies";
-    program.itemValues.programName = "dependencies";
+    sstr programName = "Dependencies";
+    program.itemValues.programName = programName;
     program.itemValues.ProperName  = getProperNameFromString(program.itemValues.programName);
     program.itemValues.tlsPath = get_xxx_Path(xxxPath, "tls");
     program.itemValues.wwwPath = get_xxx_Path(xxxPath, "www");
