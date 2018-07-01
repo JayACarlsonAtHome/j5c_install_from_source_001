@@ -1764,7 +1764,7 @@ int ensure_UserExists(an_itemValues itemValues, sstr groupName, sstr userName)
     if (!userExists)
     {
         vec.emplace_back("# Adding " + userName + " user");
-        vec.emplace_back("useradd -g " + groupName + " " + userName);
+        vec.emplace_back("useradd  --no-create-home --system -g " + groupName + " " + userName);
     }
     else
     {
@@ -2682,12 +2682,12 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
     vec.emplace_back("touch mariadb_pid ");
     //set permissions for mariadb directory recursively
     vec.emplace_back("# ");
-    vec.emplace_back("cd '" + itemValues.rtnPath + "usr';\n ");
-    vec.emplace_back("chown -R root:" + MARIADB_GROUP + " '" + itemValues.programName + "'");
+    vec.emplace_back("eval \"cd '" + itemValues.rtnPath + "usr' \";\n ");
+    vec.emplace_back("chown -R root:" + MARIADB_GROUP + " " + itemValues.programName );
     vec.emplace_back("chmod -R 770  '" + itemValues.programName + "'");
     //Over ride permissions as required
     vec.emplace_back("# ");
-    vec.emplace_back("cd '" + itemValues.usrPath + "'");
+    vec.emplace_back("eval \"cd '" + itemValues.usrPath + "'\";\n");
     vec.emplace_back("chown -R " + MARIADB_OWNER + ":" + MARIADB_GROUP  + " data ");
     vec.emplace_back("chmod -R 770         data ");
     vec.emplace_back("chown -R " + MARIADB_OWNER + ":" + MARIADB_GROUP  + " run ");
