@@ -61,6 +61,13 @@ const sstr VAL_RUN_DEPENDCS = "false";
 const sstr KEY_PROTECT_MODE = "Section_a7_Enable_Protect_Mode";
 const sstr VAL_PROTECT_MODE = "true";
 
+const sstr APACHE_GROUP = "apache_ws";
+const sstr APACHE_USER  = "apache_ws";
+
+const sstr MARIADB_OWNER = "mysql";
+const sstr MARIADB_GROUP = "mysql";
+const sstr MARIADB_USER  = "mysql";
+
 enum class OS_type { Selection_Not_Available = -1, No_Selection_Made = 0, CentOS = 1, Fedora = 2, Linux_Mint = 3, RedHat = 4, MaxOSX = 5};
 enum class Mac_PM  { Selection_Not_Available = -1, No_Selection_Made = 0, Home_Brew = 0, MacPorts = 1 };
 
@@ -1664,7 +1671,7 @@ int createTargetFromStage(an_itemValues& itemValues)
     return result;
 }
 
-int EnsureStageDirectoryExists(an_itemValues& itemValues)
+int ensureStageDirectoryExists(an_itemValues &itemValues)
 {
     std::vector<sstr> vec;
     vec.emplace_back("# ");
@@ -1721,9 +1728,9 @@ int ensure_GroupExists(an_itemValues itemValues, sstr groupName)
     vec.clear();
     vec.emplace_back("cat " + groupFileName + "  | grep " + groupName + " > '" + groupTestFile + "'");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    bool apacheGroupExists = isFileSizeGtZero(itemValues, groupTestFile, false);
+    bool GroupExists = isFileSizeGtZero(itemValues, groupTestFile, false);
     vec.clear();
-    if (!apacheGroupExists) {
+    if (!GroupExists) {
         vec.emplace_back("# Adding " + groupName + " group");
         vec.emplace_back("groupadd " + groupName);
     } else {
@@ -1758,7 +1765,6 @@ int ensure_UserExists(an_itemValues itemValues, sstr groupName, sstr userName)
     {
         vec.emplace_back("# Adding " + userName + " user");
         vec.emplace_back("useradd -g " + groupName + " " + userName);
-
     }
     else
     {
@@ -1771,6 +1777,33 @@ int ensure_UserExists(an_itemValues itemValues, sstr groupName, sstr userName)
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     return result;
 }
+
+int ensureApacheUserAndGroupExists(an_itemValues& itemValues)
+{
+    int result = 0;
+    std::vector<sstr> vec;
+    vec.emplace_back("#");
+    vec.emplace_back("# Check for required User and Group");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    result += ensure_GroupExists(itemValues, APACHE_GROUP);
+    result += ensure_UserExists( itemValues, APACHE_GROUP, APACHE_USER);
+    return result;
+}
+
+int ensureMariaDB_UserAndGroupExist(an_itemValues& itemValues)
+{
+    int result = 0;
+    std::vector<sstr> vec;
+    vec.emplace_back("#");
+    vec.emplace_back("# Check for required User and Group");
+    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    result += ensure_GroupExists(itemValues, MARIADB_GROUP);
+    result += ensure_UserExists( itemValues, MARIADB_GROUP, MARIADB_USER);
+    return result;
+}
+
 
 int create_apache_conf_File(an_itemValues &itemValues)
 {
@@ -2589,18 +2622,6 @@ int postInstall_Apache(an_itemValues& itemValues)
     sstr positionCommand = std::string(commandPosition, ' ');
     vec.clear();
     vec.emplace_back("# ");
-    vec.emplace_back("# Ensure Apache user / group exists");
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
-    sstr apache_Owner = "apache_ws";
-    sstr apache_Group = "apache_ws";
-    sstr apache_User  = "apache_ws";
-
-    result += ensure_GroupExists(itemValues, apache_Group);
-    result += ensure_UserExists( itemValues, apache_Group, apache_User);
-
-    vec.clear();
-    vec.emplace_back("# ");
     vec.emplace_back("# Copy apache configuration files to '" + itemValues.etcPath + "extra'");
     vec.emplace_back("mkdir -p '" + itemValues.etcPath + "extra' ");
     vec.emplace_back("cp   -rf '" + itemValues.usrPath + "conf/extra/'* '" + itemValues.etcPath  + "extra/.' ");
@@ -2618,13 +2639,13 @@ int postInstall_Apache(an_itemValues& itemValues)
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Change Apache permissions.");
-    vec.emplace_back("chown -R root:" + apache_Group + " '" + itemValues.usrPath + "'");
+    vec.emplace_back("chown -R root:" + APACHE_GROUP + " '" + itemValues.usrPath + "'");
     vec.emplace_back("chmod -R 770  '"                      + itemValues.usrPath + "'");
     temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     vec.clear();
     vec.emplace_back("# ");
-    vec.emplace_back("chown -R root:" + apache_Group + " '" + itemValues.etcPath + "'");
+    vec.emplace_back("chown -R root:" + APACHE_GROUP + " '" + itemValues.etcPath + "'");
     vec.emplace_back("chmod -R 770 '" + itemValues.etcPath + "'");
     temp += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
@@ -2645,17 +2666,6 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
     int result = 0;
     sstr positionCommand = std::string(commandPosition, ' ');
     std::vector<sstr> vec;
-    vec.clear();
-    vec.emplace_back("# ");
-    vec.emplace_back("# Ensure MariaDB (mysql) user / group exists");
-    do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
-    sstr mariaDB_Owner = "mysql";
-    sstr mariaDB_Group = "mysql";
-    sstr mariaDB_User  = "mysql";
-
-    result += ensure_GroupExists(itemValues, mariaDB_Group);
-    result += ensure_UserExists( itemValues, mariaDB_Group, mariaDB_User);
 
     //Create required directories if needed
     vec.clear();
@@ -2673,16 +2683,16 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
     //set permissions for mariadb directory recursively
     vec.emplace_back("# ");
     vec.emplace_back("cd '" + itemValues.rtnPath + "usr';\n ");
-    vec.emplace_back("chown -R root:" + mariaDB_Group + " '" + itemValues.programName + "'");
+    vec.emplace_back("chown -R root:" + MARIADB_GROUP + " '" + itemValues.programName + "'");
     vec.emplace_back("chmod -R 770  '" + itemValues.programName + "'");
     //Over ride permissions as required
     vec.emplace_back("# ");
     vec.emplace_back("cd '" + itemValues.usrPath + "'");
-    vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " data ");
+    vec.emplace_back("chown -R " + MARIADB_OWNER + ":" + MARIADB_GROUP  + " data ");
     vec.emplace_back("chmod -R 770         data ");
-    vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " run ");
+    vec.emplace_back("chown -R " + MARIADB_OWNER + ":" + MARIADB_GROUP  + " run ");
     vec.emplace_back("chmod -R 770         run  ");
-    vec.emplace_back("chown -R " + mariaDB_Owner + ":" + mariaDB_Group  + " var ");
+    vec.emplace_back("chown -R " + MARIADB_OWNER + ":" + MARIADB_GROUP  + " var ");
     vec.emplace_back("chmod -R 770         var  ");
     result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     return result;
@@ -2749,16 +2759,11 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     vec.emplace_back("# Ensure Apache user / group exists");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
-    // The owner, group, and user should already exist.
-    sstr apache_Owner = "apache_ws";
-    sstr apache_Group = "apache_ws";
-    sstr apache_User  = "apache_ws";
-
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache ownership");
-    vec.emplace_back("eval \"chown root:" + apache_Group + " '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
-    vec.emplace_back("eval \"chown root:" + apache_Group + " '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
+    vec.emplace_back("eval \"chown root:" + APACHE_GROUP + " '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
+    vec.emplace_back("eval \"chown root:" + APACHE_GROUP + " '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache permissions");
     vec.emplace_back("eval \"chmod 755 '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
@@ -2975,7 +2980,7 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
 
         // We are ending the command we started with \"
         //   This was started in the configureStr in the calling function.
-        configureStr.append(" > '" + itemValues.bldPath + "configure_results.txt' 2>&1 \"");
+        configureStr.append(" > '" + itemValues.bldPath + "configure_results.txt' 2>&1 ");
         vec1.emplace_back(configureStr);
         vec1.emplace_back("# ");
         vec1.emplace_back("# make");
@@ -3320,7 +3325,7 @@ int install_cmake(std::map<sstr, sstr>& settings, an_itemValues& itemValues) {
     set_bInstall(itemValues);
     if (itemValues.bInstall) {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3358,7 +3363,7 @@ int install_libzip(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
         sstr tmpPath = "build";
@@ -3408,7 +3413,7 @@ int install_perl5(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3443,7 +3448,7 @@ int install_openssl(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3473,14 +3478,15 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
-
         bool securityCheck = check_Sha256sum(itemValues);
         if (securityCheck)
         {
             result = setupInstallDirectories(itemValues);
+
+            ensureMariaDB_UserAndGroupExist(itemValues);
             sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + "\";\n "
                        + positionCommand + "./BUILD/autorun.sh;\n "
                        + positionCommand + " cd '" + itemValues.srcPathPNV + "';\n";
@@ -3537,7 +3543,7 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3571,7 +3577,7 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3601,7 +3607,7 @@ int install_apache_step_01(std::map<sstr, sstr>& settings, an_itemValues& itemVa
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3633,7 +3639,7 @@ int install_apache_step_02(std::map<sstr, sstr>& settings, an_itemValues& itemVa
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3672,7 +3678,7 @@ int install_apache_step_03(std::map<sstr, sstr>& settings, an_itemValues& itemVa
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3709,7 +3715,7 @@ int install_apache_step_04(std::map<sstr, sstr>& settings, an_itemValues& itemVa
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3744,7 +3750,7 @@ int install_apache_step_05(std::map<sstr, sstr>& settings, an_itemValues& itemVa
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3778,7 +3784,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3813,6 +3819,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result    = -1;
+
     sstr positionCommand = std::string(commandPosition, ' ');
 
     sstr compileForDebug    = settings[itemValues.programName + "->Compile_For_Debug"];
@@ -3893,7 +3900,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         if (itemValues.bInstall)
         {
             appendNewLogSection(itemValues.fileName_Build);
-            EnsureStageDirectoryExists(itemValues);
+            ensureStageDirectoryExists(itemValues);
             bool staged = stageSourceCodeIfNeeded(itemValues);
 
             if (!staged) {
@@ -3946,7 +3953,7 @@ int install_poco(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -3976,7 +3983,7 @@ int install_python(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -4006,7 +4013,7 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
@@ -4038,7 +4045,7 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
         sstr installOS = get_InstallOS(itemValues.thisOSType);
@@ -4048,9 +4055,7 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         if (securityCheck)
         {
             result = setupInstallDirectories(itemValues);
-            sstr configureStr = "eval \"cd '";
-            configureStr.append(itemValues.srcPathInstallOS);
-            configureStr.append("' \";\n");
+            sstr configureStr = "eval \"cd '" + itemValues.srcPathInstallOS + "' \"\n";
 
             std::vector<sstr> commands;
             commands.emplace_back(positionCommand + "./configure --prefix='" + itemValues.usrPath + "'");
@@ -4090,7 +4095,7 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     if (itemValues.bInstall)
     {
         appendNewLogSection(itemValues.fileName_Build);
-        EnsureStageDirectoryExists(itemValues);
+        ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV       = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
         itemValues.srcPathInstallOS = joinPathParts(itemValues.srcPathPNV, installOS);
@@ -4099,12 +4104,7 @@ int install_tk(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         if (securityCheck)
         {
             result = setupInstallDirectories(itemValues);
-
-            // Note: Don't end the command with \" to close the command here.
-            //   We are going to append more to the command in the function
-            //     and end the command with \" there.
             sstr configureStr = "eval \"cd '" + itemValues.srcPathInstallOS + "' \";\n";
-
             std::vector<sstr> commands;
             commands.emplace_back(positionCommand + "./configure --prefix='" + itemValues.usrPath + "'");
             commands.emplace_back(positionCommand + "  --with-tcl='" + tclConfigurePath + "'");
@@ -4361,6 +4361,7 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
 
 int main() {
 
+
     struct programs
     {
         an_itemValues itemValues;
@@ -4605,6 +4606,10 @@ int main() {
     int (*funptr)(std::map<sstr, sstr> &settings, an_itemValues& itemValues);
 
     bool anyInstalled = false;
+
+    ensureMariaDB_UserAndGroupExist(program.itemValues);
+    ensureApacheUserAndGroupExists(program.itemValues);
+
     for( auto& it: progVector )
     {
         result = -1;
