@@ -1764,7 +1764,7 @@ int ensure_UserExists(an_itemValues itemValues, sstr groupName, sstr userName)
     if (!userExists)
     {
         vec.emplace_back("# Adding " + userName + " user");
-        vec.emplace_back("useradd  --no-create-home --system -g " + groupName + " " + userName);
+        vec.emplace_back("useradd  -g " + groupName + " --no-create-home --system " + userName);
     }
     else
     {
