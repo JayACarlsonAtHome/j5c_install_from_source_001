@@ -1178,9 +1178,9 @@ sstr get_sha256sum(an_itemValues& itemValues)
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     ensure_file(outPathFileName);
     vec.clear();
-    // this is assuming there won't be more than 100 different versions
+    // this is assuming there won't be more than 1000 different versions
     //  in the same directory -- potentially a bad decision, but unlikely
-    vec = readFile(outPathFileName, 100);
+    vec = readFile(outPathFileName, 1000);
     for (const auto& it : vec)
     {
         it_data = it;
@@ -2158,8 +2158,7 @@ int configure(an_itemValues& itemValues,  sstr& configureStr)
     vec.emplace_back("# ");
     vec.emplace_back("# Pre make commands -- usually configure, but not always...");
     vec.emplace_back("# Piping results to '" + itemValues.bldPath + "'.");
-    // We are ending the command we started here with \"
-    //   This was started in the configureStr.
+
     configureStr.append(positionCommand + "> '" + itemValues.bldPath + outFileName + "' 2>&1 ");
     vec.emplace_back(configureStr);
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
@@ -2978,8 +2977,6 @@ int basicInstall_tcl(an_itemValues& itemValues, sstr& configureStr)
         vec1.emplace_back("# Configure...");
         vec1.emplace_back("# Piping results to the \"'" + itemValues.bldPath + "'\" directory.");
 
-        // We are ending the command we started with \"
-        //   This was started in the configureStr in the calling function.
         configureStr.append(" > '" + itemValues.bldPath + "configure_results.txt' 2>&1 ");
         vec1.emplace_back(configureStr);
         vec1.emplace_back("# ");
