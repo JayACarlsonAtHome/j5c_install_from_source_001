@@ -1361,6 +1361,7 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install libicu-devel");
     vec.emplace_back("yum -y install libjpeg-turbo-utils");
     vec.emplace_back("yum -y install libjpeg-turbo-devel");
+    vec.emplace_back("yum -y install ");
     vec.emplace_back("yum -y install libpng-devel");
     vec.emplace_back("yum -y install libstdc++");
     vec.emplace_back("yum -y install libstdc++-devel");
@@ -1426,6 +1427,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("apt install libjpeg-dev -y");
     vec.emplace_back("apt install libjudy-dev -y");
     vec.emplace_back("apt install libncurses5-dev -y");
+    vec.emplace_back("apt install libnghttp2");
     vec.emplace_back("apt install libpng-dev -y");
     vec.emplace_back("apt install libsqlite3-tcl -y");
     vec.emplace_back("apt install libssl-dev -y");
@@ -1844,6 +1846,10 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
     vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -t");
     vec.emplace_back("");
+    vec.emplace_back("# To check the syntax of this virtual hosts file(s) run the following commands");
+    vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
+    vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -S");
+    vec.emplace_back("");
     vec.emplace_back("# To check the version of Apache Web server run the following commands");
     vec.emplace_back("# cd " + itemValues.usrPath + "bin;");
     vec.emplace_back("# ./apachectl -f " + itemValues.etcPath + "apache.conf -v");
@@ -1930,7 +1936,7 @@ int create_apache_conf_File(an_itemValues &itemValues)
     vec.emplace_back("ServerName  127.0.1.1");
     vec.emplace_back("");
     vec.emplace_back("DocumentRoot " + itemValues.usrPath  + "htdocs");
-    vec.emplace_back("<Directory   " + itemValues.usrPath  + "htdocs/>");
+    vec.emplace_back("<Directory   " + itemValues.usrPath  + "htdocs>");
     vec.emplace_back("");
     vec.emplace_back("  <RequireAny>");
     vec.emplace_back("    Require ip 10.0");
@@ -2047,6 +2053,149 @@ int apache_notes(an_itemValues& itemValues)
         vec.emplace_back("useradd -g apache_ws apache_ws ");
         file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
 
+        //Ensure firewalld starts on boot and more
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#You can only use iptables or firewalld");
+        vec.emplace_back("#We are choosing to only use firewalld");
+        vec.emplace_back("#Ensure iptables will not start on boot");
+        vec.emplace_back("systemctl mask   iptables");
+        vec.emplace_back("#Ensure firewalld starts on boot");
+        vec.emplace_back("systemctl enable firewalld");
+        vec.emplace_back("#It could be a good idea to reboot your system now.");
+        vec.emplace_back("#Ensure firewalld is started now");
+        vec.emplace_back("systemctl status -l  firewalld");
+        vec.emplace_back("#If your filewall is not running use this command.");
+        vec.emplace_back("systemctl start  firewalld");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("#");
+        vec.emplace_back("#After making temp changes to reset firewall back to permanent rules");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Remove http and https from firewall before website is ready
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#Remove http and https from firewall before website is ready");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("firewall-cmd             --remove-service=http");
+        vec.emplace_back("firewall-cmd --permanent --remove-service=http");
+        vec.emplace_back("firewall-cmd             --remove-service=https");
+        vec.emplace_back("firewall-cmd --permanent --remove-service=https");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Remove http port and https port from firewall when website is not ready
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#Remove http and https from firewall before website is ready");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("firewall-cmd             --remove-port=80/tcp");
+        vec.emplace_back("firewall-cmd --permanent --remove-port=80/tcp");
+        vec.emplace_back("firewall-cmd             --remove-port=443/tcp");
+        vec.emplace_back("firewall-cmd --permanent --remove-port=443/tcp");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Remove remote access via ssh
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("firewall-cmd             --remove-service=ssh");
+        vec.emplace_back("firewall-cmd --permanent --remove-service=ssh");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Remove remote access via ssh
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("firewall-cmd             --remove-port=22/tcp");
+        vec.emplace_back("firewall-cmd --permanent --remove-port=22/tcp");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Add remote access via ssh
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("firewall-cmd             --add-service=ssh");
+        vec.emplace_back("firewall-cmd --permanent --add-service=ssh");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Add remote access via ssh
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("firewall-cmd             --add-port=22/tcp");
+        vec.emplace_back("firewall-cmd --permanent --add-port=22/tcp");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Add http and https to firewall when website is ready
+        vec.clear();
+        vec.emplace_back("# ");
+        vec.emplace_back("#Add http and https to firewall when website is ready");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("firewall-cmd             --add-service=http");
+        vec.emplace_back("firewall-cmd --permanent --add-service=http");
+        vec.emplace_back("firewall-cmd             --add-service=https");
+        vec.emplace_back("firewall-cmd --permanent --add-service=https");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("systemctl reload firewalld");
+        vec.emplace_back("# ");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+        //Add http port and https port to firewall when website is ready
+        vec.clear();
+        vec.emplace_back("#Add http and https to firewall when website is ready");
+        vec.emplace_back("firewall-cmd             --list-ports");
+        vec.emplace_back("firewall-cmd --permanent --list-ports");
+        vec.emplace_back("firewall-cmd             --add-port=80/tcp");
+        vec.emplace_back("firewall-cmd --permanent --add-port=80/tcp");
+        vec.emplace_back("firewall-cmd             --add-port=443/tcp");
+        vec.emplace_back("firewall-cmd --permanent --add-port=443/tcp");
+        vec.emplace_back("firewall-cmd             --list-services");
+        vec.emplace_back("firewall-cmd --permanent --list-services");
+        vec.emplace_back("systemctl reload firewalld");
+        file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
+
+
         //Create required directories if needed
         vec.clear();
         vec.emplace_back("# ");
@@ -2058,13 +2207,17 @@ int apache_notes(an_itemValues& itemValues)
 
         vec.clear();
         vec.emplace_back("");
+        vec.emplace_back("# To check the version of Apache Web server run the following commands");
+        vec.emplace_back("cd " + itemValues.usrPath + "bin;");
+        vec.emplace_back("./apachectl -f " + itemValues.etcPath + "apache.conf -v");
+        vec.emplace_back("");
         vec.emplace_back("# To check the syntax of this file run the following commands");
         vec.emplace_back("cd " + itemValues.usrPath + "bin;");
         vec.emplace_back("./apachectl -f " + itemValues.etcPath + "apache.conf -t");
         vec.emplace_back("");
-        vec.emplace_back("# To check the version of Apache Web server run the following commands");
+        vec.emplace_back("# To check the syntax of virtual hosts run the following commands");
         vec.emplace_back("cd " + itemValues.usrPath + "bin;");
-        vec.emplace_back("./apachectl -f " + itemValues.etcPath + "apache.conf -v");
+        vec.emplace_back("./apachectl -f " + itemValues.etcPath + "apache.conf -S");
         vec.emplace_back("");
         vec.emplace_back("# To start/restart Apache Web server run the following commands");
         vec.emplace_back("cd " + itemValues.usrPath + "bin;");
@@ -2074,6 +2227,16 @@ int apache_notes(an_itemValues& itemValues)
         vec.emplace_back("cd " + itemValues.usrPath + "bin;");
         vec.emplace_back("./apachectl -f " + itemValues.etcPath + "apache.conf -k graceful-stop");
         vec.emplace_back("#");
+        vec.emplace_back("# To set permissions run the following commands");
+        vec.emplace_back("cd " + itemValues.etcPath + "../;");
+        vec.emplace_back("chown -R :apache_ws apache");
+        vec.emplace_back("chmod -R 750 apache");
+        vec.emplace_back("# To set permissions run the following commands");
+        vec.emplace_back("cd " + itemValues.usrPath + "../;");
+        vec.emplace_back("chown -R :apache_ws apache");
+        vec.emplace_back("chmod -R 750 apache");
+        vec.emplace_back("#");
+
         file_write_vector_to_file(itemValues.fileName_Notes, vec, false);
 
         create_apache_conf_File(itemValues);
@@ -3799,6 +3962,31 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             commands.emplace_back(positionCommand + "  --with-apr-util='" + usrBasePath + "apr-util'");
             commands.emplace_back(positionCommand + "  --with-apr-iconv='" + usrBasePath + "apr-iconv'");
             commands.emplace_back(positionCommand + "  --with-pcre='" + usrBasePath + "pcre'");
+            //
+            // Note:
+            //  We are NOT enabling http2 in the apache setup
+            //     because of the following error
+            //
+            //    checking for nghttp2... checking for user-provided nghttp2 base directory... none
+            //    checking for pkg-config along ... checking for nghttp2 version >= 1.2.1... FAILED
+            //    configure: WARNING: nghttp2 version is too old
+            //
+            //  even though
+            //
+            //  yum install libnghttp2
+            //  Loaded plugins: fastestmirror, langpacks
+            //  Loading mirror speeds from cached hostfile
+            //     * base: mirror.web-ster.com
+            //     * epel: mirror.prgmr.com
+            //     * extras: mirror.web-ster.com
+            //     * updates: mirror.web-ster.com
+            //  Package libnghttp2-1.31.1-1.el7.x86_64 already installed and latest version
+            //  Nothing to do
+            //
+            //  so we have to comment out the next command
+            //
+            //  commands.emplace_back(positionCommand + "  --enable-http2");
+            //
             commands.emplace_back(positionCommand + "  --enable-so");
             configureStr.append(multilineCommand(commands, false));
 
