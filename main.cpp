@@ -2673,9 +2673,12 @@ int make_install(an_itemValues& itemValues)
     sstr suffix = "make_install_results.txt";
     makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
     vec.emplace_back("# ");
+    vec.emplace_back("# Propername....." + itemValues.ProperName);
+    vec.emplace_back("# Version........" + itemValues.version);
     vec.emplace_back("# Make install...");
     vec.emplace_back("eval \"      cd '" + itemValues.srcPathPNV + "';\n"
-                + positionCommand + "make install > '" + makePathAndFileName   + "' 2>&1 \"");
+            + positionCommand + "make install > '" + makePathAndFileName + "' 2>&1 \"");
+
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0) {
         vec.clear();
