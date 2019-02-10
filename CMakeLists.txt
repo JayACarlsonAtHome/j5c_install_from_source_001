@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.10)
 project(j5c_install_from_source_001)
 
 set(CMAKE_CXX_STANDARD 17)
