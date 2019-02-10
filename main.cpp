@@ -3378,17 +3378,6 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     temp.append("  --enable-mysqlnd ");
     commands.emplace_back(temp);
 
-    /*
-    temp.clear();
-    tmpPath = "usr/mariadb/";
-    sstr mdbPath = joinPathParts(itemValues.rtnPath, tmpPath);
-    temp.append(positionCommand);
-    temp.append("  --with-pdo-mysql='");
-    temp.append(mdbPath);
-    temp.append("'");
-    commands.emplace_back(temp);
-    */
-
     temp.clear();
     temp.append(positionCommand);
     sstr pcrePath = "/usr/pcre2";
@@ -3397,26 +3386,6 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     temp.append(pcrePath);
     temp.append("'");
     commands.emplace_back(temp);
-
-    /*
-    temp.clear();
-    temp.append(positionCommand);
-    sstr pcre2Path = "/usr/pcre2";
-    pcre2Path = joinPathParts(itemValues.rtnPath, pcre2Path);
-    temp.append("  --with-pcre2-regex='");
-    temp.append(pcre2Path);
-    temp.append("'");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    pcre2Path = "/usr/pcre2";
-    pcre2Path = joinPathParts(itemValues.rtnPath, pcre2Path);
-    temp.append("  --with-pcre2-config='");
-    temp.append(pcre2Path);
-    temp.append("'");
-    commands.emplace_back(temp);
-    */
 
     temp.clear();
     temp.append(positionCommand);
@@ -3476,11 +3445,15 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     temp.append("' ");
     commands.emplace_back(temp);
 
-    //save the next command
-    //commands.emplace_back(positionCommand + "  --with-zlib-dir=/home/j5c/p003/usr/mariadb/lib/");
+    temp.clear();
+    temp.append(positionCommand);
+    temp.append("  --with-zlib-dir='");
+    tmpPath = "usr/mariadb/";
+    sstr zlibPath = joinPathParts(itemValues.rtnPath, tmpPath);
+    temp.append(zlibPath);
+    temp.append("'");
+    commands.emplace_back(temp);
 
-    //try this instead and see if it still works. 
-    commands.emplace_back(positionCommand + "  --with-zlib-dir=/home/j5c/p003/usr/mariadb/");
     commands.emplace_back(positionCommand + "  --with-pdo-mysql=mysqlnd");
     commands.emplace_back(positionCommand + "  --enable-embedded-mysqli");
     commands.emplace_back(positionCommand + "  --disable-cgi");
