@@ -1,52 +1,55 @@
 # j5c_install_from_source_001
 
 This project "j5c_install_from_source_001" is the source code for a program
-that will download and install programming languages and servers.  
+that will download and install Apache Web Server, MariaDB Server and Clients, Mail Server,
+and various programming languages and libraries.
+
+  
 The current list of programs is:
 
 --Dependencies-- from package manager
 
 From source code:
 ===========================
+cmake->Version : 3.13.4  (used for building software)
 
-CMake 3.11.4
+libzip->Version : 1.5.1 (used for compression)
 
-Libzip 1.5.1
+perl5->Version : 5.28.1 (used for web programming)
 
-Perl-5.28.0
+openssl->Version : 1.1.1a (used for encryption)
 
-Openssl 1.1.0h
+mariadb->Version : 10.3.12 (a database server)
 
-Mariadb-10.3.7
+apr->Version : 1.6.5 (needed for Apache Web Server)
 
-Perl6-2018.04
+apr-util->Version : 1.6.1 (needed for Apache Web Server)
 
-Apr-1.6.3
+apr-iconv->Version : 1.2.2 (needed for Apache Web Server)
 
-Apr-util-1.6.1
+pcre->Version : 8.42 (needed for Apache Web Server)
 
-Apr-iconv-1.2.2
+pcre2->Version : 10.32 (needed for Apache Web Server, and PHP)
 
-Pcre-8.42
+apache->Version : 2.4.38 (Apache Web Server)
 
-Pcre2-10.31
+perl6->Version : 2018.10 (new perl web programming language)
 
-Apache-2.4.33
+php->Version : 7.3.2 (web programming scripting language)
 
-Php-7.2.7 (with optional xdebug 2.6.0)
+php->Xdebug_Version : 2.7.0RC1 (web programming debugging for php)
 
-Poco-1.9.0
+poco->Version : 1.9.0 (c++ library)
 
-Postfix-3.3.1
+postfix->Version : 3.3.1 (mail server)
 
-Python-3.6.5
+python->Version : 3.7.2 (a general purpose programming language)
 
-Ruby-2.5.1
+ruby->Version : 2.6.1 (a general purpose and web programming language)
 
-Tcl-8.7a1
+tcl->Version : 8.7a1 (a scripting tool)
 
-Tk-8.7a1
-
+tk->Version : 8.7a1 (a scripting tool that does multi-platform GUIs)
 
 There is a settings file "Install_Settings.cfg" that must be in the same
 directory as the created executable.  The executable will load the details
