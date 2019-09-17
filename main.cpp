@@ -1362,7 +1362,6 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install libicu-devel");
     vec.emplace_back("yum -y install libjpeg-turbo-utils");
     vec.emplace_back("yum -y install libjpeg-turbo-devel");
-    vec.emplace_back("yum -y install ");
     vec.emplace_back("yum -y install libpng-devel");
     vec.emplace_back("yum -y install libstdc++");
     vec.emplace_back("yum -y install libstdc++-devel");
@@ -1534,6 +1533,7 @@ void howToRemoveFileProtection(an_itemValues& itemValues)
 bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
 {
     bool result = false;
+    bool special = false;
     std::vector<sstr> vec;
     itemValues.getPath.append(itemValues.fileName_Compressed);
 
@@ -1547,8 +1547,14 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         if (itemValues.programName == "php")
         {
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "/from/this/mirror \"");
+            special = true;
         }
-        else
+        if (itemValues.programName == "mariadb")
+        {
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "/from/http%3A//ftp.kaist.ac.kr/mariadb \"");
+            special = true;
+        }
+        if (!special)
         {
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "\"");
         }
@@ -3646,6 +3652,9 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
+
+
+
         bool securityCheck = check_Sha256sum(itemValues);
         if (securityCheck)
         {
