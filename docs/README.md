@@ -11,41 +11,41 @@ The current list of programs is:
 
 From source code:
 ===========================
-cmake->Version : 3.13.4  (used for building software)
+cmake->Version : 3.15.3  (used for building software)
 
-libzip->Version : 1.5.1 (used for compression)
+libzip->Version : 1.5.2 (used for compression)
 
-perl5->Version : 5.28.1 (used for web programming)
+perl5->Version : 5.30.0 (used for web programming)
 
-openssl->Version : 1.1.1a (used for encryption)
+openssl->Version : 1.1.1d (used for encryption)
 
-mariadb->Version : 10.3.12 (a database server)
+mariadb->Version : 10.4.8 (a database server)
 
-apr->Version : 1.6.5 (needed for Apache Web Server)
+apr->Version : 1.7.0 (needed for Apache Web Server)
 
 apr-util->Version : 1.6.1 (needed for Apache Web Server)
 
 apr-iconv->Version : 1.2.2 (needed for Apache Web Server)
 
-pcre->Version : 8.42 (needed for Apache Web Server)
+pcre->Version : 8.43 (needed for Apache Web Server)
 
-pcre2->Version : 10.32 (needed for Apache Web Server, and PHP)
+pcre2->Version : 10.33 (needed for Apache Web Server, and PHP)
 
-apache->Version : 2.4.38 (Apache Web Server)
+apache->Version : 2.4.41 (Apache Web Server)
 
-perl6->Version : 2018.10 (new perl web programming language)
+perl6->Version : 2019.03 (new perl web programming language)
 
-php->Version : 7.3.2 (web programming scripting language)
+php->Version : 7.2.23 (web programming scripting language)
 
-php->Xdebug_Version : 2.7.0RC1 (web programming debugging for php)
+php->Xdebug_Version : 2.7.2 (web programming debugging for php)
 
-poco->Version : 1.9.0 (c++ library)
+poco->Version : 1.9.4 (c++ library)
 
-postfix->Version : 3.3.1 (mail server)
+postfix->Version : 3.4.7 (mail server)
 
-python->Version : 3.7.2 (a general purpose programming language)
+python->Version : 3.7.4 (a general purpose programming language)
 
-ruby->Version : 2.6.1 (a general purpose and web programming language)
+ruby->Version : 2.6.4 (a general purpose and web programming language)
 
 tcl->Version : 8.7a1 (a scripting tool)
 
