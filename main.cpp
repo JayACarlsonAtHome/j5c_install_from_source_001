@@ -1325,7 +1325,7 @@ int install_mac_required_dependencies(Mac_PM mpm)
 
 int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool createScriptOnly)
 {
-    sstr fedora_release = "7";
+    sstr fedora_release = "8";
     sstr command;
     std::vector<sstr> vec;
     vec.emplace_back("# Install " + programName + ".");
@@ -1359,6 +1359,7 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install Judy");
     vec.emplace_back("yum -y install libcurl-devel");
     vec.emplace_back("yum -y install libedit-devel");
+    vec.emplace_back("yum -y install libffi-devel");
     vec.emplace_back("yum -y install libicu-devel");
     vec.emplace_back("yum -y install libjpeg-turbo-utils");
     vec.emplace_back("yum -y install libjpeg-turbo-devel");
@@ -1422,6 +1423,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("apt install libncurses5-dev -y");
     vec.emplace_back("apt install libedit-dev -y");
     vec.emplace_back("apt install libexpat-dev -y");
+    vec.emplace_back("apt install libffi-dev -y");
     vec.emplace_back("apt install libicu-dev -y");
     vec.emplace_back("apt install libjemalloc-dev -y");
     vec.emplace_back("apt install libjpeg-dev -y");
@@ -2044,6 +2046,7 @@ int create_apache_conf_File(an_itemValues &itemValues)
 
 int apache_notes(an_itemValues& itemValues)
 {
+    int result = 0;
     std::vector<sstr> vec;
     if (itemValues.ProperName == "Apache") {
 
@@ -2119,7 +2122,7 @@ int apache_notes(an_itemValues& itemValues)
         //Remove remote access via ssh
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("#Remove remote access if needed for security");
         vec.emplace_back("firewall-cmd             --list-services");
         vec.emplace_back("firewall-cmd --permanent --list-services");
         vec.emplace_back("firewall-cmd             --remove-service=ssh");
@@ -2133,7 +2136,7 @@ int apache_notes(an_itemValues& itemValues)
         //Remove remote access via ssh
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("#Remove remote access if needed for security");
         vec.emplace_back("firewall-cmd             --list-ports");
         vec.emplace_back("firewall-cmd --permanent --list-ports");
         vec.emplace_back("firewall-cmd             --remove-port=22/tcp");
@@ -2147,7 +2150,7 @@ int apache_notes(an_itemValues& itemValues)
         //Add remote access via ssh
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("#Add remote access if needed");
         vec.emplace_back("firewall-cmd             --list-services");
         vec.emplace_back("firewall-cmd --permanent --list-services");
         vec.emplace_back("firewall-cmd             --add-service=ssh");
@@ -2161,7 +2164,7 @@ int apache_notes(an_itemValues& itemValues)
         //Add remote access via ssh
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("#Remove access remote access if needed for security");
+        vec.emplace_back("#Add remote access if needed for security");
         vec.emplace_back("firewall-cmd             --list-ports");
         vec.emplace_back("firewall-cmd --permanent --list-ports");
         vec.emplace_back("firewall-cmd             --add-port=22/tcp");
@@ -2252,9 +2255,10 @@ int apache_notes(an_itemValues& itemValues)
         vec.emplace_back("#");
         vec.emplace_back("# See the Installation Notes on how to");
         vec.emplace_back("#   setup and start apache web server.");
-        int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         return result;
     }
+    return result;
 }
 
 int create_mariaDB_cnf_File(an_itemValues &itemValues)
@@ -2509,6 +2513,7 @@ int make_tests(an_itemValues& itemValues)
 
 int mariadb_notes(an_itemValues& itemValues)
 {
+    int result = 0;
     std::vector<sstr> vec;
     if (itemValues.ProperName == "Mariadb") {
 
@@ -2546,6 +2551,7 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("useradd -g mysql mysql ");
         //Create required directories if needed
         vec.emplace_back("# ");
+        vec.emplace_back("mkdir -p '/auth_pam_tool_dir/auth_pam_tool'");
         vec.emplace_back("mkdir -p '" + itemValues.usrPath + "data/temp'");
         vec.emplace_back("mkdir -p '" + itemValues.usrPath + "data/source'");
         vec.emplace_back("mkdir -p '" + itemValues.usrPath + "run'");
@@ -2667,9 +2673,10 @@ int mariadb_notes(an_itemValues& itemValues)
         vec.emplace_back("#");
         vec.emplace_back("# See the Installation_Notes on how to setup and start mariadb.");
         vec.emplace_back("eval \"cd '" + itemValues.rtnPath + "' \"");
-        int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         return result;
     }
+    return result;
 }
 
 int make_install(an_itemValues& itemValues)
@@ -3386,7 +3393,7 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
 
     temp.clear();
     temp.append(positionCommand);
-    sstr pcrePath = "/usr/pcre2";
+    sstr pcrePath = "/usr/pcre";
     pcrePath = joinPathParts(itemValues.rtnPath, pcrePath);
     temp.append("  --with-pcre-regex='");
     temp.append(pcrePath);
