@@ -1176,6 +1176,7 @@ sstr get_sha256sum(an_itemValues& itemValues)
     command.append( "* > ");
     command.append(outPathFileName);
     vec.emplace_back(command);
+
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     ensure_file(outPathFileName);
     vec.clear();
@@ -1343,6 +1344,7 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install cmake-gui");
     vec.emplace_back("yum -y install expat-devel");
     vec.emplace_back("yum -y install ftp");
+    vec.emplace_back("yum -y install flex");
     vec.emplace_back("yum -y install gawk");
     vec.emplace_back("yum -y install google-chrome-stable");
     vec.emplace_back("yum -y install git");
@@ -1378,6 +1380,7 @@ int install_yum_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("yum -y install mytop");
     vec.emplace_back("yum -y install ncurses-devel");
     vec.emplace_back("yum -y install openssl-devel");
+    vec.emplace_back("yum -y install oniguruma");
     vec.emplace_back("yum -y install perl-CPAN");
     vec.emplace_back("yum -y install java-1.8.0-openjdk");
     vec.emplace_back("yum -y install re2c");
@@ -1411,6 +1414,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("apt install cmake -y");
     vec.emplace_back("apt install cmake-gui -y");
     vec.emplace_back("apt install ftp -y");
+    vec.emplace_back("apt install flex -y");
     vec.emplace_back("apt install google-chrome-stable -y");
     vec.emplace_back("apt install git -y");
     vec.emplace_back("apt install gitk -y");
@@ -1430,6 +1434,7 @@ int install_apt_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("apt install libjudy-dev -y");
     vec.emplace_back("apt install libncurses5-dev -y");
     vec.emplace_back("apt install libnghttp2");
+    vec.emplace_back("apt install libonig-dev");
     vec.emplace_back("apt install libpng-dev -y");
     vec.emplace_back("apt install libsqlite3-tcl -y");
     vec.emplace_back("apt install libssl-dev -y");
@@ -1536,6 +1541,7 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
 {
     bool result = false;
     bool special = false;
+    sstr fileName = "";
     std::vector<sstr> vec;
     itemValues.getPath.append(itemValues.fileName_Compressed);
 
@@ -1543,7 +1549,8 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
     vec.emplace_back("# Stage source file if needed.");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
-    if (!(isFileSizeGtZero(itemValues, itemValues.fileName_Staged, true)))
+    fileName = itemValues.fileName_Staged;
+    if (!(isFileSizeGtZero(itemValues, fileName, true)))
     {
         vec.emplace_back("# Attempting to download file...");
         if (itemValues.programName == "php")
@@ -1553,7 +1560,13 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         }
         if (itemValues.programName == "mariadb")
         {
+            //We need the program name without the version number here.
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "/from/http%3A//ftp.kaist.ac.kr/mariadb \"");
+            //We copy the programName to to programName plus the version
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; cp './" + itemValues.programName + "' '" + itemValues.fileName_Compressed + "'\"");
+            //We remove the programName
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f './" + itemValues.programName + "'\"");
+
             special = true;
         }
         if (!special)
@@ -1662,9 +1675,12 @@ int createTargetFromStage(an_itemValues& itemValues)
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Copy, decompress, and remove compressed file.");
-    vec.emplace_back("eval \"cd '" + itemValues.stgPath + "';        cp './"   + itemValues.fileName_Compressed + "' '" + itemValues.srcPath + "'\"");
+    vec.emplace_back(
+            "eval \"cd '" + itemValues.stgPath + "';        cp './" + itemValues.fileName_Compressed + "' '" +
+            itemValues.srcPath + "'\"");
     vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
     vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
+
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0)
     {
@@ -3008,14 +3024,20 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.emplace_back("# ");
         vec.emplace_back("# cp modules/xdebug.so");
 
+        // So apparently php change directory structure slightly so this is the smallest adjustment I could make
+        //   and still get the results I want.
+        //   -- (and a few other changes a few lines down as well changing lib to libs)
+        vec.emplace_back("eval \"mkdir -p '" + itemValues.usrPath + "libs/php/extensions'\"");
+        // end of these notes
+
         // checking for the mode of PHP and adjusting accordingly
         if (bCompileForDebug) {
             vec.emplace_back("eval \"cd '" + itemValues.usrPath + xDebugProgVersion + "'; cp modules/xdebug.so '"
-                             + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version + "' \"");
+                             + itemValues.usrPath + "libs/php/extensions/debug-zts-" + zts_version + "' \"");
 
         } else {
             vec.emplace_back("eval \"cd '" + itemValues.usrPath + xDebugProgVersion + "'; cp modules/xdebug.so '"
-                             + itemValues.usrPath + "lib/php/extensions/no-debug-zts-" + zts_version + "' \"");
+                             + itemValues.usrPath + "libs/php/extensions/no-debug-zts-" + zts_version + "' \"");
 
         }
         result += do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
@@ -3031,17 +3053,17 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         // checking for the mode of PHP and adjusting accordingly
         if (bCompileForDebug) {
             vec.emplace_back("# ");
-            vec.emplace_back("# zend_extension = '" + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+            vec.emplace_back("# zend_extension = '" + itemValues.usrPath + "libs/php/extensions/debug-zts-" + zts_version +
                              "/xdebug.so'");
-            vec.emplace_back("eval \"cd '" + itemValues.etcPath + "lib/';\necho zend_extension = '"
-                             + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+            vec.emplace_back("eval \"cd '" + itemValues.etcPath + "libs/';\necho zend_extension = '"
+                             + itemValues.usrPath + "libs/php/extensions/debug-zts-" + zts_version +
                              "/xdebug.so' > php_ext.ini \"");
         } else {
             vec.emplace_back("# ");
-            vec.emplace_back("# zend_extension = '" + itemValues.usrPath + "lib/php/extensions/debug-zts-" + zts_version +
+            vec.emplace_back("# zend_extension = '" + itemValues.usrPath + "libs/php/extensions/debug-zts-" + zts_version +
                              "/xdebug.so'");
             vec.emplace_back("eval \"cd '" + itemValues.etcPath + "lib/';\necho zend_extension = '"
-                             + itemValues.usrPath + "lib/php/extensions/no-debug-zts-" + zts_version +
+                             + itemValues.usrPath + "libs/php/extensions/no-debug-zts-" + zts_version +
                              "/xdebug.so' > php_ext.ini \"");
         }
     } else {
@@ -3338,6 +3360,7 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     sstr mariadbController = joinPathWithFile(mariadbPath, tmpFile);
 
     std::vector<sstr> commands;
+    //sstr configureStr = "";
     sstr configureStr = "eval \"set PKG_CONFIG_PATH /usr/lib64/pkgconfig;\"";
     configureStr.append("\n");
 
@@ -3393,15 +3416,6 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
 
     temp.clear();
     temp.append(positionCommand);
-    sstr pcrePath = "/usr/pcre";
-    pcrePath = joinPathParts(itemValues.rtnPath, pcrePath);
-    temp.append("  --with-pcre-regex='");
-    temp.append(pcrePath);
-    temp.append("'");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
     temp.append("  --with-config-file-path='");
     tmpPath = "lib";
     sstr libPath = joinPathParts(itemValues.usrPath, tmpPath);
@@ -3428,7 +3442,7 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
         //I will probably have to work on this later...
 
         //The problem is with defaults, where some code is looking in lib and other code is looking in lib64
-        //I still have to deffer this till later.
+        //I still have to defer this till later.
 
         temp.clear();
         temp.append(positionCommand);
@@ -3449,26 +3463,8 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     temp.append("'");
     commands.emplace_back(temp);
 
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --with-libzip='");
-    tmpPath = "/usr/libzip";
-    sstr libZipPath =  joinPathParts(itemValues.rtnPath, tmpPath);
-    temp.append(libZipPath);
-    temp.append("' ");
-    commands.emplace_back(temp);
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --with-zlib-dir='");
-    tmpPath = "usr/mariadb/";
-    sstr zlibPath = joinPathParts(itemValues.rtnPath, tmpPath);
-    temp.append(zlibPath);
-    temp.append("'");
-    commands.emplace_back(temp);
-
     commands.emplace_back(positionCommand + "  --with-pdo-mysql=mysqlnd");
-    commands.emplace_back(positionCommand + "  --enable-embedded-mysqli");
+    commands.emplace_back(positionCommand + "  --libdir='/usr/lib64/'");
     commands.emplace_back(positionCommand + "  --disable-cgi");
     commands.emplace_back(positionCommand + "  --disable-short-tags");
     commands.emplace_back(positionCommand + "  --enable-bcmath");
@@ -3479,8 +3475,9 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     commands.emplace_back(positionCommand + "  --enable-dba=shared");
     commands.emplace_back(positionCommand + "  --enable-ftp");
     commands.emplace_back(positionCommand + "  --enable-intl");
-    commands.emplace_back(positionCommand + "  --enable-mbstring");
     commands.emplace_back(positionCommand + "  --enable-zend-test");
+    commands.emplace_back(positionCommand + "  --enable-mbstring");
+    //commands.emplace_back(positionCommand + "  --enable-mbregex");
 
     if ( bCompileForDebug ){
         commands.emplace_back(positionCommand + "  --enable-debug");
@@ -4227,8 +4224,6 @@ int install_postfix(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         if (securityCheck)
         {
             result = setupInstallDirectories(itemValues);
-
-
             /*
              * Currently Installation of this is not supported...
              *   Maybe later when I know more about it.
