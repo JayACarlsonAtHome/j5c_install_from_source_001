@@ -5,21 +5,21 @@ that will download and install Apache Web Server, MariaDB Server and Clients, Ma
 and various programming languages and libraries.
 
   
-The current list of programs is:
+The current list of programs:
 
 --Dependencies-- from package manager
 
 From source code:
 ===========================
-cmake->Version : 3.15.3  (used for building software)
+cmake->Version : 3.17.3  (used for building software)
 
-libzip->Version : 1.5.2 (used for compression)
+libzip->Version : 1.6.1 (used for compression)
 
-perl5->Version : 5.30.0 (used for web programming)
+perl5->Version : 5.30.3 (used for web programming)
 
-openssl->Version : 1.1.1d (used for encryption)
+openssl->Version : 1.1.1g (used for encryption)
 
-mariadb->Version : 10.4.8 (a database server)
+mariadb->Version : 10.4.13 (a database server)
 
 apr->Version : 1.7.0 (needed for Apache Web Server)
 
@@ -27,29 +27,29 @@ apr-util->Version : 1.6.1 (needed for Apache Web Server)
 
 apr-iconv->Version : 1.2.2 (needed for Apache Web Server)
 
-pcre->Version : 8.43 (needed for Apache Web Server)
+pcre->Version : 8.44 (needed for Apache Web Server)
 
-pcre2->Version : 10.33 (needed for Apache Web Server, and PHP)
+pcre2->Version : 10.35 (needed for Apache Web Server, and PHP)
 
-apache->Version : 2.4.41 (Apache Web Server)
+apache->Version : 2.4.46 (Apache Web Server)
 
 perl6->Version : 2019.03 (new perl web programming language)
 
-php->Version : 7.2.23 (web programming scripting language)
+php->Version : 7.4.8 (web programming scripting language)
 
-php->Xdebug_Version : 2.7.2 (web programming debugging for php)
+php->Xdebug_Version : 2.9.6 (web programming debugging for php)
 
-poco->Version : 1.9.4 (c++ library)
+poco->Version : 1.10.1 (c++ library)
 
-postfix->Version : 3.4.7 (mail server)
+postfix->Version : 3.5.3 (mail server)
 
-python->Version : 3.7.4 (a general purpose programming language)
+python->Version : 3.8.3 (a general purpose programming language)
 
-ruby->Version : 2.6.4 (a general purpose and web programming language)
+ruby->Version : 2.7.1 (a general purpose and web programming language)
 
-tcl->Version : 8.7a1 (a scripting tool)
+tcl->Version : 8.7a3 (a scripting tool)
 
-tk->Version : 8.7a1 (a scripting tool that does multi-platform GUIs)
+tk->Version : 8.7a3 (a scripting tool that does multi-platform GUIs)
 
 There is a settings file "Install_Settings.cfg" that must be in the same
 directory as the created executable.  The executable will load the details
@@ -157,6 +157,8 @@ I was going to do MacOSX but there are enough differences
 and the fact that MacBook Pros really don't have enough resources for 
 it to really matter, and I don't have a Mac Desktop. So I haven't finished
 and maybe will never finish that one.
+Update:  I have a new mac mini with 64 GB of ram. OH YEAH, 
+The mac mini can do this now...but I haven't started it yet.
 
 The project was built with JetBrains CLion.
 So that would be your easiest way to build the executable on your system.
@@ -181,7 +183,8 @@ run the executable ./Install.sh
 and two to six hours later depending on the speed of your hardware
 you will have your system baseline setup.
 
+Reading and implementing many of the notes that are logged will
+help with further setup and implementations.
 
-
-
-
+/r
+Jay Carlson (Cheers!)
