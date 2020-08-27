@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(j5c_install_from_source_001)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(SOURCE_FILES
         source/j5c_date.h
@@ -10,3 +10,4 @@ set(SOURCE_FILES
         )
 
 add_executable(Install.sh ${SOURCE_FILES})
+

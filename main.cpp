@@ -3476,8 +3476,14 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
     commands.emplace_back(positionCommand + "  --enable-ftp");
     commands.emplace_back(positionCommand + "  --enable-intl");
     commands.emplace_back(positionCommand + "  --enable-zend-test");
-    commands.emplace_back(positionCommand + "  --enable-mbstring");
+
+    //commands.emplace_back(positionCommand + "  --enable-mbstring");
     //commands.emplace_back(positionCommand + "  --enable-mbregex");
+    //These two commands above require Package 'oniguruma', required by 'virtual:world', not found
+    //  Consider adjusting the PKG_CONFIG_PATH environment variable if you
+    //  installed software in a non-standard prefix.
+    //  This is a total pain...just saying...
+
 
     if ( bCompileForDebug ){
         commands.emplace_back(positionCommand + "  --enable-debug");
