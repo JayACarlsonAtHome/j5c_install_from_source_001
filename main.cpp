@@ -2484,6 +2484,24 @@ int test_perl6(an_itemValues& itemValues)
     return result;
 }
 
+int test_python(an_itemValues& itemValues)
+{
+    std::vector<sstr> vec1;
+    if (itemValues.ProperName == "Python") {
+        // do nothing..
+        // until I can get "expect" to read the input and "send" some data
+        // I don't want the tests to hold up the script.
+        vec1.emplace_back("# ");
+        vec1.emplace_back("# I am tired of python tests never finishing,");
+        vec1.emplace_back("#  or failing in such a way that the scripts will not complete.");
+        vec1.emplace_back("# You can run the tests manually at your own peril.");
+        vec1.emplace_back("# And that's all I have to say about that...");
+        do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
+    }
+    return 0;
+}
+
+
 int make_tests(an_itemValues& itemValues)
 {
     int result = 0;
@@ -2497,6 +2515,10 @@ int make_tests(an_itemValues& itemValues)
         }
         if (itemValues.ProperName == "Perl6") {
             test_perl6(itemValues);
+            cont = false;
+        }
+        if (itemValues.ProperName == "Python") {
+            test_python(itemValues);
             cont = false;
         }
 
