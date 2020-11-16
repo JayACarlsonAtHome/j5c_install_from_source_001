@@ -11,15 +11,15 @@ The current list of programs:
 
 From source code:
 ===========================
-cmake->Version : 3.17.3  (used for building software)
+cmake->Version : 3.18.4  (used for building software)
 
-libzip->Version : 1.6.1 (used for compression)
+libzip->Version : 1.7.3 (used for compression)
 
-perl5->Version : 5.30.3 (used for web programming)
+perl5->Version : 5.32.0 (used for web programming)
 
-openssl->Version : 1.1.1g (used for encryption)
+openssl->Version : 1.1.1h (used for encryption)
 
-mariadb->Version : 10.4.13 (a database server)
+mariadb->Version : 10.5.8 (a database server)
 
 apr->Version : 1.7.0 (needed for Apache Web Server)
 
@@ -33,19 +33,19 @@ pcre2->Version : 10.35 (needed for Apache Web Server, and PHP)
 
 apache->Version : 2.4.46 (Apache Web Server)
 
-perl6->Version : 2019.03 (new perl web programming language)
+perl6->Version : 2020.10 (new perl web programming language)
 
-php->Version : 7.4.8 (web programming scripting language)
+php->Version : 7.4.12 (web programming scripting language)
 
-php->Xdebug_Version : 2.9.6 (web programming debugging for php)
+php->Xdebug_Version : 2.9.8 (web programming debugging for php)
 
 poco->Version : 1.10.1 (c++ library)
 
 postfix->Version : 3.5.3 (mail server)
 
-python->Version : 3.8.3 (a general purpose programming language)
+python->Version : 3.9.0 (a general purpose programming language)
 
-ruby->Version : 2.7.1 (a general purpose and web programming language)
+ruby->Version : 2.7.2 (a general purpose and web programming language)
 
 tcl->Version : 8.7a3 (a scripting tool)
 
