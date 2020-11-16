@@ -3746,7 +3746,11 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             result = setupInstallDirectories(itemValues);
             sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "'\";\n";
             std::vector<sstr> commands;
-            commands.emplace_back(positionCommand + "'" + itemValues.perl5RunPath + "perl' Configure.pl");
+            if (itemValues.perl5RunPath.substr(itemValues.perl5RunPath.length()-1,1) == "/")
+            {
+                itemValues.perl5RunPath = itemValues.perl5RunPath.substr(0,itemValues.perl5RunPath.length()-1);
+            }
+            commands.emplace_back(positionCommand + "'" + itemValues.perl5RunPath + "/perl' Configure.pl");
             commands.emplace_back(positionCommand + "--backend=moar --gen-moar --prefix='" + itemValues.usrPath + "'");
             configureStr.append(multilineCommand(commands, false));
 
