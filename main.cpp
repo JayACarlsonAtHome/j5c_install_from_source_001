@@ -1566,14 +1566,12 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; cp './" + itemValues.programName + "' '" + itemValues.fileName_Compressed + "'\"");
             //We remove the programName
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f './" + itemValues.programName + "'\"");
-
             special = true;
         }
         if (!special)
         {
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "\"");
         }
-
     }
     else
     {
@@ -3736,7 +3734,7 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     itemValues.perl5RunPath = settings["perl5RunPath"];
     if (itemValues.perl5RunPath.length()< 1)
     {
-        sstr temp = "usr/perl/bin/";
+        sstr temp = "usr/perl/bin";
         itemValues.perl5RunPath = joinPathParts(itemValues.rtnPath,temp);
     }
 
@@ -3759,7 +3757,7 @@ int install_perl6(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             result = setupInstallDirectories(itemValues);
             sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "'\";\n";
             std::vector<sstr> commands;
-            commands.emplace_back(positionCommand + "'" + itemValues.perl5RunPath + "/perl' Configure.pl");
+            commands.emplace_back(positionCommand + "'" + itemValues.perl5RunPath + "perl' Configure.pl");
             commands.emplace_back(positionCommand + "--backend=moar --gen-moar --prefix='" + itemValues.usrPath + "'");
             configureStr.append(multilineCommand(commands, false));
 
@@ -4462,19 +4460,18 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
         itemValues.bSkip = bSkip;
 
         sstr scriptOnly = "";
-        sstr doTests    = "";
-        sstr debugOnly  = "";
-        sstr thisOS     = "";
-        sstr version    = "";
+        sstr doTests = "";
+        sstr debugOnly = "";
+        sstr thisOS = "";
+        sstr version = "";
 
 
-
-        scriptOnly    = settings[itemValues.programName + "->Script_Only"];
-        doTests       = settings[itemValues.programName + "->Do_Tests"];
-        debugOnly     = settings[itemValues.programName + "->Debug_Only"];
+        scriptOnly = settings[itemValues.programName + "->Script_Only"];
+        doTests = settings[itemValues.programName + "->Do_Tests"];
+        debugOnly = settings[itemValues.programName + "->Debug_Only"];
 
         sstr stgPath = joinPathParts(itemValues.cpyStgPath, itemValues.programName);
-        sstr temp    = settings[itemValues.programName + "->Debug_Level"];
+        sstr temp = settings[itemValues.programName + "->Debug_Level"];
 
         // we don't want to throw any exceptions,
         //    so make it safe to convert to int
@@ -4489,9 +4486,9 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
             // else accept user input
             itemValues.debugLevel = std::stoi(debugLevel);
         }
-        itemValues.compression  = settings[itemValues.programName + "->Compression"];
-        itemValues.version      = settings[itemValues.programName + "->Version"];
-        itemValues.getPath      = settings[itemValues.programName + "->WGET"];
+        itemValues.compression = settings[itemValues.programName + "->Compression"];
+        itemValues.version = settings[itemValues.programName + "->Version"];
+        itemValues.getPath = settings[itemValues.programName + "->WGET"];
         itemValues.sha256sum_Config = settings[itemValues.programName + "->Sha256sum"];
 
 
@@ -4531,7 +4528,7 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
 
         if (itemValues.programName == "perl6")
         {
-            itemValues.programNameVersion = "rakudo-star-";
+            itemValues.programNameVersion = "rakudo-";
             itemValues.programNameVersion.append(itemValues.version);
         }
 
