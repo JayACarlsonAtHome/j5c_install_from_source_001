@@ -2466,17 +2466,6 @@ int test_perl6(an_itemValues& itemValues)
                  + positionCommand + "make test > '" + testPathAndFileName1 + "' 2>&1 \"");
     do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
     vec1.clear();
-    vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                 + positionCommand + "make rakudo-test > '" + testPathAndFileName2 + "' 2>&1 \"");
-    do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
-    vec1.clear();
-    vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                 + positionCommand + "make rakudo-spectest > '" + testPathAndFileName3 + "' 2>&1 \"");
-    do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
-    vec1.clear();
-    vec1.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
-                 + positionCommand + " make modules-test > '"    + testPathAndFileName4 + "' 2>&1 \"");
-    do_command(itemValues.fileName_Build, vec1, itemValues.bScriptOnly);
     // We are assuming the tests will always fail to some degree,
     //    and we are ok with that, just report conditions normal...
     return result;

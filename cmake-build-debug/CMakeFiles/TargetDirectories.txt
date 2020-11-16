@@ -1,3 +1,0 @@
-/home/jay/git/cpp/j5c_install_from_source_001/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/jay/git/cpp/j5c_install_from_source_001/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/jay/git/cpp/j5c_install_from_source_001/cmake-build-debug/CMakeFiles/Install.sh.dir
