@@ -2905,6 +2905,7 @@ int postInstall_MariaDB(std::map<sstr, sstr>& settings, an_itemValues& itemValue
 int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = 0;
+    int temp   = 0;
     sstr positionCommand = std::string(commandPosition, ' ');
 
     sstr compileForDebug    = settings[itemValues.programName + "->Compile_For_Debug"];
@@ -2946,13 +2947,16 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "'; ./libtool --finish '" + itemValues.usrPath + "libs' \"");
     vec.emplace_back("# ");
     vec.emplace_back("# Copy library to apache web server");
-    vec.emplace_back("eval \"cp '" + itemValues.usrPath + "libs/libphp7.so' '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
-    vec.emplace_back("eval \"cp '" + itemValues.usrPath + "libs/libphp7.so' '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
-    int temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    vec.emplace_back("eval \"cp '" + itemValues.usrPath + "libs/libphp.so' '" + itemValues.rtnPath + "usr/apache/modules/libphp.so'  \"");
+    vec.emplace_back("eval \"cp '" + itemValues.usrPath + "libs/libphp.so' '" + itemValues.rtnPath + "usr/apache/modules/mod_php.so' \"");
+    temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
     vec.clear();
     if (temp == 0) {
         vec.emplace_back("# Copy library file operations were successful.");
-    } else {
+    }
+    else  {
         vec.emplace_back("# Copy library file operations were NOT successful.");
     }
     result += temp;
@@ -2966,12 +2970,12 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     vec.clear();
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache ownership");
-    vec.emplace_back("eval \"chown root:" + APACHE_GROUP + " '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
-    vec.emplace_back("eval \"chown root:" + APACHE_GROUP + " '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
+    vec.emplace_back("eval \"chown root:" + APACHE_GROUP + " '" + itemValues.rtnPath + "usr/apache/modules/libphp.so' \"");
+    vec.emplace_back("eval \"chown root:" + APACHE_GROUP + " '" + itemValues.rtnPath + "usr/apache/modules/mod_php.so' \"");
     vec.emplace_back("# ");
     vec.emplace_back("# Set apache permissions");
-    vec.emplace_back("eval \"chmod 755 '" + itemValues.rtnPath + "usr/apache/modules/libphp7.so' \"");
-    vec.emplace_back("eval \"chmod 755 '" + itemValues.rtnPath + "usr/apache/modules/mod_php7.so' \"");
+    vec.emplace_back("eval \"chmod 755 '" + itemValues.rtnPath + "usr/apache/modules/libphp.so' \"");
+    vec.emplace_back("eval \"chmod 755 '" + itemValues.rtnPath + "usr/apache/modules/mod_php.so' \"");
     temp = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     vec.clear();
     if (temp == 0) {
