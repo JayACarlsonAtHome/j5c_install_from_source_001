@@ -11,15 +11,15 @@ The current list of programs:
 
 From source code:
 ===========================
-cmake->Version : 3.18.4  (used for building software)
+cmake->Version : 3.20.3  (used for building software)
 
 libzip->Version : 1.7.3 (used for compression)
 
-perl5->Version : 5.32.0 (used for web programming)
+perl5->Version : 5.34.0 (used for web programming)
 
-openssl->Version : 1.1.1h (used for encryption)
+openssl->Version : 1.1.1k (used for encryption)
 
-mariadb->Version : 10.5.8 (a database server)
+mariadb->Version : 10.5.10 (a database server)
 
 apr->Version : 1.7.0 (needed for Apache Web Server)
 
@@ -29,27 +29,29 @@ apr-iconv->Version : 1.2.2 (needed for Apache Web Server)
 
 pcre->Version : 8.44 (needed for Apache Web Server)
 
-pcre2->Version : 10.35 (needed for Apache Web Server, and PHP)
+pcre2->Version : 10.37 (needed for Apache Web Server, and PHP)
 
-apache->Version : 2.4.46 (Apache Web Server)
+apache->Version : 2.4.48 (Apache Web Server)
 
-perl6->Version : 2020.10 (new perl web programming language)
+perl6->Version : 2021.04 (new perl web programming language)
 
-php->Version : 7.4.12 (web programming scripting language)
+php->Version : 8.0.6 (web programming scripting language)
 
-php->Xdebug_Version : 2.9.8 (web programming debugging for php)
+php->Xdebug_Version : 3.0.2 (web programming debugging for php)
 
 poco->Version : 1.10.1 (c++ library)
 
-postfix->Version : 3.5.3 (mail server)
+postfix->Version : 3.6.0 (mail server)
 
-python->Version : 3.9.0 (a general purpose programming language)
+python->Version : 3.9.5 (a general purpose programming language)
 
-ruby->Version : 2.7.2 (a general purpose and web programming language)
+ruby->Version : 3.0.1 (a general purpose and web programming language)
 
 tcl->Version : 8.7a3 (a scripting tool)
 
 tk->Version : 8.7a3 (a scripting tool that does multi-platform GUIs)
+
+wxWidgets->Version : 3.1.5 (a cross platform GUIs using C++)
 
 There is a settings file "Install_Settings.cfg" that must be in the same
 directory as the created executable.  The executable will load the details
