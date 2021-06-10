@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
+
 project(j5c_install_from_source_001)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -24,6 +25,7 @@ set(SOURCE_FILES
         source/Apache/apache_install.h
         source/CMake/cmake.h
         source/Libzip/libzip.h
+        source/Logging/logging.h
         source/MariaDB/mariadb.h
         source/Perl/perl5.h
         source/Perl/perl6.h
@@ -38,7 +40,7 @@ set(SOURCE_FILES
         source/wxWidgets/wxwidgets.h
 
         main.cpp
-        source/Logging/logging.h)
+        )
 
 add_executable(Install.sh ${SOURCE_FILES})
 
