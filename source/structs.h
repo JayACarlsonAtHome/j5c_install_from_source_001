@@ -35,6 +35,7 @@ struct an_itemValues
     sstr bldPath;
     sstr etcPath;
     sstr getPath;
+    sstr getPath_Extension;
     sstr rtnPath;
     sstr srcPath;
     sstr srcPathPNV;

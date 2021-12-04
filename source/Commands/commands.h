@@ -218,7 +218,7 @@ int do_command(sstr& fileName, std::vector<sstr>& vec, bool createScriptOnly )
             }
         }
 
-        if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum"))) )
+        if ((result != 0) && (!((command.substr(0,3) == "apt") || (command.substr(0,3) == "yum") || (command.substr(0,3) == "dnf"))) )
         {
             std::cout << "!!!Error -- Process terminated for safety..." << std::endl;
             break;
@@ -311,7 +311,7 @@ bool check_Sha256sum(an_itemValues& itemValues)
     command.append(itemValues.sha256sum_Real);
     vec.emplace_back(command);
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-    if (itemValues.sha256sum_Real == itemValues.sha256sum_Config)
+    if ((itemValues.sha256sum_Real == itemValues.sha256sum_Config) && (itemValues.sha256sum_Real.length() > 1 ))
     {
         result = true;
     }
@@ -323,7 +323,7 @@ int badSha256sum(an_itemValues& itemValues)
     std::vector<sstr> vec;
     vec.clear();
     vec.emplace_back("# ");
-    vec.emplace_back("# Shaw256sums do not match: ");
+    vec.emplace_back("# Shaw256sums are not acceptable: ");
     vec.emplace_back("#!!!--Warning--!!! Skipping installation due to security concerns !!! ");
     vec.emplace_back("#");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
@@ -475,7 +475,7 @@ int make_install(an_itemValues& itemValues)
     sstr suffix = "make_install_results.txt";
     makePathAndFileName = joinPathWithFile(makePathAndFileName, suffix);
     vec.emplace_back("# ");
-    vec.emplace_back("# Propername....." + itemValues.ProperName);
+    vec.emplace_back("# ProperName....." + itemValues.ProperName);
     vec.emplace_back("# Version........" + itemValues.version);
     vec.emplace_back("# Make install...");
     vec.emplace_back("eval \"      cd '" + itemValues.srcPathPNV + "';\n"
@@ -851,7 +851,7 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
     // In order for future knowledge of using if statements with these variables
     //    I am providing these guaranties
     // programName --> will be guarantied to be: lowercase
-    // ProperName -->  will be guarantied to be: the first letter is capital, all others lowercase
+    // ProperName  --> will be guarantied to be: the first letter is capital, all others lowercase
     itemValues.programName = lowerCaseString(itemValues.programName);
     itemValues.ProperName  = getProperNameFromString(itemValues.programName);
     //
@@ -898,8 +898,8 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
         itemValues.compression = settings[itemValues.programName + "->Compression"];
         itemValues.version = settings[itemValues.programName + "->Version"];
         itemValues.getPath = settings[itemValues.programName + "->WGET"];
+        itemValues.getPath_Extension = settings[itemValues.programName + "->WGET_Extension"];
         itemValues.sha256sum_Config = settings[itemValues.programName + "->Sha256sum"];
-
 
         if (itemValues.programName == "perl")
         {
@@ -961,6 +961,7 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
         }
 
         itemValues.stgPath             = joinPathParts(itemValues.cpyStgPath,itemValues.programName);
+
         itemValues.fileName_Compressed =  itemValues.programNameVersion + itemValues.compression;
 
         if ((itemValues.programName == "tcl") || (itemValues.programName == "tk"))

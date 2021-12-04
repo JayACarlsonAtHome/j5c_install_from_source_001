@@ -555,11 +555,10 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         if (itemValues.programName == "mariadb")
         {
             //We need the program name without the version number here.
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "/from/http%3A//ftp.kaist.ac.kr/mariadb \"");
-            //We copy the programName to to programName plus the version
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; cp './" + itemValues.programName + "' '" + itemValues.fileName_Compressed + "'\"");
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget --output-file=" + itemValues.fileName_Compressed + " " + itemValues.getPath + itemValues.getPath_Extension + " \"");
+            //We copy the programName to programName plus the version
             //We remove the programName
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f './" + itemValues.programName + "'\"");
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f '." + itemValues.srcPath + "index.html'\"");
             special = true;
         }
         if (!special)

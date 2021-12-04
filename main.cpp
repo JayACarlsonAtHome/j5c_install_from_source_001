@@ -86,7 +86,7 @@ int main() {
     programStart = get_Time();
 
     // get settings from file
-    sstr fileSettings = "./Install_Settings.cfg";
+    sstr fileSettings = "/home/J5C_Install/Install_Settings.cfg";
     std::map<sstr, sstr> settings;
     system("pwd");
     settings = getProgramSettings(fileSettings);
@@ -330,10 +330,10 @@ int main() {
     //  This is where the main code starts to do something...
     //  Unless your an expert in C++ you will never figure out what this does
     //    so I will explain it a little.
-    //  We have a small structure -> struct programs that contains another structure call itemValues
+    //  We have a small structure -> struct programs that contains another structure called itemValues
     //    Structure programs contains 3 items.
     //         1. The Programs "itemValues" (a struct the contains things like name, install path, build path, run path, etc)
-    //         2. The Program step (in the case of Apache Web Server there are 5 steps)
+    //         2. The Program step (in the case of Apache Web Server there are 5 steps, where there is only 1 step we put -1 )
     //         3. And a function pointer that holds the address of the function to run to load the program.
     //  We load all the programs into a vector, so we can loop through it, (iterate through it)
 
@@ -354,7 +354,7 @@ int main() {
             // the other programs each have their hand coded function.
             funptr = (it.funptr);
             //we process the installation depending on the name and the functions
-            //although there is some commonality in the install functions, they are almost all unique
+            //although there is some commonality in the "install" functions, they are almost all unique
             //many of the settings, and programs must work together, so the set of programs and versions
             //that have been provided in the settings file are designed to work together as a set or a stack.
             result = process_section(settings, funptr, it.itemValues);
@@ -382,5 +382,5 @@ int main() {
 //  done it before can be hard.  The logging from this program pretty much gives
 //  you the commands as they would be typed out by hand.  You can copy and paste
 //  the commands, (you will have to strip off the left side time stamps etc)
-//Originally this was written as one file, with the exception of the J5C_Date code
-//  But it was getting to big to work on effectively so I broke it up into smaller files.
+//Originally this was written as one file, except "J5C_Date" code
+//  but it was getting too big to work on effectively, so I broke it up into smaller files.

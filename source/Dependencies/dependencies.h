@@ -41,6 +41,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("rm -f epel-release-latest-" + fedora_release +".noarch.rpm");
     vec.emplace_back("dnf -y install autoconf");
     vec.emplace_back("dnf -y install automake");
+    vec.emplace_back("dnf -y install openssl-devel"); //this must be before cmake
     vec.emplace_back("dnf -y install bison");
     vec.emplace_back("dnf -y install boost-devel");
     vec.emplace_back("dnf -y install bzip2-devel");
@@ -64,7 +65,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install innotop");
     vec.emplace_back("dnf -y install iotop");
     vec.emplace_back("dnf -y install jemalloc-devel");
-    vec.emplace_back("dnf -y install java-1.8.0-openjdk");
+    vec.emplace_back("dnf -y install java-latest-openjdk");
     vec.emplace_back("dnf -y install Judy");
     vec.emplace_back("dnf -y install libcurl-devel");
     vec.emplace_back("dnf -y install libedit-devel");
@@ -81,14 +82,18 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install libxml2-devel");
     vec.emplace_back("dnf -y install libxslt-devel");
     vec.emplace_back("dnf -y install libX11-devel");
+    vec.emplace_back("dnf -y install libzstd-devel");
+    vec.emplace_back("dnf -y install mbedtls-devel");
     vec.emplace_back("dnf -y install moreutils");
     vec.emplace_back("dnf -y install mysqlreport");
     vec.emplace_back("dnf -y install mysqltuner");
     vec.emplace_back("dnf -y install mytop");
     vec.emplace_back("dnf -y install ncurses-devel");
-    vec.emplace_back("dnf -y install openssl-devel");
     vec.emplace_back("dnf -y install oniguruma");
+    vec.emplace_back("dnf -y install pmempool");
     vec.emplace_back("dnf -y install perl-CPAN");
+    vec.emplace_back("dnf -y install perl-IPC-Cmd");
+    vec.emplace_back("dnf -y install perl-Pod-Html");
     vec.emplace_back("dnf -y install java-1.8.0-openjdk");
     vec.emplace_back("dnf -y install re2c");
     vec.emplace_back("dnf -y install sqlite-devel");
@@ -99,6 +104,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y xorg-x11-server-Xnest");
     vec.emplace_back("dnf -y install vsqlite++-devel");
     vec.emplace_back("dnf -y install yum-utils");
+    vec.emplace_back("dnf -y install xz-devel");
     int result = do_command(fileName, vec, createScriptOnly);
     return result;
 }
