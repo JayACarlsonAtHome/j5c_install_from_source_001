@@ -94,6 +94,8 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install perl-CPAN");
     vec.emplace_back("dnf -y install perl-IPC-Cmd");
     vec.emplace_back("dnf -y install perl-Pod-Html");
+    vec.emplace_back("dnf -y install perl-Pod-Html.noarch");
+    vec.emplace_back("dnf -y install podman");
     vec.emplace_back("dnf -y install java-1.8.0-openjdk");
     vec.emplace_back("dnf -y install re2c");
     vec.emplace_back("dnf -y install sqlite-devel");
