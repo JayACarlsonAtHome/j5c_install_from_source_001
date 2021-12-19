@@ -537,7 +537,9 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
     bool special = false;
     sstr fileName = "";
     std::vector<sstr> vec;
-    itemValues.getPath.append(itemValues.fileName_Compressed);
+    if (itemValues.programName != "mariadb") {
+        itemValues.getPath.append(itemValues.fileName_Compressed);
+    }
 
     vec.emplace_back("#");
     vec.emplace_back("# Stage source file if needed.");
@@ -554,11 +556,37 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         }
         if (itemValues.programName == "mariadb")
         {
-            //We need the program name without the version number here.
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget --output-file=" + itemValues.fileName_Compressed + " " + itemValues.getPath + itemValues.getPath_Extension + " \"");
+            //do some string construction to make the next section easier to read
+            sstr wgetFile;
+            wgetFile.append(itemValues.getPath);
+            wgetFile.append(itemValues.version);
+            wgetFile.append("/bintar");
+            wgetFile.append(itemValues.getPath_Extension);
+            wgetFile.append("/mariadb-");
+            wgetFile.append(itemValues.version);
+            wgetFile.append(itemValues.getPath_Extension);
+            wgetFile.append(itemValues.compression);
+
+            sstr theFileName;
+            theFileName.append(itemValues.programName);
+            theFileName.append("-");
+            theFileName.append(itemValues.version);
+            theFileName.append(itemValues.getPath_Extension);
+            theFileName.append(itemValues.compression);
+
+            sstr newFileName;
+            newFileName.append(itemValues.programName);
+            newFileName.append("-");
+            newFileName.append(itemValues.version);
+            newFileName.append(itemValues.compression);
+            // end of string construction
+
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + wgetFile + "\"");
+
             //We copy the programName to programName plus the version
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; cp -f " + theFileName + " " + newFileName +  "\"");
             //We remove the programName
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f '." + itemValues.srcPath + "index.html'\"");
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f " + theFileName + "\"");
             special = true;
         }
         if (!special)
@@ -572,6 +600,7 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         result = true;
     }
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
     return result;
 }
 
@@ -676,13 +705,13 @@ int createTargetFromStage(an_itemValues& itemValues)
     if (result == 0)
     {
         vec.clear();
-        vec.emplace_back("# Source code positioned for compiliation.");
+        vec.emplace_back("# Source code positioned for compilation.");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     }
     else
     {
         vec.clear();
-        vec.emplace_back("# Source code NOT positioned for compiliation.");
+        vec.emplace_back("# Source code NOT positioned for compilation.");
         vec.emplace_back("# Check for valid path and permissions.");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     }
