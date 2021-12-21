@@ -88,8 +88,6 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         stageSourceCodeIfNeeded(itemValues);
         itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
 
-
-
         bool securityCheck = check_Sha256sum(itemValues);
         if (securityCheck)
         {

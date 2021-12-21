@@ -536,6 +536,7 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
     bool result = false;
     bool special = false;
     sstr fileName = "";
+    sstr fileNameTemp = "";
     std::vector<sstr> vec;
     if (itemValues.programName != "mariadb") {
         itemValues.getPath.append(itemValues.fileName_Compressed);
@@ -587,6 +588,7 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; cp -f " + theFileName + " " + newFileName +  "\"");
             //We remove the programName
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f " + theFileName + "\"");
+
             special = true;
         }
         if (!special)
@@ -600,7 +602,6 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         result = true;
     }
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
     return result;
 }
 
@@ -695,12 +696,38 @@ int createTargetFromStage(an_itemValues& itemValues)
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Copy, decompress, and remove compressed file.");
-    vec.emplace_back(
-            "eval \"cd '" + itemValues.stgPath + "';        cp './" + itemValues.fileName_Compressed + "' '" +
-            itemValues.srcPath + "'\"");
-    vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
-    vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
+    if (itemValues.programName != "mariadb") {
+        vec.emplace_back(
+                "eval \"cd '" + itemValues.stgPath + "';        cp './" + itemValues.fileName_Compressed + "' '" +
+                itemValues.srcPath + "'\"");
+        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
+        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
+    }
+    if (itemValues.programName == "mariadb")
+    {
+        //Create string values to make this section easier to understand
+        sstr theSourcFolderName;
+        theSourcFolderName.append(itemValues.programName);
+        theSourcFolderName.append("-");
+        theSourcFolderName.append(itemValues.version);
+        theSourcFolderName.append(itemValues.getPath_Extension);
 
+        sstr newFolderName;
+        newFolderName.append(itemValues.programName);
+        newFolderName.append("-");
+        newFolderName.append(itemValues.version);
+        // end of string construction
+        vec.emplace_back(
+                "eval \"cd '" + itemValues.stgPath + "';        cp './" + itemValues.fileName_Compressed + "' '" +
+                itemValues.srcPath + "'\"");
+        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
+        //The problem that we have to fix here is the original file name have the architecture as part of the file
+        //  name and that doesn't fit in with the structure that I have normalized for the other programs,
+        //  so we copy the programName-Version-Architecture to programName plus the version
+        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; mv -f " + theSourcFolderName + " " + newFolderName +  "\"");
+        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
+    }
+    // Run all the commands we built up
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0)
     {
