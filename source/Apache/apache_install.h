@@ -215,7 +215,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             commands.emplace_back(positionCommand + "  --with-apr='" + usrBasePath + "apr'");
             commands.emplace_back(positionCommand + "  --with-apr-util='" + usrBasePath + "apr-util'");
             commands.emplace_back(positionCommand + "  --with-apr-iconv='" + usrBasePath + "apr-iconv'");
-            commands.emplace_back(positionCommand + "  --with-pcre='" + usrBasePath + "pcre'");
+            commands.emplace_back(positionCommand + "  --with-pcre2='" + usrBasePath + "pcre2'");
             //
             // Note:
             //  We are NOT enabling http2 in the apache setup
@@ -227,7 +227,7 @@ int install_apache(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             //
             //  even though
             //
-            //  yum install libnghttp2
+            //  dnf install libnghttp2
             //  Loaded plugins: fastestmirror, langpacks
             //  Loading mirror speeds from cached hostfile
             //     * base: mirror.web-ster.com

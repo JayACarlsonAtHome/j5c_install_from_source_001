@@ -385,13 +385,14 @@ int make_clean(an_itemValues& itemValues)
 
 int make(an_itemValues& itemValues)
 {
+    sstr command;
     sstr positionCommand = std::string(commandPosition,' ');
     sstr clnFileName = "make_clean_results.txt";
     sstr mkeFileName = "make_results.txt";
 
     std::vector<sstr> vec;
     vec.emplace_back("# ");
-    sstr command = "make ";
+
     int result = 0;
     if (
             (itemValues.ProperName == "Cmake")
@@ -404,6 +405,8 @@ int make(an_itemValues& itemValues)
     {
         command = "gmake";
     }
+
+    command = "make";
     sstr printCommand = getProperNameFromString(command);
     vec.emplace_back("# " + printCommand);
     vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
@@ -417,6 +420,43 @@ int make(an_itemValues& itemValues)
         vec.emplace_back("# Look through '" + itemValues.bldPath + mkeFileName + "' to find the issue. ");
     }
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+
+    if (itemValues.ProperName == "Judy")
+    {
+        command = "make check";
+        sstr printCommand = getProperNameFromString(command);
+        vec.emplace_back("# " + printCommand);
+        vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                         + positionCommand + command + "  > '" + itemValues.bldPath + mkeFileName + "' 2>&1 \"");
+        result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        vec.clear();
+        if (result == 0) {
+            vec.emplace_back("# " + printCommand + " completed successfully.");
+        } else {
+            vec.emplace_back("# " + printCommand + " NOT completed successfully.");
+            vec.emplace_back("# Look through '" + itemValues.bldPath + mkeFileName + "' to find the issue. ");
+        }
+        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    }
+
+    if (itemValues.ProperName == "Judy")
+    {
+        command = "make install";
+        sstr printCommand = getProperNameFromString(command);
+        vec.emplace_back("# " + printCommand);
+        vec.emplace_back("eval \"cd '" + itemValues.srcPathPNV + "';\n"
+                         + positionCommand + command + "  > '" + itemValues.bldPath + mkeFileName + "' 2>&1 \"");
+        result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+        vec.clear();
+        if (result == 0) {
+            vec.emplace_back("# " + printCommand + " completed successfully.");
+        } else {
+            vec.emplace_back("# " + printCommand + " NOT completed successfully.");
+            vec.emplace_back("# Look through '" + itemValues.bldPath + mkeFileName + "' to find the issue. ");
+        }
+        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
+    }
+
     return result;
 }
 
@@ -554,11 +594,15 @@ int do_make_tests(an_itemValues& itemValues)
     if (    (!itemValues.bDebug) ||
             ((itemValues.bDebug) && (itemValues.debugLevel > 3)))
     {
-        result = make_tests(itemValues);
-        if (itemValues.debugLevel == 4) {
-            result = decrementResultIfTesting(itemValues, result);
+        if (itemValues.ProperName != "Mariadb")
+        {
+            result = make_tests(itemValues);
+            if (itemValues.debugLevel == 4) {
+                result = decrementResultIfTesting(itemValues, result);
+            }
         }
     }
+    result = 0;
     return result;
 }
 
@@ -623,7 +667,10 @@ int basicInstall(an_itemValues& itemValues, sstr& configureStr)
             result = do_configure(itemValues, configureStr);
         }
         if (result == 0) {
-            result += do_make_clean(itemValues);
+            if (itemValues.ProperName != "Judy")
+            {
+                result += do_make_clean(itemValues);
+            }
         }
         if (result == 0) {
             result += do_make(itemValues);
@@ -850,10 +897,19 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
 {
     // In order for future knowledge of using if statements with these variables
     //    I am providing these guaranties
-    // programName --> will be guarantied to be: lowercase
-    // ProperName  --> will be guarantied to be: the first letter is capital, all others lowercase
-    itemValues.programName = lowerCaseString(itemValues.programName);
-    itemValues.ProperName  = getProperNameFromString(itemValues.programName);
+    // programName --> will be guaranteed to be: lowercase
+    // ProperName  --> will be guaranteed to be: the first letter is capital, all others lowercase
+    // Except for Judy
+    if (itemValues.programName != "Judy")
+    {
+        itemValues.programName = lowerCaseString(itemValues.programName);
+        itemValues.ProperName = getProperNameFromString(itemValues.programName);
+    }
+    else
+    {
+        itemValues.programName = getProperNameFromString(itemValues.programName);
+        itemValues.ProperName = getProperNameFromString(itemValues.programName);
+    }
     //
     //
 

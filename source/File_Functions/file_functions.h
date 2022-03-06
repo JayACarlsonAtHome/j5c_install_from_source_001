@@ -696,37 +696,23 @@ int createTargetFromStage(an_itemValues& itemValues)
     std::vector<sstr> vec;
     vec.emplace_back("# ");
     vec.emplace_back("# Copy, decompress, and remove compressed file.");
-    if (itemValues.programName != "mariadb") {
-        vec.emplace_back(
-                "eval \"cd '" + itemValues.stgPath + "';        cp './" + itemValues.fileName_Compressed + "' '" +
-                itemValues.srcPath + "'\"");
-        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
-        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
-    }
-    if (itemValues.programName == "mariadb")
-    {
-        //Create string values to make this section easier to understand
-        sstr theSourcFolderName;
-        theSourcFolderName.append(itemValues.programName);
-        theSourcFolderName.append("-");
-        theSourcFolderName.append(itemValues.version);
-        theSourcFolderName.append(itemValues.getPath_Extension);
 
-        sstr newFolderName;
-        newFolderName.append(itemValues.programName);
-        newFolderName.append("-");
-        newFolderName.append(itemValues.version);
-        // end of string construction
-        vec.emplace_back(
-                "eval \"cd '" + itemValues.stgPath + "';        cp './" + itemValues.fileName_Compressed + "' '" +
-                itemValues.srcPath + "'\"");
-        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
-        //The problem that we have to fix here is the original file name have the architecture as part of the file
-        //  name and that doesn't fit in with the structure that I have normalized for the other programs,
-        //  so we copy the programName-Version-Architecture to programName plus the version
-        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; mv -f " + theSourcFolderName + " " + newFolderName +  "\"");
-        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
+    vec.emplace_back(
+            "eval \"cd '" + itemValues.stgPath + "';        cp './" + itemValues.fileName_Compressed + "' '" +
+            itemValues.srcPath + "'\"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
+    vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
+
+    if (itemValues.ProperName == "Judy")
+    {
+        sstr src_Path = itemValues.fileName_Compressed;
+        src_Path = src_Path.substr(0,itemValues.fileName_Compressed.length()-7);
+        src_Path = lowerCaseString(src_Path);
+        sstr destPath = itemValues.fileName_Compressed;
+        destPath = destPath.substr(0,itemValues.fileName_Compressed.length()-7);
+        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; mv  " + src_Path + " " + destPath + "\"");
     }
+
     // Run all the commands we built up
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
     if (result == 0)

@@ -20,7 +20,7 @@ int create_mariaDB_cnf_File(an_itemValues &itemValues)
     //  in a day we will still have the original file somewhere.
 
     sstr theDate = make_fileName_dateTime(0);
-    vec.emplace_back("eval \"cd /etc; cp my.cnf" + itemValues.etcPath + "my.cnf.old_" + theDate + "\"");
+    vec.emplace_back("eval \"cd /etc; cp my.cnf " + itemValues.etcPath + "my.cnf.old_" + theDate + "\"");
     do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
 
     //Now we have to create the new my.cnf file
@@ -92,7 +92,6 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         if (securityCheck)
         {
             result = setupInstallDirectories(itemValues);
-
             ensureMariaDB_UserAndGroupExist(itemValues);
             sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + "\";\n "
                                 + positionCommand + "./BUILD/autorun.sh;\n "
@@ -122,7 +121,6 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
             result += basicInstall(itemValues, configureStr);
             result += do_post_install(settings, itemValues, result);
-
             createProtectionWhenRequired(result, itemValues, false);
         } else {
             result = badSha256sum(itemValues);

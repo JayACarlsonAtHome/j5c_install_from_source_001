@@ -40,7 +40,7 @@ set(SOURCE_FILES
         source/wxWidgets/wxwidgets.h
 
         main.cpp
-        )
+        source/Judy/judy.h)
 
 add_executable(Install.sh ${SOURCE_FILES})
 

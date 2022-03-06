@@ -44,6 +44,7 @@
 
 #include "source/Apache/apache_install.h"
 #include "source/CMake/cmake.h"
+#include "source/Judy/judy.h"
 #include "source/Libzip/libzip.h"
 #include "source/Logging/logging.h"
 #include "source/MariaDB/mariadb.h"
@@ -236,6 +237,11 @@ int main() {
     program.funptr = &install_openssl;
     progVector.emplace_back(program);
 
+    program.itemValues.programName = "Judy";
+    program.itemValues.step        = -1;
+    program.funptr = &install_judy;
+    progVector.emplace_back(program);
+
     program.itemValues.programName = "mariadb";
     program.itemValues.step        = -1;
     program.funptr = &install_mariadb;
@@ -254,11 +260,6 @@ int main() {
     program.itemValues.programName = "apr-iconv";
     program.itemValues.step        = 3;
     program.funptr = &install_apache_step_03;
-    progVector.emplace_back(program);
-
-    program.itemValues.programName = "pcre";
-    program.itemValues.step        = 4;
-    program.funptr = &install_apache_step_04;
     progVector.emplace_back(program);
 
     program.itemValues.programName = "pcre2";
