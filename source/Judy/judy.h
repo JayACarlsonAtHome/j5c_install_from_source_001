@@ -30,7 +30,7 @@ int install_judy(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         {
             result = setupInstallDirectories(itemValues);
             sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "' \";\n"
-                                + positionCommand + " ./configure --enable-64-bit ";
+                                + positionCommand + " ./configure ";
             result += basicInstall(itemValues, configureStr);
             createProtectionWhenRequired(result, itemValues, false);
         } else {

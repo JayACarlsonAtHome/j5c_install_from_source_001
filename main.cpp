@@ -237,7 +237,7 @@ int main() {
     program.funptr = &install_openssl;
     progVector.emplace_back(program);
 
-    program.itemValues.programName = "Judy";
+    program.itemValues.programName = "judy";
     program.itemValues.step        = -1;
     program.funptr = &install_judy;
     progVector.emplace_back(program);
@@ -329,7 +329,7 @@ int main() {
 
     //
     //  This is where the main code starts to do something...
-    //  Unless your an expert in C++ you will never figure out what this does
+    //  Unless your an expert in C++ you will never figure out what this does,
     //    so I will explain it a little.
     //  We have a small structure -> struct programs that contains another structure called itemValues
     //    Structure programs contains 3 items.
@@ -345,7 +345,7 @@ int main() {
         it.itemValues.itemStartTime = get_Time();
         // at the start of the program we loaded all the settings from a file
         // the next step will load the settings that apply to the program we are installing
-        // The settings may say to skip the install, so the skip value is the return value
+        // The settings may say to skip the installation, so the skip value is the return value
         bool skip = set_settings(settings, it.itemValues);
 
         //if we are not skipping then we are loading the program
@@ -382,6 +382,6 @@ int main() {
 //Installing some of these things the first time from source if you have never
 //  done it before can be hard.  The logging from this program pretty much gives
 //  you the commands as they would be typed out by hand.  You can copy and paste
-//  the commands, (you will have to strip off the left side time stamps etc)
-//Originally this was written as one file, except "J5C_Date" code
+//  the commands, (you will have to strip off the left side time stamps etc.)
+//Originally this was written as one file, except "J5C_Date" code,
 //  but it was getting too big to work on effectively, so I broke it up into smaller files.

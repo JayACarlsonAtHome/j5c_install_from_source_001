@@ -365,6 +365,7 @@ int make_clean(an_itemValues& itemValues)
     if ((itemValues.ProperName    != "Perl")
         && (itemValues.ProperName != "Perl6")
         && (itemValues.ProperName != "Libzip")
+        && (itemValues.ProperName != "Judy")
         && (itemValues.ProperName != "Cmake"))
     {
         vec.emplace_back("# ");
@@ -493,7 +494,7 @@ int make_tests(an_itemValues& itemValues)
                     + positionCommand + "make test > '" + testPathAndFileName + "' 2>&1 \"");
 
             //Most tests have some failures,
-            //  so we don't want to fail the install because of a test failure.
+            //  so we don't want to fail the installation because of a test failure.
             //  so we don't record the result here.
             do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         }
@@ -900,19 +901,8 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
     // programName --> will be guaranteed to be: lowercase
     // ProperName  --> will be guaranteed to be: the first letter is capital, all others lowercase
     // Except for Judy
-    if (itemValues.programName != "Judy")
-    {
-        itemValues.programName = lowerCaseString(itemValues.programName);
-        itemValues.ProperName = getProperNameFromString(itemValues.programName);
-    }
-    else
-    {
-        itemValues.programName = getProperNameFromString(itemValues.programName);
-        itemValues.ProperName = getProperNameFromString(itemValues.programName);
-    }
-    //
-    //
-
+    itemValues.programName = lowerCaseString(itemValues.programName);
+    itemValues.ProperName = getProperNameFromString(itemValues.programName);
     itemValues.fileName_Protection = getProtectedFileName(itemValues.programName);
 
     sstr skip  = settings[itemValues.programName + "->Skip"];

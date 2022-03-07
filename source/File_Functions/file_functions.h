@@ -109,13 +109,13 @@ int ensure_Directory_exists1(sstr& path)
 int ensure_Directory_exists2(sstr& basePath, sstr& path)
 {
     int result = 1;
-    sstr fullpath = basePath + path;
+    sstr full_path = basePath + path;
     if (basePath.substr(basePath.length()-1, 1) != "/")
     {
         sstr fullPath = basePath + "/" + path;
     }
     sstr command  = "mkdir -p ";
-    sstr fullCommand = command + fullpath;
+    sstr fullCommand = command + full_path;
     ensure_Directory_main(fullCommand, result);
     return result;
 }
@@ -178,8 +178,7 @@ int create_file(const sstr& fileName)
         file << "# Copyright J5C Marketing LLC" << std::endl;
         file << "# Jay A Carlson" << std::endl;
         file << "# jay.a.carlson@gmail.com" << std::endl;
-        file << "# 360-649-6218" << std::endl;
-        file << "# " << std::endl;
+        file << "# 360-649-6218 -- Unless you email me first, I probably will just think your a spam caller." << std::endl;
         file << "# " << std::endl;
         file.close();
     }
@@ -558,6 +557,8 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
         if (itemValues.programName == "mariadb")
         {
             //do some string construction to make the next section easier to read
+            // I don't think you can download mariadb from source from a website anymore
+            //    so this part can probably go away soon...
             sstr wgetFile;
             wgetFile.append(itemValues.getPath);
             wgetFile.append(itemValues.version);
@@ -702,16 +703,6 @@ int createTargetFromStage(an_itemValues& itemValues)
             itemValues.srcPath + "'\"");
     vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; tar xf '" + itemValues.fileName_Compressed + "'\"");
     vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; rm  -f '" + itemValues.fileName_Compressed + "'\"");
-
-    if (itemValues.ProperName == "Judy")
-    {
-        sstr src_Path = itemValues.fileName_Compressed;
-        src_Path = src_Path.substr(0,itemValues.fileName_Compressed.length()-7);
-        src_Path = lowerCaseString(src_Path);
-        sstr destPath = itemValues.fileName_Compressed;
-        destPath = destPath.substr(0,itemValues.fileName_Compressed.length()-7);
-        vec.emplace_back("eval \"cd '" + itemValues.srcPath + "'; mv  " + src_Path + " " + destPath + "\"");
-    }
 
     // Run all the commands we built up
     int result = do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);

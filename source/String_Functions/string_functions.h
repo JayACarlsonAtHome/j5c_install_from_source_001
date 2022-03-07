@@ -36,7 +36,7 @@ bool getBoolFromString(sstr& some_value)
 sstr lowerCaseString(sstr& some_value)
 {
     // unicode lower case conversions require
-    // very specialized code, and this is not it
+    // very specialized code, and this is not it,
     // but it will handle the english words that
     // we need for this program.
 
@@ -61,7 +61,7 @@ sstr lowerCaseString(sstr& some_value)
 sstr upperCaseString(sstr& some_value)
 {
     // unicode upper case conversions require
-    // very specialized code, and this is not it
+    // very specialized code, and this is not it,
     // but it will handle the english words that
     // we need for this program.
 
@@ -242,9 +242,9 @@ sstr getProperNameFromString(sstr& some_value)
 
     // in the effort of don't repeat yourself
     //   I would like to call lowerCaseString()
-    //   and then uppercase the first charactor
-    //   but the string to char arrays back to strings to char arrays
-    //   make it sub-optimal
+    //   and then uppercase the first character
+    //   but the string to char arrays back to string to char arrays
+    //   make it suboptimal
 
     auto len = some_value.length();
     char strChar[len+1];
