@@ -8,7 +8,6 @@ This was made to be compiled and run on the following operating systems:
 
 I will leave it up to a mac enthusiast to convert to mac.
 
-su - root
 #These are sample commands to get to the right path \
 #cd /home/yournamehere/pathto/j5c_install_from_source_001 \
 #cd /home/jay/git/j5c_install_from_source_001 
@@ -19,6 +18,7 @@ su - root
 
 #Replace J5C with your company abbreviation (below) 
 
+su - root \
 mkdir /home/J5C_Install \
 cp Install_From_Source    /home/J5C_Install \
 cd settings \
