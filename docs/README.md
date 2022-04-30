@@ -10,48 +10,49 @@ The current list of programs:
 --Dependencies-- from package manager
 
 From source code:
-===========================
-cmake->Version : 3.20.3  (used for building software)
+============================================================================
+cmake->Version     : 3.23.1   (used for building software)
 
-libzip->Version : 1.7.3 (used for compression)
+libzip->Version    : 1.8.0   (used for compression)
 
-perl5->Version : 5.34.0 (used for web programming)
+perl5->Version       : 5.34.1   (used for web programming and more)
 
-openssl->Version : 1.1.1k (used for encryption)
+openssl->Version     : 1.1.1n (used for encryption)
 
-mariadb->Version : 10.5.10 (a database server)
+judy->Version        : 1.0.5  (used in MariaDB)
 
-apr->Version : 1.7.0 (needed for Apache Web Server)
+mariadb->Version     : 10.7.X (database -- removed from this program)
+just use dnf install mariadb-server instead you still get 10.3 or higher
 
-apr-util->Version : 1.6.1 (needed for Apache Web Server)
+apr->Version         : 1.7.0 (needed for Apache Web Server)
 
-apr-iconv->Version : 1.2.2 (needed for Apache Web Server)
+apr-util->Version    : 1.6.1 (needed for Apache Web Server)
 
-pcre->Version : 8.44 (needed for Apache Web Server)
+apr-iconv->Version   : 1.2.2 (needed for Apache Web Server)
 
-pcre2->Version : 10.37 (needed for Apache Web Server, and PHP)
+pcre2->Version       : 10.40 (needed for Apache Web Server, and PHP)
 
-apache->Version : 2.4.48 (Apache Web Server)
+apache->Version      : 2.4.53 (Apache Web Server)
 
-perl6->Version : 2021.04 (new perl web programming language)
+perl6->Version       : 2022.04 (programming language with virtual machine)
 
-php->Version : 8.0.6 (web programming scripting language)
+php->Version         : 8.1.5 (web programming scripting language)
 
-php->Xdebug_Version : 3.0.2 (web programming debugging for php)
+php->Xdebug->Version : 3.1.4 (web programming debugging for php)
 
-poco->Version : 1.10.1 (c++ library)
+poco->Version        : 1.11.2 (c++ library)
 
-postfix->Version : 3.6.0 (mail server)
+postfix->Version     : 3.7.2 (mail server -- downloads, not installed)
 
-python->Version : 3.9.5 (a general purpose programming language)
+python->Version      : 3.10.4 (a general purpose programming language)
 
-ruby->Version : 3.0.1 (a general purpose and web programming language)
+ruby->Version        : 3.1.2 (a general purpose and web programming language)
 
-tcl->Version : 8.7a3 (a scripting tool)
+tcl->Version         : 8.7a5 (a scripting tool)
 
-tk->Version : 8.7a3 (a scripting tool that does multi-platform GUIs)
+tk->Version          : 8.7a5 (a scripting tool that does multi-platform GUIs)
 
-wxWidgets->Version : 3.1.5 (a cross platform GUIs using C++)
+wxWidgets->Version   : 3.1.6 (a cross platform GUIs using C++)
 
 There is a settings file "Install_Settings.cfg" that must be in the same
 directory as the created executable.  The executable will load the details
@@ -66,7 +67,7 @@ cmp = your company abbreviation / or your initials...
 /usr/local/cmp/p001/usr/installed_programs...
 
 You take the time to customize the apache web server, and get your web site working
-locally on PHP version 7.2.2.  Some time later PHP comes out with version 7.4.6 and 
+locally on PHP version 8.1.5.  Some time later PHP comes out with version 8.3.2 and 
 you want to see if your web site will run with it or not.
 
 You customize the Install_Settings.cfg to load the new version of PHP, and change
@@ -155,12 +156,7 @@ This was made to be compiled and run on the following operating systems:
   3. Linux Mint 18.3 and higher
   4. Red Hat 7.3 and higher
 
-I was going to do MacOSX but there are enough differences
-and the fact that MacBook Pros really don't have enough resources for 
-it to really matter, and I don't have a Mac Desktop. So I haven't finished
-and maybe will never finish that one.
-Update:  I have a new mac mini with 64 GB of ram. OH YEAH, 
-The mac mini can do this now...but I haven't started it yet.
+I will leave it up to a mac enthusiast to convert to mac.
 
 The project was built with JetBrains CLion.
 So that would be your easiest way to build the executable on your system.
