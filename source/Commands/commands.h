@@ -944,7 +944,6 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
         itemValues.compression = settings[itemValues.programName + "->Compression"];
         itemValues.version = settings[itemValues.programName + "->Version"];
         itemValues.getPath = settings[itemValues.programName + "->WGET"];
-        itemValues.getPath_Extension = settings[itemValues.programName + "->WGET_Extension"];
         itemValues.sha256sum_Config = settings[itemValues.programName + "->Sha256sum"];
 
         if (itemValues.programName == "perl")
@@ -961,7 +960,10 @@ bool set_settings(std::map<sstr,sstr>& settings, an_itemValues& itemValues )
             itemValues.getPath      = settings[itemValues.programName + "5->WGET"];
             itemValues.sha256sum_Config = settings[itemValues.programName + "5->Sha256sum"];
         }
-
+        if (itemValues.programName == "mariadb")
+        {
+            itemValues.srcPrefix = settings[itemValues.programName + "->PrefixName"];
+        }
         itemValues.bSkip         = getBoolFromString(skip);
         itemValues.bScriptOnly   = getBoolFromString(scriptOnly);
         itemValues.bDoTests      = getBoolFromString(doTests);

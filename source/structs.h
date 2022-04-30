@@ -38,6 +38,7 @@ struct an_itemValues
     sstr getPath_Extension;
     sstr rtnPath;
     sstr srcPath;
+    sstr srcPrefix;
     sstr srcPathPNV;
     sstr srcPathInstallOS;
     sstr cpyStgPath;

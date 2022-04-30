@@ -86,11 +86,27 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         appendNewLogSection(itemValues.fileName_Build);
         ensureStageDirectoryExists(itemValues);
         stageSourceCodeIfNeeded(itemValues);
-        itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
+        if (itemValues.programName == "mariadb")
+        {
+            sstr ProgramName = itemValues.srcPrefix;
+            ProgramName.append("-");
+            ProgramName.append(itemValues.programNameVersion);
+            itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, ProgramName);
+        }
+        else
+        {
+            itemValues.srcPathPNV = joinPathParts(itemValues.srcPath, itemValues.programNameVersion);
+        }
 
         bool securityCheck = check_Sha256sum(itemValues);
         if (securityCheck)
         {
+            std::cout << std::endl;
+            std::cout << "itemValues.srcPath   :" << itemValues.srcPath    << std::endl;
+            std::cout << "itemValues.srcPathPNV:" << itemValues.srcPathPNV << std::endl;
+            std::cout << "itemValues.usrPath   :" << itemValues.usrPath    << std::endl;
+            std::cout << std::endl;
+
             result = setupInstallDirectories(itemValues);
             ensureMariaDB_UserAndGroupExist(itemValues);
             sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + "\";\n "
@@ -98,7 +114,7 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
                                 + positionCommand + " cd '" + itemValues.srcPathPNV + "';\n";
 
             std::vector<sstr> commands;
-            commands.emplace_back(positionCommand +  "./configure --prefix='" + itemValues.usrPath + "'");
+            commands.emplace_back(positionCommand +  "./configure --prefix='" +  itemValues.usrPath + "'");
             commands.emplace_back(positionCommand +  "  --enable-assembler");
             commands.emplace_back(positionCommand +  "  --jemalloc_static_library='/usr/lib64'");
             commands.emplace_back(positionCommand +  "  --with-extra-charsets=complex");

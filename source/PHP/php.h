@@ -113,9 +113,7 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
         // even though the files were there the ./config command
         // couldn't find them.  I also tried tweaking the permissions
         // on the files, and still nothing.
-
         //I will probably have to work on this later...
-
         //The problem is with defaults, where some code is looking in lib and other code is looking in lib64
         //I still have to defer this till later.
 
@@ -126,17 +124,6 @@ sstr create_php_configuration(std::map<sstr, sstr>& settings, an_itemValues& ite
         temp.append("'");
         commands.emplace_back(temp);
     }
-
-    temp.clear();
-    temp.append(positionCommand);
-    temp.append("  --with-mysql-sock='");
-    tmpPath = "usr/mariadb/run/";
-    sstr sckPathFile = joinPathParts(itemValues.rtnPath, tmpPath);
-    tmpFile = "mariadb.socket";
-    sckPathFile = joinPathWithFile(sckPathFile, tmpFile);
-    temp.append(sckPathFile);
-    temp.append("'");
-    commands.emplace_back(temp);
 
     commands.emplace_back(positionCommand + "  --with-pdo-mysql=mysqlnd");
     commands.emplace_back(positionCommand + "  --libdir='/usr/lib64/'");
@@ -219,9 +206,9 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     sstr mariadbPath = itemValues.rtnPath + "usr/mariadb/bin";
     sstr mariadbController = joinPathWithFile(mariadbPath, tmpFile);
 
-    if ((isFileSizeGtZero(itemValues,   apacheController))
-        && isFileSizeGtZero(itemValues, mariadbController)) {
 
+    if (isFileSizeGtZero(itemValues,apacheController))
+    {
         vec.clear();
         vec.emplace_back("# ");
         vec.emplace_back("# Attempt to Start/Restart Apache if possible.");
@@ -256,15 +243,6 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             }
         }
 
-        vec.clear();
-        vec.emplace_back("# ");
-        vec.emplace_back("# MariaDB Database Server files appear to be installed.");
-        vec.emplace_back("#   Not attempting to start mariadb. ");
-        vec.emplace_back("#   MariaDB requires more setup. Follow the instructions");
-        vec.emplace_back("#   in '" + itemValues.rtnPath + "Installation_Notes_" + itemValues.pathVersion + ".txt' " );
-        vec.emplace_back("#   To start MariaDB." );
-        do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
-
         set_bInstall(itemValues);
         if (itemValues.bInstall)
         {
@@ -274,7 +252,7 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 
             if (!staged) {
                 // If the source code was just downloaded the file name is mirror
-                // instead of anything useful, so we need to rename the rename the file
+                // instead of anything useful, so we need to rename the rename file
                 vec.clear();
                 vec.emplace_back("# ");
                 vec.emplace_back("# Change downloaded file name if needed.");
@@ -303,14 +281,13 @@ int install_php(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
     else {
         vec.clear();
         vec.emplace_back("# ");
-        vec.emplace_back("# Apache Web Server and MariaDB are required ");
+        vec.emplace_back("# Apache Web Server is required ");
         vec.emplace_back("# to be installed before PHP can be installed.");
         do_command(itemValues.fileName_Build, vec, itemValues.bScriptOnly);
         result = 1;
     }
     return  result;
 }
-
 
 int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
@@ -447,7 +424,7 @@ int postInstall_PHP(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         vec.emplace_back("# ");
         vec.emplace_back("# cp modules/xdebug.so");
 
-        // So apparently php change directory structure slightly so this is the smallest adjustment I could make
+        // So apparently php changed directory structures slightly so this is the smallest adjustment I could make
         //   and still get the results I want.
         //   -- (and a few other changes a few lines down as well changing lib to libs)
         vec.emplace_back("eval \"mkdir -p '" + itemValues.usrPath + "libs/php/extensions'\"");

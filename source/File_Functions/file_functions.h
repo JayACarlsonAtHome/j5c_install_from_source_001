@@ -537,9 +537,6 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
     sstr fileName = "";
     sstr fileNameTemp = "";
     std::vector<sstr> vec;
-    if (itemValues.programName != "mariadb") {
-        itemValues.getPath.append(itemValues.fileName_Compressed);
-    }
 
     vec.emplace_back("#");
     vec.emplace_back("# Stage source file if needed.");
@@ -554,47 +551,9 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
             vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "/from/this/mirror \"");
             special = true;
         }
-        if (itemValues.programName == "mariadb")
-        {
-            //do some string construction to make the next section easier to read
-            // I don't think you can download mariadb from source from a website anymore
-            //    so this part can probably go away soon...
-            sstr wgetFile;
-            wgetFile.append(itemValues.getPath);
-            wgetFile.append(itemValues.version);
-            wgetFile.append("/bintar");
-            wgetFile.append(itemValues.getPath_Extension);
-            wgetFile.append("/mariadb-");
-            wgetFile.append(itemValues.version);
-            wgetFile.append(itemValues.getPath_Extension);
-            wgetFile.append(itemValues.compression);
-
-            sstr theFileName;
-            theFileName.append(itemValues.programName);
-            theFileName.append("-");
-            theFileName.append(itemValues.version);
-            theFileName.append(itemValues.getPath_Extension);
-            theFileName.append(itemValues.compression);
-
-            sstr newFileName;
-            newFileName.append(itemValues.programName);
-            newFileName.append("-");
-            newFileName.append(itemValues.version);
-            newFileName.append(itemValues.compression);
-            // end of string construction
-
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + wgetFile + "\"");
-
-            //We copy the programName to programName plus the version
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; cp -f " + theFileName + " " + newFileName +  "\"");
-            //We remove the programName
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; rm -f " + theFileName + "\"");
-
-            special = true;
-        }
         if (!special)
         {
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath + "\"");
+            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath +  itemValues.fileName_Compressed + "\"");
         }
     }
     else
