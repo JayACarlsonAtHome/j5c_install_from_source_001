@@ -546,15 +546,7 @@ bool stageSourceCodeIfNeeded(an_itemValues& itemValues)
     if (!(isFileSizeGtZero(itemValues, fileName, true)))
     {
         vec.emplace_back("# Attempting to download file...");
-        if (itemValues.programName == "php")
-        {
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath +  itemValues.fileName_Compressed + "\"");
-            special = true;
-        }
-        if (!special)
-        {
-            vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath +  itemValues.fileName_Compressed + "\"");
-        }
+        vec.emplace_back("eval \"cd '" + itemValues.stgPath + "'; wget " + itemValues.getPath +  itemValues.fileName_Compressed + "\"");
     }
     else
     {
