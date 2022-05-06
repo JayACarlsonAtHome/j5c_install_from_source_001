@@ -61,7 +61,6 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install gcc-toolset-11*");
     vec.emplace_back("dnf -y install gnutls-c++");
     vec.emplace_back("dnf -y install gnutls-devel");
-    vec.emplace_back("dnf -y install google-chrome-stable");
     vec.emplace_back("dnf -y install gtk2-devel");
     vec.emplace_back("dnf -y install gtk3-devel");
     vec.emplace_back("dnf -y install innotop");
