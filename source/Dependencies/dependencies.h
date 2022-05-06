@@ -77,10 +77,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install libjpeg-turbo-utils");
     vec.emplace_back("dnf -y install libjpeg-turbo-devel");
     vec.emplace_back("dnf -y install libpng-devel");
-    vec.emplace_back("dnf -y install libstdc++");
-    vec.emplace_back("dnf -y install libstdc++-devel");
-    vec.emplace_back("dnf -y install libstdc++-docs");
-    vec.emplace_back("dnf -y install libstdc++-static");
+    vec.emplace_back("dnf -y install libstdc++*");
     vec.emplace_back("dnf -y install libwebp-devel");
     vec.emplace_back("dnf -y install libxml++");
     vec.emplace_back("dnf -y install libxml2-devel");
