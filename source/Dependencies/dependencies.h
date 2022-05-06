@@ -86,7 +86,6 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install libzstd-devel");
     vec.emplace_back("dnf -y install mbedtls-devel");
     vec.emplace_back("dnf -y install miniz");
-    vec.emplace_back("dnf -y install mysqlreport");
     vec.emplace_back("dnf -y install mysqltuner");
     vec.emplace_back("dnf -y install mytop");
     vec.emplace_back("dnf -y install ncurses-devel");
