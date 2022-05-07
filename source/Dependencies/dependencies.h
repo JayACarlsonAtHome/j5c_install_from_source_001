@@ -65,7 +65,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install gtk3-devel");
     vec.emplace_back("dnf -y install iotop");
     vec.emplace_back("dnf -y install java-1.8.0-openjdk");
-    vec.emplace_back("dnf -y install java-latest-openjdk");
+    vec.emplace_back("dnf -y install java-17*");
     vec.emplace_back("dnf -y install Judy");
     vec.emplace_back("dnf -y install libcurl-devel");
     vec.emplace_back("dnf -y install libedit");
