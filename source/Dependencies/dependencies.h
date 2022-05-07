@@ -63,7 +63,6 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install gnutls-devel");
     vec.emplace_back("dnf -y install gtk2-devel");
     vec.emplace_back("dnf -y install gtk3-devel");
-    vec.emplace_back("dnf -y install innotop");
     vec.emplace_back("dnf -y install iotop");
     vec.emplace_back("dnf -y install jemalloc-devel");
     vec.emplace_back("dnf -y install java-1.8.0-openjdk");
