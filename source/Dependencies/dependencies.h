@@ -58,7 +58,6 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install gitk");
     vec.emplace_back("dnf -y install gcc");
     vec.emplace_back("dnf -y install gcc-c++");
-    vec.emplace_back("dnf -y install gcc-toolset-11*");
     vec.emplace_back("dnf -y install gnutls-c++");
     vec.emplace_back("dnf -y install gnutls-devel");
     vec.emplace_back("dnf -y install gtk2-devel");
@@ -76,7 +75,6 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install libjpeg-turbo-devel");
     vec.emplace_back("dnf -y install libpng-devel");
     vec.emplace_back("dnf -y install libstdc++*");
-    vec.emplace_back("dnf -y install libvmmalloc-devel");
     vec.emplace_back("dnf -y install libwebp-devel");
     vec.emplace_back("dnf -y install libxml2-devel");
     vec.emplace_back("dnf -y install libxslt-devel");
@@ -86,6 +84,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install oniguruma");
     vec.emplace_back("dnf -y install pcre2-devel");
     vec.emplace_back("dnf -y install perl-CPAN");
+    vec.emplace_back("dnf -y install perl-FindBin.noarch");
     vec.emplace_back("dnf -y install perl-IPC*");
     vec.emplace_back("dnf -y install perl-Pod-Html");
     vec.emplace_back("dnf -y install pmempool");
