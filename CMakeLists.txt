@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(j5c_install_from_source_001)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 set(SOURCE_FILES
         source/j5c_date.h

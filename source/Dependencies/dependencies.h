@@ -84,7 +84,6 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install oniguruma");
     vec.emplace_back("dnf -y install pcre2-devel");
     vec.emplace_back("dnf -y install perl-CPAN");
-    vec.emplace_back("dnf -y install perl-FindBin.noarch");
     vec.emplace_back("dnf -y install perl-IPC*");
     vec.emplace_back("dnf -y install perl-Pod-Html");
     vec.emplace_back("dnf -y install pmempool");
