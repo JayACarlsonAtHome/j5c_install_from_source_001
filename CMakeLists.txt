@@ -40,7 +40,7 @@ set(SOURCE_FILES
         source/wxWidgets/wxwidgets.h
 
         main.cpp
-        source/Judy/judy.h)
+        source/Judy/judy.h source/GnuPG/GnuPG.h source/GnuPG/Libgpg-error.h)
 
 add_executable(Install.sh ${SOURCE_FILES})
 

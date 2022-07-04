@@ -42,6 +42,8 @@
 #include "source/Dependencies/dependencies.h"
 #include "source/Commands/commands.h"
 
+#include "source/GnuPG/GnuPG.h"
+#include "source/GnuPG/Libgpg-error.h"
 #include "source/Apache/apache_install.h"
 #include "source/CMake/cmake.h"
 #include "source/Judy/judy.h"
@@ -216,6 +218,20 @@ int main() {
     }
 
     std::vector<programs> progVector;
+
+    //This is not ready yet
+    // program.itemValues.programName = "libgpg-error";
+    //program.itemValues.step        = -1;
+    //program.funptr = &install_Libgpg_error;
+    //progVector.emplace_back(program);
+
+    //This is not ready yet
+    //program.itemValues.programName = "gnupg";
+    //program.itemValues.step        = -1;
+    //program.funptr = &install_gnupg;
+    //progVector.emplace_back(program);
+
+//
 
     program.itemValues.programName = "cmake";
     program.itemValues.step        = -1;
