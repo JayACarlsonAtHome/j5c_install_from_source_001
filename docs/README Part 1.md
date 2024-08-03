@@ -10,46 +10,46 @@ The current list of programs:
 
 From source code:
 ============================================================================
-cmake->Version     : 3.23.1   (used for building software)
+cmake->Version     : 3.30.1   (used for building software)
 
-libzip->Version    : 1.8.0   (used for compression)
+libzip->Version    : 1.10.1   (used for compression)
 
-perl5->Version       : 5.34.1   (used for web programming and more)
+perl5->Version       : 5.40.0   (used for web programming and more)
 
-openssl->Version     : 1.1.1n (used for encryption)
+openssl->Version     : 3.3.1 (used for encryption)
 
 judy->Version        : 1.0.5  (used in MariaDB)
 
 mariadb->Version     : 10.7.X (database -- removed from this program)
 just use dnf install mariadb-server instead you still get 10.3 or higher
 
-apr->Version         : 1.7.0 (needed for Apache Web Server)
+apr->Version         : 1.7.4 (needed for Apache Web Server)
 
-apr-util->Version    : 1.6.1 (needed for Apache Web Server)
+apr-util->Version    : 1.6.3 (needed for Apache Web Server)
 
 apr-iconv->Version   : 1.2.2 (needed for Apache Web Server)
 
-pcre2->Version       : 10.40 (needed for Apache Web Server, and PHP)
+pcre2->Version       : 10.44 (needed for Apache Web Server, and PHP)
 
-apache->Version      : 2.4.53 (Apache Web Server)
+apache->Version      : 2.4.62 (Apache Web Server)
 
-perl6->Version       : 2022.04 (programming language with virtual machine)
+perl6->Version       : 2024.06 (programming language with virtual machine)
 
-php->Version         : 8.1.5 (web programming scripting language)
+php->Version         : 8.2.22 (web programming scripting language)
 
-php->Xdebug->Version : 3.1.4 (web programming debugging for php)
+php->Xdebug->Version : 3.2.2 (web programming debugging for php)
 
-poco->Version        : 1.11.2 (c++ library)
+poco->Version        : 1.13.3 (c++ library)
 
 postfix->Version     : 3.7.2 (mail server -- downloads, not installed)
 
-python->Version      : 3.10.4 (a general purpose programming language)
+python->Version      : 3.12.4 (a general purpose programming language)
 
-ruby->Version        : 3.1.2 (a general purpose and web programming language)
+ruby->Version        : needs work...
 
-tcl->Version         : 8.7a5 (a scripting tool)
+tcl->Version         : 8.6.14 (a scripting tool)
 
-tk->Version          : 8.7a5 (a scripting tool that does multi-platform GUIs)
+tk->Version          : 8.6.14 (a scripting tool that does multi-platform GUIs)
 
-wxWidgets->Version   : 3.1.6 (a cross platform GUIs using C++)
+wxWidgets->Version   : 3.2.5 (a cross platform GUIs using C++)
 

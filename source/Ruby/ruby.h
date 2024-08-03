@@ -29,8 +29,12 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
         if (securityCheck)
         {
             result = setupInstallDirectories(itemValues);
-            sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "'\";\n"
-                                + positionCommand + "./configure --prefix='" + itemValues.usrPath + "' \\\n";
+            sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "'\";\n";
+
+            std::vector<sstr> commands;
+            commands.emplace_back(positionCommand +  "./configure --prefix='" +  itemValues.usrPath + "'");
+            configureStr.append(multilineCommand(commands, false));
+
             result += basicInstall(itemValues, configureStr);
             createProtectionWhenRequired(result, itemValues, false);
         } else {
