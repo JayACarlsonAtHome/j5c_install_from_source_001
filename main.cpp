@@ -70,7 +70,7 @@ using namespace J5C_DSL_Code;
  ***   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  ***/
 
-int main() {
+int main(int argc, char** argv) {
 
 
     struct programs
@@ -82,14 +82,26 @@ int main() {
 
     OS_type thisOSType;
     Mac_PM mpm;
+    sstr fileSettings;
     sstr prefix;
     sstr protectModeText;
     time_t programStart;
     time_t programStop;
     programStart = get_Time();
 
-    // get settings from file
-    sstr fileSettings = "/home/J5C_Install/Install_Settings.cfg";
+    // get settings file name from Command Line
+    if (argc == 2)
+    {
+        fileSettings = argv[1];
+        std::cout << "The settings file is: " << fileSettings << "\n";
+    }
+    else {
+        std::cout << "You must supply the settings file name if it is in the same directory.";
+        std::cout << "If the settings file is in a different directory you need to give the path/name.";
+        std::cout << "The program will now terminate.";
+        std::cout << "...";
+        std::terminate();
+    }
     std::map<sstr, sstr> settings;
     system("pwd");
     settings = getProgramSettings(fileSettings);
@@ -129,6 +141,9 @@ int main() {
     if (theOStext == "red hat")    { thisOSType = OS_type::RedHat;      }
     if (theOStext == "red_hat")    { thisOSType = OS_type::RedHat;      }
     if (theOStext == "redhat")     { thisOSType = OS_type::RedHat;      }
+    if (theOStext == "AlmaLinux")  { thisOSType = OS_type::RedHat;      }
+    if (theOStext == "RockyLinux") { thisOSType = OS_type::RedHat;      }
+
     if (theOStext == "OSX") {
         thisOSType = OS_type::MaxOSX;
         // TODO add a setting for Homebrew or Mac Ports

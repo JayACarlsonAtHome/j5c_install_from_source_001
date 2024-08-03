@@ -89,6 +89,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install pmempool");
     vec.emplace_back("dnf -y install podman");
     vec.emplace_back("dnf -y install postfix-sqlite");
+    vec.emplace_back("dnf -y install rubygem-psych");
     vec.emplace_back("dnf -y install sqlite-devel");
     vec.emplace_back("dnf -y install sqlite-libs");
     vec.emplace_back("dnf -y install xorg*");
