@@ -14,8 +14,7 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
 {
     int result = -1;
     sstr positionCommand = std::string(commandPosition, ' ');
-    sstr command;
-    std::vector<sstr> vec;
+    sstr temp;
 
     set_bInstall(itemValues);
     if (itemValues.bInstall)
@@ -32,9 +31,14 @@ int install_ruby(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             sstr configureStr = "eval \"cd '" + itemValues.srcPathPNV + "'\";\n";
 
             std::vector<sstr> commands;
-            commands.emplace_back(positionCommand +  "./configure --prefix='" +  itemValues.usrPath + "'");
+            temp.clear();
+            temp.append(positionCommand);
+            temp.append("./configure");
+            temp.append("  --prefix='");
+            temp.append(itemValues.usrPath);
+            temp.append("'");
+            commands.emplace_back(temp);
             configureStr.append(multilineCommand(commands, false));
-
             result += basicInstall(itemValues, configureStr);
             createProtectionWhenRequired(result, itemValues, false);
         } else {

@@ -39,6 +39,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     //vec.emplace_back("wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-" + fedora_release + ".noarch.rpm");
     //vec.emplace_back("dnf -y install epel-release-latest-" + fedora_release +".noarch.rpm");
     //vec.emplace_back("rm -f epel-release-latest-" + fedora_release +".noarch.rpm");
+    vec.emplace_back("dnf -y config-manager --set-enabled crb");
     vec.emplace_back("dnf -y group install \"Server with GUI\"");
     vec.emplace_back("dnf -y install apr-util-sqlite");
     vec.emplace_back("dnf -y install autoconf");
@@ -73,12 +74,14 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install libcurl-devel");
     vec.emplace_back("dnf -y install libjpeg-turbo-utils");
     vec.emplace_back("dnf -y install libjpeg-turbo-devel");
+    vec.emplace_back("dnf -y install libedit-devel");
     vec.emplace_back("dnf -y install libpng-devel");
     vec.emplace_back("dnf -y install libstdc++*");
     vec.emplace_back("dnf -y install libwebp-devel");
     vec.emplace_back("dnf -y install libxml2-devel");
     vec.emplace_back("dnf -y install libxslt-devel");
     vec.emplace_back("dnf -y install libX11-devel");
+    vec.emplace_back("dnf -y install libyaml-devel");
     vec.emplace_back("dnf -y install libzstd-devel");
     vec.emplace_back("dnf -y install ncurses-devel");
     vec.emplace_back("dnf -y install oniguruma");
@@ -89,6 +92,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install pmempool");
     vec.emplace_back("dnf -y install podman");
     vec.emplace_back("dnf -y install postfix-sqlite");
+    vec.emplace_back("dnf -y install readline-devel");
     vec.emplace_back("dnf -y install rubygem-psych");
     vec.emplace_back("dnf -y install sqlite-devel");
     vec.emplace_back("dnf -y install sqlite-libs");
