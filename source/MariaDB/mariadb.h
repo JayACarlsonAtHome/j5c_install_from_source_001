@@ -35,7 +35,7 @@ int create_mariaDB_cnf_File(an_itemValues &itemValues)
     vec.emplace_back("[mysqld]");
     vec.emplace_back("user=mysql");
     vec.emplace_back("socket='" + itemValues.usrPath + "run/mariadb.socket'");
-    vec.emplace_back("bind-address=127.0.1.2");
+    vec.emplace_back("bind-address=127.0.0.10");
     vec.emplace_back("port=3306");
     vec.emplace_back("#skip-external-locking");
     vec.emplace_back(" ");
@@ -107,6 +107,19 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             std::cout << "itemValues.usrPath   :" << itemValues.usrPath    << std::endl;
             std::cout << std::endl;
 
+            //git clone git@github.com:JayACarlsonAtHome/server.git
+            //make clean
+            //rm CMakeCache.txt
+            //git clean -dffx
+            //git reset --hard HEAD
+            //git submodule update --init --recursive
+            //mkdir build-mariadb-server-debug
+            //cd build-mariadb-server-debug
+            ///opt/J5C/p001/usr/cmake/bin/cmake ../../server -DCMAKE_BUILD_TYPE=Debug
+            ///opt/J5C/p001/usr/cmake/bin/cmake  --build . --parallel=4
+            //mysql-test/mtr --parallel=5 --mem --force --max-test-fail=40
+
+
             result = setupInstallDirectories(itemValues);
             ensureMariaDB_UserAndGroupExist(itemValues);
             sstr configureStr = "eval \"cd " + itemValues.srcPathPNV + "\";\n "
@@ -135,7 +148,12 @@ int install_mariadb(std::map<sstr, sstr>& settings, an_itemValues& itemValues)
             commands.emplace_back(positionCommand +  "  --enable-local-infile");
             configureStr.append(multilineCommand(commands, false));
 
-            result += basicInstall(itemValues, configureStr);
+            //Git install -- requires (and not checked for in advance in this program)
+            //   a forked version of mariadb in your own github repository
+            //   gitk install on the clien machine
+            //   and a lot of time for the compilation and tests
+
+
             result += do_post_install(settings, itemValues, result);
             createProtectionWhenRequired(result, itemValues, false);
         } else {

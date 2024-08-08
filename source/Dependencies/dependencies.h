@@ -36,9 +36,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     std::vector<sstr> vec;
     vec.emplace_back("# Install " + programName + ".");
     vec.emplace_back("dnf -y install wget");
-    //vec.emplace_back("wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-" + fedora_release + ".noarch.rpm");
-    //vec.emplace_back("dnf -y install epel-release-latest-" + fedora_release +".noarch.rpm");
-    //vec.emplace_back("rm -f epel-release-latest-" + fedora_release +".noarch.rpm");
+    vec.emplace_back("dnf -y builddep mariadb");
     vec.emplace_back("dnf -y config-manager --set-enabled crb");
     vec.emplace_back("dnf -y group install \"Server with GUI\"");
     vec.emplace_back("dnf -y install apr-util-sqlite");
@@ -47,6 +45,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install openssl-devel"); //this must be before cmake
     vec.emplace_back("dnf -y install bison");
     vec.emplace_back("dnf -y install boost-devel");
+
     vec.emplace_back("dnf -y install bzip2-devel");
     vec.emplace_back("dnf -y install clang");
     vec.emplace_back("dnf -y install cmake");
@@ -84,6 +83,7 @@ int install_dnf_required_dependencies(sstr& fileName, sstr& programName, bool cr
     vec.emplace_back("dnf -y install libyaml-devel");
     vec.emplace_back("dnf -y install libzstd-devel");
     vec.emplace_back("dnf -y install ncurses-devel");
+    vec.emplace_back("dnf -y install ninja-build");
     vec.emplace_back("dnf -y install oniguruma");
     vec.emplace_back("dnf -y install pcre2-devel");
     vec.emplace_back("dnf -y install perl-CPAN");
